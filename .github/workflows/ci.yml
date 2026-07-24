@@ -256,9 +256,11 @@ jobs:
         working-directory: ${{ env.PLUGIN_DIR }}
         run: npx wp-env stop
 
-      - name: Subir el ZIP de distribución
+      - name: Subir el ZIP de distribución y su checksum (GOVERNANCE §5.2)
         uses: actions/upload-artifact@v4
         with:
           name: pluma-engine-zip
-          path: ${{ env.PLUGIN_DIR }}/pluma-engine-*.zip
+          path: |
+            ${{ env.PLUGIN_DIR }}/pluma-engine-*.zip
+            ${{ env.PLUGIN_DIR }}/pluma-engine-*.zip.sha256
           retention-days: 14

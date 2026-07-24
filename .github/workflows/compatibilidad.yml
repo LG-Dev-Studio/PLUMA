@@ -1,0 +1,138 @@
+name: Matriz de compatibilidad
+
+# GOVERNANCE §5.3: matriz testeada "por release", no en cada commit — las 12
+# combinaciones teóricas {WP mínimo, WP latest} × {PHP 8.2, 8.3} × {Yoast,
+# Rank Math, ninguno} se reducen a 6 reales (ver docs/proceso-de-release.md
+# §4): plataforma (WP×PHP sin plugin SEO) + convivencia SEO (Yoast/Rank Math
+# en un único baseline). Vive en un workflow separado de ci.yml para no
+# encarecer cada push con una matriz que GOVERNANCE no exige por commit.
+on:
+  workflow_dispatch: {}
+  push:
+    branches: ['release/**']
+
+env:
+  PLUGIN_DIR: pluma-engine
+
+jobs:
+  plataforma:
+    name: "Plataforma: WP ${{ matrix.wp }} × PHP ${{ matrix.php }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        wp: [minima, latest]
+        php: ['8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.PLUGIN_DIR }}
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ env.PLUGIN_DIR }}/package-lock.json
+
+      - name: composer install
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: composer install --no-interaction --no-progress
+
+      - name: npm ci
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: npm ci
+
+      - name: npm run build (la Sala de Máquinas debe existir para activar)
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: npm run build
+
+      - name: Generar .wp-env.override.json para esta combinación
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: bash bin/generar-wp-env-matriz "${{ matrix.wp }}" "${{ matrix.php }}"
+
+      - name: wp-env start
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: npx wp-env start
+
+      - name: composer test:integration (incluye CompatibilidadSeoTest, skippeado sin plugin SEO activo)
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: npm run test:integration
+
+      - name: Smoke — activar/desactivar en esta combinación real de WP/PHP
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: |
+          npx wp-env run cli -- wp plugin activate pluma-engine
+          npx wp-env run cli -- wp option get pluma_db_version
+          npx wp-env run cli -- wp plugin deactivate pluma-engine
+
+      - name: wp-env stop
+        if: always()
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: npx wp-env stop
+
+  convivencia-seo:
+    name: "Convivencia SEO: ${{ matrix.plugin_seo }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin_seo: [wordpress-seo, seo-by-rank-math]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.PLUGIN_DIR }}
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ env.PLUGIN_DIR }}/package-lock.json
+
+      - name: composer install
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: composer install --no-interaction --no-progress
+
+      - name: npm ci
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: npm ci
+
+      - name: npm run build
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: npm run build
+
+      - name: Generar .wp-env.override.json (baseline fijo WP latest + PHP 8.2)
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: bash bin/generar-wp-env-matriz latest 8.2
+
+      - name: wp-env start
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: npx wp-env start
+
+      - name: Instalar y activar el plugin SEO real en el entorno de tests
+        working-directory: ${{ env.PLUGIN_DIR }}
+        # `test:integration` corre contra el contenedor "tests-cli" (WP_UnitTestCase),
+        # distinto del "cli" de desarrollo — el plugin SEO debe activarse ahí para
+        # que `defined('WPSEO_VERSION')`/`RANK_MATH_VERSION` sea verdadero durante
+        # composer test:integration, no en un WordPress que la suite nunca toca.
+        run: npx wp-env run tests-cli -- wp plugin install "${{ matrix.plugin_seo }}" --activate
+
+      - name: composer test:integration (CompatibilidadSeoTest asevera de verdad con el plugin activo)
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: npm run test:integration
+
+      - name: wp-env stop
+        if: always()
+        working-directory: ${{ env.PLUGIN_DIR }}
+        run: npx wp-env stop

@@ -101,4 +101,36 @@ final class MigradorTest extends CasoDePruebaUnitario {
 
 		self::assertSame( 'wp_multisitio_3_pluma_', ( new Migrador( $wpdb ) )->prefijoTablas() );
 	}
+
+	public function test_revertir_a_ejecuta_las_sentencias_y_actualiza_la_version(): void {
+		Functions\expect( 'get_option' )
+			->once()
+			->with( Migrador::OPCION_VERSION, '0.0.0' )
+			->andReturn( '0.12.0' );
+
+		Functions\expect( 'update_option' )
+			->once()
+			->with( Migrador::OPCION_VERSION, '0.11.0', false )
+			->andReturn( true );
+
+		( new Migrador( new wpdb() ) )->revertirA(
+			'0.11.0',
+			array( 'ALTER TABLE wp_pluma_ejemplo DROP COLUMN columna_nueva;' )
+		);
+
+		$this->expectNotToPerformAssertions();
+	}
+
+	public function test_revertir_a_es_idempotente_no_reescribe_si_la_version_ya_es_la_objetivo(): void {
+		Functions\expect( 'get_option' )
+			->once()
+			->with( Migrador::OPCION_VERSION, '0.0.0' )
+			->andReturn( '0.11.0' );
+
+		Functions\expect( 'update_option' )->never();
+
+		( new Migrador( new wpdb() ) )->revertirA( '0.11.0', array() );
+
+		$this->expectNotToPerformAssertions();
+	}
 }

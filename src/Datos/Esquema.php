@@ -300,4 +300,35 @@ final class Esquema {
 			$wpdb->query( "DROP TABLE IF EXISTS {$tabla}" );
 		}
 	}
+
+	/**
+	 * Sentencias de reversa por transición de versión (GOVERNANCE §5.1: "toda
+	 * migración tiene procedimiento de reversa probado"). Registro explícito
+	 * únicamente — una reversa nunca se infiere del `CREATE TABLE` acumulativo
+	 * de {@see sentenciasCreateTable()}, porque este no distingue qué columna
+	 * llegó en qué versión.
+	 *
+	 * Las Etapas 0-5 no registraron reversa (no se reconstruye retroactivamente
+	 * — deuda histórica aceptada, ver `docs/deuda.md`). A partir de la Etapa 6,
+	 * todo bump de esquema debe añadir su transición aquí en la misma porción
+	 * que lo introduce. La transición 0.12.0→0.11.0 (Etapa 5, porción 3: añadió
+	 * `respuestas_habilitadas` a `periodistas_conducta_versiones` y la tabla
+	 * `respuestas_comentarios`) es el caso de referencia.
+	 *
+	 * @return list<string>
+	 *
+	 * @throws ReversaNoDisponibleException si la transición no está registrada.
+	 */
+	public static function sentenciasReversaDesde( wpdb $wpdb, string $versionOrigen, string $versionDestino ): array {
+		$prefijo = $wpdb->prefix . 'pluma_';
+
+		return match ( $versionOrigen . '->' . $versionDestino ) {
+			'0.12.0->0.11.0' => array(
+				"ALTER TABLE {$prefijo}periodistas_conducta_versiones DROP COLUMN respuestas_habilitadas;",
+				"DROP TABLE IF EXISTS {$prefijo}respuestas_comentarios;",
+			),
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- mensaje construido internamente por la propia excepción, sin entrada de usuario.
+			default => throw new ReversaNoDisponibleException( $versionOrigen, $versionDestino ),
+		};
+	}
 }

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+#
+# Genera .wp-env.override.json para una combinación de la matriz de
+# compatibilidad (GOVERNANCE §5.3). wp-env fusiona este archivo con
+# .wp-env.json automáticamente si existe en la raíz del plugin.
+#
+# Uso: bin/generar-wp-env-matriz WP_VERSION PHP_VERSION
+#   WP_VERSION: "minima" | "latest" | una versión explícita ("6.4.0")
+#   PHP_VERSION: "8.2" | "8.3"
+#
+# Reproducible localmente: el mismo comando que usa
+# .github/workflows/compatibilidad.yml sirve para reproducir un fallo de
+# matriz en una máquina de desarrollo.
+
+set -euo pipefail
+
+RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$RAIZ"
+
+WP_VERSION_ARG="${1:?Uso: bin/generar-wp-env-matriz WP_VERSION PHP_VERSION}"
+PHP_VERSION="${2:?Uso: bin/generar-wp-env-matriz WP_VERSION PHP_VERSION}"
+
+# "WP mínimo" se lee del propio header del plugin (Requires at least) — nunca
+# un literal hardcodeado que pueda quedar desactualizado en silencio (mismo
+# principio que corrigió el CI de la Etapa 5: leer el dato real, no copiarlo).
+case "$WP_VERSION_ARG" in
+    minima)
+        WP_CORE="WordPress/WordPress#$(grep -oP 'Requires at least:\s*\K[0-9.]+' pluma-engine.php).0"
+        ;;
+    latest)
+        WP_CORE="$(grep -oP '"core":\s*"\K[^"]+' .wp-env.json)"
+        ;;
+    *)
+        WP_CORE="WordPress/WordPress#${WP_VERSION_ARG}"
+        ;;
+esac
+
+cat > .wp-env.override.json <<EOF
+{
+    "core": "${WP_CORE}",
+    "phpVersion": "${PHP_VERSION}"
+}
+EOF
+
+echo "-> .wp-env.override.json generado: core=${WP_CORE} phpVersion=${PHP_VERSION}"

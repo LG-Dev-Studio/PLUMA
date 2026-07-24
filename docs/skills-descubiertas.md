@@ -79,6 +79,25 @@ Aplicables a la Etapa 0 (Cimientos), leídos íntegros antes de planificar:
 | `pl-testing` | Mapa de tests del ciclo de vida, wp-env, convenciones desde el primer test |
 | `pl-pipeline` | Solo lectura anticipatoria: el esqueleto no debe contradecir los contratos del Transicionador (Etapa 1) |
 
+## Apertura de Etapa 6 — revisión del mapa (2026-07-24)
+
+Etapa 6 ("Producto en venta") es la primera que no añade un módulo de dominio nuevo — cubre GOVERNANCE §5 (release/venta): versionado, empaquetado reproducible, matriz de compatibilidad, telemetría, modo diagnóstico, docs de venta. **§5.4 (licenciamiento + servidor de actualizaciones propio) queda fuera del alcance y se registra como deuda `PLUMA-E6-1`** — decisión del propietario al abrir la etapa (ver `PLAN-MAESTRO.md` nota¹ y `docs/deuda.md`).
+
+Aplicables a la Etapa 6, releídos íntegros antes de planificar:
+
+| Skill | Aplicación en Etapa 6 |
+|---|---|
+| `lg-first-principles` | Cuestionar qué de §5 es axioma de plataforma (WordPress no soporta licenciamiento premium nativo → servidor propio o de terceros es convención de la industria, no ley física) vs. convención revisable |
+| `lg-risk-radar` | Pre-mortem de release: ZIP que rompe un sitio de cliente = devolución + reseña 1 estrella; migración N-1→N mal probada; matriz de compatibilidad incompleta que deja un combo WP/PHP/SEO real sin cubrir |
+| `lg-independence` | Empaquetado reproducible (PHP-Scoper) y cualquier SDK de telemetría/diagnóstico van detrás de interfaz propia — ninguna lógica de negocio importa un SDK de terceros directamente |
+| `lg-decision-framework` | Decisión ya registrada esta sesión: §5.4 se pospone (puerta de una dirección, con registro en deuda + nota en PLAN-MAESTRO) |
+| `lg-elegance` | El modo diagnóstico y la telemetría no deben convertirse en un segundo sistema de logging paralelo a `pluma_bitacora_motor` — reutilizar, no duplicar |
+| `pl-wp-core` | Empaquetado (build reproducible, PHP-Scoper), migraciones `dbDelta` N-1→N con reversa probada, matriz de compatibilidad (WP min/latest × PHP 8.2/8.3 × Yoast/Rank Math/ninguno), i18n de las nuevas pantallas/docs |
+| `pl-proveedor-ia` | Si la telemetría opt-in envía datos fuera del sitio, ese envío es HTTP saliente → vive en `Pluma\Proveedores` detrás de una interfaz propia, igual que cualquier otro proveedor externo (nunca contenido del cliente ni llaves, por §5.5) |
+| `pl-testing` | Matriz de compatibilidad como suite real (no solo documentada); smoke test del ZIP de producción en WP limpio como gate obligatorio antes de publicar (§5.2) |
+
+Huecos identificados para esta etapa: ningún skill del ecosistema cubre firmado de actualizaciones/licenciamiento de plugins WP de pago — irrelevante mientras `PLUMA-E6-1` esté diferida, pero investigar en fuentes oficiales (EDD Software Licensing / Freemius / patrón de firma tipo Sparkle) cuando se retome.
+
 No aplicables aún (se releerán en su Etapa): `pl-periodistas` (E2), `pl-compuertas` (E3), `pl-proveedor-ia` (E1–E2). Del ecosistema global, para Etapa 0 solo tocan: `test-driven-development`, `e2e-testing`/`playwright-skill` (montaje de suites) y `php-pro` (estándares PHP 8.2).
 
 ## Apertura de Etapa 1 — "El esqueleto que camina" (2026-07-22)

@@ -5,7 +5,14 @@
 # Copia solo los archivos de producción a un directorio limpio, instala
 # dependencias sin paquetes de desarrollo, prefija vendor/ con PHP-Scoper
 # (para que el ZIP nunca colisione con las dependencias de otro plugin en el
-# WordPress del cliente) y produce pluma-engine.zip listo para distribución.
+# WordPress del cliente) y produce pluma-engine-{version}.zip listo para
+# distribución, junto a su checksum SHA-256.
+#
+# Reproducibilidad: el build se ejecuta DOS veces en directorios
+# independientes y se compara el árbol de archivos resultante (rutas +
+# contenido, nunca metadata de timestamp) antes de publicar nada — si el
+# mismo commit produce árboles distintos, el script falla en vez de publicar
+# un ZIP no determinista.
 #
 # Uso: bin/build-zip [version]
 
@@ -16,61 +23,104 @@ cd "$RAIZ"
 
 VERSION="${1:-$(grep -m1 '"version"' composer.json | sed -E 's/.*: *"([^"]+)".*/\1/')}"
 DIST_DIR="$RAIZ/build/dist"
-PLUGIN_DIR="$DIST_DIR/pluma-engine"
+DIST_DIR_VERIFICACION="$RAIZ/build/dist-verificacion"
 ZIP_PATH="$RAIZ/pluma-engine-${VERSION}.zip"
+CHECKSUM_PATH="${ZIP_PATH}.sha256"
 
 echo "== PLUMA Engine — build-zip v${VERSION} =="
 
-rm -rf "$DIST_DIR" "$ZIP_PATH"
-mkdir -p "$PLUGIN_DIR"
+# construir_directorio DEST_DIR
+# Copia el árbol de producción + dependencias a DEST_DIR/pluma-engine.
+construir_directorio() {
+    local dest_dir="$1"
+    local plugin_dir="$dest_dir/pluma-engine"
 
-echo "-> Copiando archivos de producción"
-cp pluma-engine.php "$PLUGIN_DIR/"
-cp uninstall.php "$PLUGIN_DIR/"
-cp composer.json "$PLUGIN_DIR/"
-mkdir -p "$PLUGIN_DIR/src"
-cp -r src/. "$PLUGIN_DIR/src/"
+    rm -rf "$dest_dir"
+    mkdir -p "$plugin_dir"
 
-if [ -d "build/panel" ]; then
-    mkdir -p "$PLUGIN_DIR/build/panel"
-    cp -r build/panel/. "$PLUGIN_DIR/build/panel/"
-else
-    echo "ERROR: build/panel ausente. Ejecuta 'npm run build' antes de empaquetar." >&2
+    cp pluma-engine.php "$plugin_dir/"
+    cp uninstall.php "$plugin_dir/"
+    cp composer.json "$plugin_dir/"
+    # composer.lock viaja con el ZIP: sin él, `composer install` de más abajo
+    # resuelve dependencias "latest" en vez de las fijadas — no determinista
+    # (detectado por la propia verificación de reproducibilidad de este script).
+    cp composer.lock "$plugin_dir/"
+    mkdir -p "$plugin_dir/src"
+    cp -r src/. "$plugin_dir/src/"
+
+    if [ -d "build/panel" ]; then
+        mkdir -p "$plugin_dir/build/panel"
+        cp -r build/panel/. "$plugin_dir/build/panel/"
+    else
+        echo "ERROR: build/panel ausente. Ejecuta 'npm run build' antes de empaquetar." >&2
+        exit 1
+    fi
+
+    if [ -d languages ]; then
+        mkdir -p "$plugin_dir/languages"
+        cp -r languages/. "$plugin_dir/languages/"
+    fi
+
+    if [ -f LICENSES-THIRD-PARTY.md ]; then
+        cp LICENSES-THIRD-PARTY.md "$plugin_dir/"
+    fi
+
+    composer install --no-dev --optimize-autoloader --no-interaction --no-progress --working-dir="$plugin_dir" >&2
+
+    if [ -d "$plugin_dir/vendor" ] && [ "$(ls -A "$plugin_dir/vendor" 2>/dev/null | grep -v '^autoload.php$\|^composer$')" ]; then
+        php "$RAIZ/vendor/bin/php-scoper" add-prefix \
+            --config="$RAIZ/scoper.inc.php" \
+            --working-dir="$plugin_dir" \
+            --output-dir="$plugin_dir/build-scoped" \
+            --force >&2
+
+        rm -rf "$plugin_dir/vendor"
+        mv "$plugin_dir/build-scoped/vendor" "$plugin_dir/vendor"
+        rm -rf "$plugin_dir/build-scoped"
+        composer dump-autoload --classmap-authoritative --no-dev --working-dir="$plugin_dir" >&2
+    fi
+}
+
+# huella_directorio DEST_DIR
+# Hash agregado y determinista del árbol de archivos (ruta + contenido),
+# ignorando toda metadata de timestamp/permisos del sistema de archivos.
+huella_directorio() {
+    local dest_dir="$1"
+    (cd "$dest_dir" && find . -type f -print0 | sort -z | xargs -0 sha256sum) | sha256sum | awk '{print $1}'
+}
+
+echo "-> Construyendo (intento 1 de 2)"
+construir_directorio "$DIST_DIR"
+
+echo "-> Construyendo (intento 2 de 2, verificación de reproducibilidad)"
+construir_directorio "$DIST_DIR_VERIFICACION"
+
+HUELLA_1="$(huella_directorio "$DIST_DIR")"
+HUELLA_2="$(huella_directorio "$DIST_DIR_VERIFICACION")"
+
+if [ "$HUELLA_1" != "$HUELLA_2" ]; then
+    echo "ERROR: el build no es reproducible — dos ejecuciones del mismo commit produjeron árboles distintos." >&2
+    echo "  intento 1: $HUELLA_1" >&2
+    echo "  intento 2: $HUELLA_2" >&2
+    diff -rq "$DIST_DIR/pluma-engine" "$DIST_DIR_VERIFICACION/pluma-engine" >&2 || true
+    rm -rf "$DIST_DIR" "$DIST_DIR_VERIFICACION"
     exit 1
 fi
 
-if [ -d languages ]; then
-    mkdir -p "$PLUGIN_DIR/languages"
-    cp -r languages/. "$PLUGIN_DIR/languages/"
-fi
-
-if [ -f LICENSES-THIRD-PARTY.md ]; then
-    cp LICENSES-THIRD-PARTY.md "$PLUGIN_DIR/"
-fi
-
-echo "-> Instalando dependencias de producción (--no-dev)"
-composer install --no-dev --optimize-autoloader --no-interaction --no-progress --working-dir="$PLUGIN_DIR"
-
-echo "-> Prefijando vendor/ con PHP-Scoper (aislamiento de dependencias)"
-if [ -d "$PLUGIN_DIR/vendor" ] && [ "$(ls -A "$PLUGIN_DIR/vendor" 2>/dev/null | grep -v '^autoload.php$\|^composer$')" ]; then
-    php "$RAIZ/vendor/bin/php-scoper" add-prefix \
-        --config="$RAIZ/scoper.inc.php" \
-        --working-dir="$PLUGIN_DIR" \
-        --output-dir="$PLUGIN_DIR/build-scoped" \
-        --force
-
-    rm -rf "$PLUGIN_DIR/vendor"
-    mv "$PLUGIN_DIR/build-scoped/vendor" "$PLUGIN_DIR/vendor"
-    rm -rf "$PLUGIN_DIR/build-scoped"
-    composer dump-autoload --classmap-authoritative --no-dev --working-dir="$PLUGIN_DIR"
-else
-    echo "   (sin dependencias de producción que prefijar en esta Etapa)"
-fi
+echo "-> Reproducibilidad verificada (huella ${HUELLA_1:0:12}…)"
+rm -rf "$DIST_DIR_VERIFICACION"
 
 echo "-> Comprimiendo $ZIP_PATH"
-(cd "$DIST_DIR" && zip -r -q "$ZIP_PATH" "pluma-engine")
+rm -f "$ZIP_PATH" "$CHECKSUM_PATH"
+(cd "$DIST_DIR" && zip -r -q -X "$ZIP_PATH" "pluma-engine")
+
+echo "-> Calculando checksum"
+# sha256sum registra solo el nombre de archivo (no la ruta absoluta) para que
+# el .sha256 sea portable independientemente del directorio de trabajo.
+(cd "$RAIZ" && sha256sum "$(basename "$ZIP_PATH")" > "$(basename "$CHECKSUM_PATH")")
 
 echo "-> Limpiando directorio temporal"
 rm -rf "$DIST_DIR"
 
 echo "OK: $ZIP_PATH"
+echo "OK: $CHECKSUM_PATH"

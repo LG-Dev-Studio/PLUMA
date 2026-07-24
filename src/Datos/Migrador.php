@@ -55,4 +55,24 @@ final class Migrador {
 	public function prefijoTablas(): string {
 		return $this->wpdb->prefix . 'pluma_';
 	}
+
+	/**
+	 * Ejecuta una reversa de esquema ya resuelta (GOVERNANCE §5.1) y deja la
+	 * versión registrada en `$versionObjetivo`. El llamador es responsable de
+	 * obtener `$sentenciasReversa` de {@see Esquema::sentenciasReversaDesde()}
+	 * — que lanza {@see ReversaNoDisponibleException} si la transición
+	 * solicitada no está registrada — este método nunca reversa "a ciegas".
+	 *
+	 * @param list<string> $sentenciasReversa sentencias `ALTER`/`DROP` en orden de ejecución
+	 */
+	public function revertirA( string $versionObjetivo, array $sentenciasReversa ): void {
+		foreach ( $sentenciasReversa as $sentencia ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- sentencias de reversa fijas, resueltas internamente por Esquema::sentenciasReversaDesde(), sin entrada de usuario.
+			$this->wpdb->query( $sentencia );
+		}
+
+		if ( $this->versionInstalada() !== $versionObjetivo ) {
+			update_option( self::OPCION_VERSION, $versionObjetivo, false );
+		}
+	}
 }
