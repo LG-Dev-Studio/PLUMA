@@ -17,9 +17,10 @@ use wpdb;
  */
 final class Activador {
 
-	public const OPCION_CONSERVAR_DATOS = 'pluma_conservar_datos_al_desinstalar';
-	public const OPCION_ACTIVADO_EN     = 'pluma_activado_en';
-	public const OPCION_MOTOR_TOKEN     = 'pluma_motor_token';
+	public const OPCION_CONSERVAR_DATOS       = 'pluma_conservar_datos_al_desinstalar';
+	public const OPCION_ACTIVADO_EN           = 'pluma_activado_en';
+	public const OPCION_MOTOR_TOKEN           = 'pluma_motor_token';
+	public const OPCION_TELEMETRIA_HABILITADA = 'pluma_telemetria_habilitada';
 
 	public static function activarParaRed( bool $redCompleta, RelojInterface $reloj, string $versionEsquemaObjetivo ): void {
 		if ( is_multisite() && $redCompleta ) {
@@ -47,6 +48,8 @@ final class Activador {
 		// rota el token del cron sin que el usuario lo pida explícitamente.
 		add_option( self::OPCION_CONSERVAR_DATOS, true, '', false );
 		add_option( self::OPCION_MOTOR_TOKEN, wp_generate_password( 43, false, false ), '', false );
+		// GOVERNANCE §5.5: opt-in explícito — nunca habilitada por defecto.
+		add_option( self::OPCION_TELEMETRIA_HABILITADA, false, '', false );
 		update_option( self::OPCION_ACTIVADO_EN, $reloj->ahora()->format( DATE_ATOM ), false );
 	}
 

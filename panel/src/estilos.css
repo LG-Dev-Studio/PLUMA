@@ -1379,6 +1379,16 @@
     text-transform: uppercase;
 }
 
+.pluma-maquinas__payload {
+    max-height: 16rem;
+    overflow: auto;
+    padding: 0.75rem;
+    background: var(--pluma-color-fondo);
+    border: 1px solid var(--pluma-color-borde);
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
 /* Estudio SEO y Taxonomía */
 
 .pluma-seo__seccion {

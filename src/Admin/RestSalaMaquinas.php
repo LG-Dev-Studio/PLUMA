@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Pluma\Admin;
 
 use Pluma\Datos\RepositorioBitacoraInterface;
+use Pluma\Kernel\Activador;
 use Pluma\Kernel\Capacidades;
 use Pluma\Kernel\Cifrado;
+use Pluma\Kernel\ExportadorDiagnostico;
 use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Proveedores\ProveedorGoogleTrends;
 use Pluma\Proveedores\ProveedorOpenRouter;
+use Pluma\Proveedores\TelemetriaInterface;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -37,6 +40,8 @@ final class RestSalaMaquinas {
 	private const RUTA_LLAVE        = '/motor/llave-openrouter';
 	private const RUTA_PROBAR_LLAVE = '/motor/llave-openrouter/probar';
 	private const RUTA_PRESUPUESTO  = '/motor/presupuesto';
+	private const RUTA_TELEMETRIA   = '/motor/telemetria';
+	private const RUTA_DIAGNOSTICO  = '/motor/diagnostico';
 
 	private const LIMITE_BITACORA = 20;
 
@@ -45,6 +50,8 @@ final class RestSalaMaquinas {
 		private readonly PresupuestoLenguaje $presupuesto,
 		private readonly ProveedorOpenRouter $openRouter,
 		private readonly ProveedorGoogleTrends $googleTrends,
+		private readonly TelemetriaInterface $telemetria,
+		private readonly ExportadorDiagnostico $exportadorDiagnostico,
 	) {
 	}
 
@@ -106,6 +113,33 @@ final class RestSalaMaquinas {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'actualizarPresupuesto' ),
+				'permission_callback' => array( $this, 'autorizado' ),
+			)
+		);
+
+		register_rest_route(
+			'pluma/v1',
+			self::RUTA_TELEMETRIA,
+			array(
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( $this, 'telemetria' ),
+					'permission_callback' => array( $this, 'autorizado' ),
+				),
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( $this, 'actualizarTelemetria' ),
+					'permission_callback' => array( $this, 'autorizado' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			'pluma/v1',
+			self::RUTA_DIAGNOSTICO,
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'diagnostico' ),
 				'permission_callback' => array( $this, 'autorizado' ),
 			)
 		);
@@ -191,6 +225,41 @@ final class RestSalaMaquinas {
 		update_option( PresupuestoLenguaje::OPCION_LIMITE_DIARIO, (float) $limite, false );
 
 		return new WP_REST_Response( array( 'limiteDiarioUsd' => (float) $limite ), 200 );
+	}
+
+	public function telemetria(): WP_REST_Response {
+		$habilitada = (bool) get_option( Activador::OPCION_TELEMETRIA_HABILITADA, false );
+
+		return new WP_REST_Response(
+			array(
+				'habilitada'         => $habilitada,
+				'vistaPreviaPayload' => $this->telemetria->construirPayload(),
+			),
+			200
+		);
+	}
+
+	/**
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function actualizarTelemetria( WP_REST_Request $request ) {
+		$habilitada = $request->get_param( 'habilitada' );
+
+		if ( ! is_bool( $habilitada ) ) {
+			return new WP_Error(
+				'pluma_telemetria_invalida',
+				__( 'El valor de telemetría debe ser verdadero o falso.', 'pluma-engine' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		update_option( Activador::OPCION_TELEMETRIA_HABILITADA, $habilitada, false );
+
+		return new WP_REST_Response( array( 'habilitada' => $habilitada ), 200 );
+	}
+
+	public function diagnostico(): WP_REST_Response {
+		return new WP_REST_Response( $this->exportadorDiagnostico->exportar(), 200 );
 	}
 
 	private function llaveConfigurada(): ?string {

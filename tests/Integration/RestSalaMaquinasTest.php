@@ -161,4 +161,70 @@ final class RestSalaMaquinasTest extends WP_UnitTestCase {
 		$lotes = array_map( static fn ( array $e ): int => $e['lotesProcesados'], $respuesta->get_data() );
 		self::assertContains( 5, $lotes );
 	}
+
+	public function test_telemetria_esta_deshabilitada_por_defecto_tras_activar(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->registrarRutas();
+
+		$respuesta = rest_get_server()->dispatch( new WP_REST_Request( 'GET', '/pluma/v1/motor/telemetria' ) );
+		$datos     = $respuesta->get_data();
+
+		self::assertSame( 200, $respuesta->get_status() );
+		self::assertFalse( $datos['habilitada'] );
+		self::assertArrayHasKey( 'versionPlugin', $datos['vistaPreviaPayload'] );
+		self::assertArrayNotHasKey( 'contenido', $datos['vistaPreviaPayload'] );
+	}
+
+	public function test_actualizar_telemetria_persiste_la_eleccion(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->registrarRutas();
+
+		$peticion = new WP_REST_Request( 'POST', '/pluma/v1/motor/telemetria' );
+		$peticion->set_param( 'habilitada', true );
+		$respuesta = rest_get_server()->dispatch( $peticion );
+
+		self::assertSame( 200, $respuesta->get_status() );
+		self::assertTrue( (bool) get_option( Activador::OPCION_TELEMETRIA_HABILITADA ) );
+
+		$respuestaEstado = rest_get_server()->dispatch( new WP_REST_Request( 'GET', '/pluma/v1/motor/telemetria' ) );
+		self::assertTrue( $respuestaEstado->get_data()['habilitada'] );
+	}
+
+	public function test_actualizar_telemetria_con_valor_no_booleano_devuelve_400(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->registrarRutas();
+
+		$peticion = new WP_REST_Request( 'POST', '/pluma/v1/motor/telemetria' );
+		$peticion->set_param( 'habilitada', 'si-por-favor' );
+		$respuesta = rest_get_server()->dispatch( $peticion );
+
+		self::assertSame( 400, $respuesta->get_status() );
+	}
+
+	public function test_diagnostico_devuelve_entorno_conflictos_y_bitacora_sin_datos_sensibles(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$peticionLlave = new WP_REST_Request( 'POST', '/pluma/v1/motor/llave-openrouter' );
+		$peticionLlave->set_param( 'llave', 'sk-or-v1-nunca-debe-salir-en-el-diagnostico' );
+
+		$this->registrarRutas();
+		rest_get_server()->dispatch( $peticionLlave );
+
+		$respuesta = rest_get_server()->dispatch( new WP_REST_Request( 'GET', '/pluma/v1/motor/diagnostico' ) );
+		$datos     = $respuesta->get_data();
+
+		self::assertSame( 200, $respuesta->get_status() );
+		self::assertArrayHasKey( 'entorno', $datos );
+		self::assertArrayHasKey( 'conflictos', $datos );
+		self::assertArrayHasKey( 'bitacoraReciente', $datos );
+		self::assertSame( PHP_VERSION, $datos['entorno']['versionPhp'] );
+		self::assertStringNotContainsString( 'sk-or-v1-nunca-debe-salir-en-el-diagnostico', wp_json_encode( $datos ) );
+	}
 }

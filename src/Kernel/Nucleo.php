@@ -65,7 +65,9 @@ use Pluma\Proveedores\ProveedorGoogleTrends;
 use Pluma\Proveedores\ProveedorOpenRouter;
 use Pluma\Proveedores\ProveedorSearchConsole;
 use Pluma\Proveedores\ProveedorSearchConsoleInterface;
+use Pluma\Proveedores\ProveedorTelemetria;
 use Pluma\Proveedores\ProveedorTendenciasInterface;
+use Pluma\Proveedores\TelemetriaInterface;
 use Pluma\Publicacion\AsignadorTaxonomiaWp;
 use Pluma\Publicacion\CreadorBorrador;
 use Pluma\Publicacion\CreadorBorradorInterface;
@@ -150,6 +152,11 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			DetectorEntorno::class,
 			fn ( Contenedor $c ): DetectorEntorno => new DetectorEntorno( $c->obtener( 'wpdb' ) )
+		);
+
+		$this->contenedor->registrar(
+			DetectorConflictos::class,
+			static fn (): DetectorConflictos => new DetectorConflictos()
 		);
 
 		$this->contenedor->registrar(
@@ -259,6 +266,16 @@ final class Nucleo {
 			fn ( Contenedor $c ): ProveedorOpenRouter => new ProveedorOpenRouter(
 				$c->obtener( EnrutadorModelos::class ),
 				$c->obtener( PresupuestoLenguaje::class ),
+				$c->obtener( RelojInterface::class )
+			)
+		);
+
+		$this->contenedor->registrar(
+			TelemetriaInterface::class,
+			fn ( Contenedor $c ): ProveedorTelemetria => new ProveedorTelemetria(
+				$c->obtener( DetectorEntorno::class ),
+				$c->obtener( RepositorioPiezasInterface::class ),
+				$c->obtener( RepositorioPeriodistasInterface::class ),
 				$c->obtener( RelojInterface::class )
 			)
 		);
@@ -596,12 +613,23 @@ final class Nucleo {
 			)
 		);
 		$this->contenedor->registrar(
+			ExportadorDiagnostico::class,
+			fn ( Contenedor $c ): ExportadorDiagnostico => new ExportadorDiagnostico(
+				$c->obtener( DetectorEntorno::class ),
+				$c->obtener( DetectorConflictos::class ),
+				$c->obtener( RepositorioBitacoraInterface::class ),
+				$c->obtener( RelojInterface::class )
+			)
+		);
+		$this->contenedor->registrar(
 			RestSalaMaquinas::class,
 			fn ( Contenedor $c ): RestSalaMaquinas => new RestSalaMaquinas(
 				$c->obtener( RepositorioBitacoraInterface::class ),
 				$c->obtener( PresupuestoLenguaje::class ),
 				$c->obtener( ProveedorOpenRouter::class ),
-				$c->obtener( ProveedorGoogleTrends::class )
+				$c->obtener( ProveedorGoogleTrends::class ),
+				$c->obtener( TelemetriaInterface::class ),
+				$c->obtener( ExportadorDiagnostico::class )
 			)
 		);
 		$this->contenedor->registrar(

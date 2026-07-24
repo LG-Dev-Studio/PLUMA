@@ -1,6 +1,6 @@
 # Etapa 6 — Producto en venta
 
-**Estado: EN CURSO.** Porción 1 (Versionado SemVer + empaquetado reproducible + matriz de compatibilidad) completa. Porciones 2-4 (telemetría + modo diagnóstico, documentación de venta, cierre formal con beta cerrada externa) pendientes.
+**Estado: EN CURSO.** Porciones 1 (Versionado SemVer + empaquetado reproducible + matriz de compatibilidad) y 2 (telemetría opt-in + modo diagnóstico) completas. Porciones 3-4 (documentación de venta, cierre formal con beta cerrada externa) pendientes.
 
 ## Objetivo y criterio de salida (PLAN-MAESTRO)
 
@@ -48,3 +48,27 @@ A diferencia de las Etapas 1-5, esta no añade un módulo de dominio editorial n
 | `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
 | `bin/build-zip` (local) | reproducibilidad verificada (huella idéntica en dos builds), `.zip.sha256` generado |
 | `.github/workflows/compatibilidad.yml` (CI real, `workflow_dispatch`) | pendiente de disparar tras el push — requiere que el workflow exista en `origin` |
+
+## Porción 2 — Telemetría opt-in (consentimiento + payload) + Modo diagnóstico (commit pendiente)
+
+**Qué se agregó:**
+
+- **Telemetría (§5.5)**: nueva opción `pluma_telemetria_habilitada` (opt-in, `false` por defecto, registrada en `Activador::activar()`, purgada en `Desinstalador::purgar()`). `Pluma\Proveedores\TelemetriaInterface`/`ProveedorTelemetria` (nuevos) construyen localmente el payload anónimo — versión del plugin/esquema/PHP/WordPress/MySQL, multisitio, modo de operación, conteos agregados (periodistas activos, piezas publicadas) — sin enviarlo a ningún lado. La Sala de Máquinas tiene un interruptor nuevo con una vista previa exacta del payload (`GET /motor/telemetria`) antes de activarlo.
+- **Modo diagnóstico (§5.6)**: `Pluma\Kernel\DetectorConflictos` (nuevo, deliberadamente acotado: hoy solo detecta Yoast+Rank Math activos a la vez, reutilizando la misma detección que `Pluma\Seo\DetectorPluginSeo` ya usa para decidir prioridad — cero invención, crece con evidencia real) y `Pluma\Kernel\ExportadorDiagnostico` (nuevo, mismo molde que `ExportadorBancoPeriodistas`: combina entorno + conflictos + bitácora reciente en un array puro). Nuevo botón "Descargar reporte de diagnóstico" en la Sala de Máquinas — primer uso de `Blob`/descarga de archivo en el panel, justificado por el caso de uso real (pegar en un ticket de soporte).
+- `Pluma\Admin\RestSalaMaquinas` gana `GET`/`POST /motor/telemetria` y `GET /motor/diagnostico`, misma capacidad `pluma_configurar_motor` que el resto de la pantalla.
+
+**Honestidad de alcance (cero invención), decidida antes de abrir esta porción:** igual que GOVERNANCE §5.4 (licenciamiento) al abrir la Etapa, §5.5 tropieza con la misma pared — enviar telemetría por HTTP requiere un servidor receptor que no existe. **Decisión del propietario**: esta porción construye el consentimiento y el payload, pero el envío real queda diferido — registrado como deuda `PLUMA-E6-2` (mismo motivo raíz que `PLUMA-E6-1`, mismo destino de pago futuro). El detector de conflictos se acota deliberadamente a lo que el propio código ya verifica en otro punto (Yoast+Rank Math) — no se inventa una lista de plugins de terceros supuestamente incompatibles sin evidencia real.
+
+## Evidencia de gates — Porción 2
+
+| Gate | Resultado |
+|---|---|
+| PHPCS (WordPress-Extra + Security) | 0 errores |
+| PHPStan nivel 8 | 0 errores |
+| `composer test:unit` | 372/372 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 141/141 (2 skipped: `CompatibilidadSeoTest`, sin Yoast/Rank Math instalados en la lane rápida) |
+| `npx vitest run` | 84/84 |
+| `npx tsc --noEmit` | limpio |
+| `npm run build` | build de producción real generado |
+| `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |

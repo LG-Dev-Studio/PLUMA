@@ -44,6 +44,11 @@ export interface EstadoMotor {
     };
 }
 
+export interface EstadoTelemetria {
+    habilitada: boolean;
+    vistaPreviaPayload: Record<string, unknown>;
+}
+
 export interface TextosSalaMaquinas {
     cargando: string;
     errorCarga: string;
@@ -88,6 +93,20 @@ export interface TextosSalaMaquinas {
         confirmarQuitar: string;
     };
     searchConsole: TextosSearchConsole;
+    telemetria: {
+        titulo: string;
+        explicacion: string;
+        habilitar: string;
+        deshabilitar: string;
+        verPayload: string;
+        ocultarPayload: string;
+    };
+    diagnostico: {
+        titulo: string;
+        explicacion: string;
+        descargar: string;
+        descargando: string;
+    };
 }
 
 interface Props {
@@ -156,9 +175,12 @@ export function PantallaSalaMaquinas({ datos, restUrl, nonce, textos }: Props) {
 function SeccionesMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: string; textos: TextosSalaMaquinas }) {
     const [bitacora, setBitacora] = useState<EjecucionBitacora[] | null>(null);
     const [estado, setEstado] = useState<EstadoMotor | null>(null);
+    const [telemetria, setTelemetria] = useState<EstadoTelemetria | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [limiteEditado, setLimiteEditado] = useState('');
     const [enCurso, setEnCurso] = useState(false);
+    const [mostrarPayload, setMostrarPayload] = useState(false);
+    const [descargandoDiagnostico, setDescargandoDiagnostico] = useState(false);
 
     const cabeceras = { 'X-WP-Nonce': nonce };
 
@@ -166,10 +188,12 @@ function SeccionesMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: st
         Promise.all([
             fetch(`${restUrl}pluma/v1/motor/bitacora`, { headers: cabeceras }).then((r) => r.json() as Promise<EjecucionBitacora[]>),
             fetch(`${restUrl}pluma/v1/motor/estado`, { headers: cabeceras }).then((r) => r.json() as Promise<EstadoMotor>),
+            fetch(`${restUrl}pluma/v1/motor/telemetria`, { headers: cabeceras }).then((r) => r.json() as Promise<EstadoTelemetria>),
         ])
-            .then(([listaBitacora, datosEstado]) => {
+            .then(([listaBitacora, datosEstado, datosTelemetria]) => {
                 setBitacora(listaBitacora);
                 setEstado(datosEstado);
+                setTelemetria(datosTelemetria);
                 setLimiteEditado(String(datosEstado.limiteDiarioUsd));
                 setError(null);
             })
@@ -204,6 +228,51 @@ function SeccionesMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: st
             .finally(() => setEnCurso(false));
     };
 
+    const alternarTelemetria = () => {
+        if (null === telemetria) {
+            return;
+        }
+
+        const habilitada = !telemetria.habilitada;
+
+        setEnCurso(true);
+        fetch(`${restUrl}pluma/v1/motor/telemetria`, {
+            method: 'POST',
+            headers: { ...cabeceras, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ habilitada }),
+        })
+            .then((respuesta) => {
+                if (!respuesta.ok) {
+                    throw new Error('respuesta no OK');
+                }
+                cargar();
+            })
+            .catch(() => setError(textos.errorAccion))
+            .finally(() => setEnCurso(false));
+    };
+
+    const descargarDiagnostico = () => {
+        setDescargandoDiagnostico(true);
+        fetch(`${restUrl}pluma/v1/motor/diagnostico`, { headers: cabeceras })
+            .then((respuesta) => {
+                if (!respuesta.ok) {
+                    throw new Error('respuesta no OK');
+                }
+                return respuesta.json();
+            })
+            .then((datos) => {
+                const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const enlace = document.createElement('a');
+                enlace.href = url;
+                enlace.download = `pluma-diagnostico-${new Date().toISOString().slice(0, 10)}.json`;
+                enlace.click();
+                URL.revokeObjectURL(url);
+            })
+            .catch(() => setError(textos.errorAccion))
+            .finally(() => setDescargandoDiagnostico(false));
+    };
+
     if (null !== error) {
         return (
             <p className="pluma-maquinas__aviso" role="alert">
@@ -212,7 +281,7 @@ function SeccionesMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: st
         );
     }
 
-    if (null === bitacora || null === estado) {
+    if (null === bitacora || null === estado || null === telemetria) {
         return <p className="pluma-maquinas__cargando">{textos.cargando}</p>;
     }
 
@@ -262,6 +331,29 @@ function SeccionesMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: st
             />
 
             <BloqueSearchConsole restUrl={restUrl} nonce={nonce} textos={textos.searchConsole} />
+
+            <section className="pluma-maquinas__seccion">
+                <h2>{textos.telemetria.titulo}</h2>
+                <p>{textos.telemetria.explicacion}</p>
+                <label className="pluma-maquinas__campo">
+                    <input type="checkbox" checked={telemetria.habilitada} disabled={enCurso} onChange={alternarTelemetria} />
+                    {telemetria.habilitada ? textos.telemetria.deshabilitar : textos.telemetria.habilitar}
+                </label>
+                <button type="button" onClick={() => setMostrarPayload(!mostrarPayload)}>
+                    {mostrarPayload ? textos.telemetria.ocultarPayload : textos.telemetria.verPayload}
+                </button>
+                {mostrarPayload && (
+                    <pre className="pluma-maquinas__payload">{JSON.stringify(telemetria.vistaPreviaPayload, null, 2)}</pre>
+                )}
+            </section>
+
+            <section className="pluma-maquinas__seccion">
+                <h2>{textos.diagnostico.titulo}</h2>
+                <p>{textos.diagnostico.explicacion}</p>
+                <button type="button" disabled={descargandoDiagnostico} onClick={descargarDiagnostico}>
+                    {descargandoDiagnostico ? textos.diagnostico.descargando : textos.diagnostico.descargar}
+                </button>
+            </section>
 
             <section className="pluma-maquinas__seccion">
                 <h2>{textos.bitacora.titulo}</h2>

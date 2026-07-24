@@ -30,6 +30,7 @@ final class Desinstalador {
 		$opciones = array(
 			Activador::OPCION_CONSERVAR_DATOS,
 			Activador::OPCION_ACTIVADO_EN,
+			Activador::OPCION_TELEMETRIA_HABILITADA,
 			Desactivador::OPCION_DESACTIVADO_EN,
 			\Pluma\Datos\Migrador::OPCION_VERSION,
 			...$opcionesAdicionales,

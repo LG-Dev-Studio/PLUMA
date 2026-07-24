@@ -46,6 +46,11 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 			->with( Activador::OPCION_MOTOR_TOKEN, 'token-de-prueba', '', false )
 			->andReturn( true );
 
+		Functions\expect( 'add_option' )
+			->once()
+			->with( Activador::OPCION_TELEMETRIA_HABILITADA, false, '', false )
+			->andReturn( true );
+
 		Functions\expect( 'update_option' )
 			->once()
 			->with( Activador::OPCION_ACTIVADO_EN, '2026-07-22T12:00:00+00:00', false )
@@ -65,7 +70,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		Functions\expect( 'dbDelta' )->times( 13 )->andReturn( array() );
 		Functions\expect( 'get_option' )->once()->andReturn( '0.1.0' );
 		Functions\expect( 'wp_generate_password' )->once()->andReturn( 'token-de-prueba' );
-		Functions\expect( 'add_option' )->twice()->andReturn( true );
+		Functions\expect( 'add_option' )->times( 3 )->andReturn( true );
 		Functions\expect( 'update_option' )->once();
 
 		Activador::activarParaRed( false, new RelojFijo(), '0.1.0' );
@@ -85,7 +90,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		Functions\expect( 'dbDelta' )->times( 26 )->andReturn( array() ); // 13 tablas × 2 sitios
 		Functions\expect( 'get_option' )->twice()->andReturn( '0.1.0' );
 		Functions\expect( 'wp_generate_password' )->twice()->andReturn( 'token-de-prueba' );
-		Functions\expect( 'add_option' )->times( 4 )->andReturn( true ); // 2 opciones × 2 sitios
+		Functions\expect( 'add_option' )->times( 6 )->andReturn( true ); // 3 opciones × 2 sitios
 		Functions\expect( 'update_option' )->twice();
 
 		Activador::activarParaRed( true, new RelojFijo(), '0.1.0' );
@@ -120,7 +125,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		Functions\expect( 'dbDelta' )->times( 13 )->andReturn( array() );
 		Functions\expect( 'update_option' )->once()->with( 'pluma_db_version', '0.9.0', false )->andReturn( true );
 
-		Functions\expect( 'add_option' )->twice()->andReturn( true );
+		Functions\expect( 'add_option' )->times( 3 )->andReturn( true );
 		Functions\expect( 'wp_generate_password' )->once()->andReturn( 'token-de-prueba' );
 		Functions\expect( 'update_option' )
 			->once()

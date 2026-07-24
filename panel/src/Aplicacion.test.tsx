@@ -337,6 +337,20 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
                 tablaPosicion: 'Posición',
                 sinMetricas: 'todavía no hay métricas sincronizadas',
             },
+            telemetria: {
+                titulo: 'Telemetría',
+                explicacion: 'Opcional y anónima.',
+                habilitar: 'Habilitar telemetría',
+                deshabilitar: 'Telemetría habilitada',
+                verPayload: 'Ver qué se compartiría',
+                ocultarPayload: 'Ocultar',
+            },
+            diagnostico: {
+                titulo: 'Modo diagnóstico',
+                explicacion: 'Genera un reporte técnico.',
+                descargar: 'Descargar reporte de diagnóstico',
+                descargando: 'Generando…',
+            },
         },
         textosEstudioSeo: {
             titulo: 'Estudio SEO y Taxonomía',
@@ -521,6 +535,9 @@ describe('Aplicacion', () => {
                                 googleTrends: { circuitoAbierto: false },
                             }),
                     });
+                }
+                if (url.endsWith('/motor/telemetria')) {
+                    return Promise.resolve({ ok: true, json: () => Promise.resolve({ habilitada: false, vistaPreviaPayload: {} }) });
                 }
                 return Promise.resolve({ ok: true, json: () => Promise.resolve(portadaDeEjemplo()) });
             })

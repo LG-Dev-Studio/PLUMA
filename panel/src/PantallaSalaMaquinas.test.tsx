@@ -6,6 +6,7 @@ import {
     type DatosSalud,
     type EjecucionBitacora,
     type EstadoMotor,
+    type EstadoTelemetria,
     type TextosSalaMaquinas,
 } from './PantallaSalaMaquinas';
 
@@ -110,6 +111,20 @@ function textosDeEjemplo(): TextosSalaMaquinas {
             tablaPosicion: 'Posición',
             sinMetricas: 'todavía no hay métricas sincronizadas',
         },
+        telemetria: {
+            titulo: 'Telemetría',
+            explicacion: 'Opcional y anónima.',
+            habilitar: 'Habilitar telemetría',
+            deshabilitar: 'Telemetría habilitada',
+            verPayload: 'Ver qué se compartiría',
+            ocultarPayload: 'Ocultar',
+        },
+        diagnostico: {
+            titulo: 'Modo diagnóstico',
+            explicacion: 'Genera un reporte técnico.',
+            descargar: 'Descargar reporte de diagnóstico',
+            descargando: 'Generando…',
+        },
     };
 }
 
@@ -123,13 +138,27 @@ function estadoDeEjemplo(sobrescribir: Partial<EstadoMotor> = {}): EstadoMotor {
     };
 }
 
-function stubFetch(bitacora: EjecucionBitacora[], estado: EstadoMotor) {
+function telemetriaDeEjemplo(sobrescribir: Partial<EstadoTelemetria> = {}): EstadoTelemetria {
+    return {
+        habilitada: false,
+        vistaPreviaPayload: { versionPlugin: '0.13.0', piezasPublicadas: 3 },
+        ...sobrescribir,
+    };
+}
+
+function stubFetch(bitacora: EjecucionBitacora[], estado: EstadoMotor, telemetria: EstadoTelemetria = telemetriaDeEjemplo()) {
     const fetchSimulado = vi.fn((url: string) => {
         if (url.endsWith('/motor/bitacora')) {
             return Promise.resolve({ ok: true, json: () => Promise.resolve(bitacora) });
         }
         if (url.endsWith('/motor/estado')) {
             return Promise.resolve({ ok: true, json: () => Promise.resolve(estado) });
+        }
+        if (url.endsWith('/motor/telemetria')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(telemetria) });
+        }
+        if (url.endsWith('/motor/diagnostico')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({ version: '1.0', entorno: {} }) });
         }
         if (url.endsWith('/motor/llave-openrouter/probar')) {
             return Promise.resolve({ ok: true, json: () => Promise.resolve({ valida: true }) });
@@ -249,5 +278,53 @@ describe('PantallaSalaMaquinas', () => {
 
         expect(confirmSimulado).toHaveBeenCalledWith('¿Quitar la llave?');
         confirmSimulado.mockRestore();
+    });
+
+    it('habilita la telemetría y persiste la elección', async () => {
+        const fetchSimulado = stubFetch([], estadoDeEjemplo(), telemetriaDeEjemplo({ habilitada: false }));
+
+        render(<PantallaSalaMaquinas datos={datosDeEjemplo()} restUrl="https://ejemplo.test/wp-json/" nonce="nonce-x" textos={textosDeEjemplo()} />);
+
+        const casilla = await screen.findByRole('checkbox');
+        await userEvent.click(casilla);
+
+        await waitFor(() =>
+            expect(fetchSimulado).toHaveBeenCalledWith(
+                'https://ejemplo.test/wp-json/pluma/v1/motor/telemetria',
+                expect.objectContaining({
+                    method: 'POST',
+                    headers: expect.objectContaining({ 'X-WP-Nonce': 'nonce-x' }),
+                    body: JSON.stringify({ habilitada: true }),
+                })
+            )
+        );
+    });
+
+    it('muestra y oculta la vista previa del payload de telemetría', async () => {
+        stubFetch([], estadoDeEjemplo(), telemetriaDeEjemplo());
+
+        render(<PantallaSalaMaquinas datos={datosDeEjemplo()} restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+
+        await userEvent.click(await screen.findByRole('button', { name: 'Ver qué se compartiría' }));
+
+        expect(screen.getByText(/piezasPublicadas/)).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Ocultar' }));
+
+        expect(screen.queryByText(/piezasPublicadas/)).not.toBeInTheDocument();
+    });
+
+    it('descarga el reporte de diagnóstico como un archivo', async () => {
+        stubFetch([], estadoDeEjemplo());
+        const crearUrlSimulado = vi.fn().mockReturnValue('blob:falso');
+        const revocarUrlSimulado = vi.fn();
+        vi.stubGlobal('URL', { ...URL, createObjectURL: crearUrlSimulado, revokeObjectURL: revocarUrlSimulado });
+
+        render(<PantallaSalaMaquinas datos={datosDeEjemplo()} restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+
+        await userEvent.click(await screen.findByRole('button', { name: 'Descargar reporte de diagnóstico' }));
+
+        await waitFor(() => expect(crearUrlSimulado).toHaveBeenCalled());
+        expect(revocarUrlSimulado).toHaveBeenCalledWith('blob:falso');
     });
 });

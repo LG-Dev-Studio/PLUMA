@@ -43,10 +43,11 @@ final class DesinstaladorTest extends CasoDePruebaUnitario {
 		global $wp_roles;
 		$wp_roles = $wpRoles;
 
-		Functions\expect( 'delete_option' )->times( 4 )->with(
+		Functions\expect( 'delete_option' )->times( 5 )->with(
 			Mockery::anyOf(
 				Activador::OPCION_CONSERVAR_DATOS,
 				Activador::OPCION_ACTIVADO_EN,
+				Activador::OPCION_TELEMETRIA_HABILITADA,
 				Desactivador::OPCION_DESACTIVADO_EN,
 				Migrador::OPCION_VERSION
 			)
@@ -67,10 +68,11 @@ final class DesinstaladorTest extends CasoDePruebaUnitario {
 			public array $role_objects = array();
 		};
 
-		Functions\expect( 'delete_option' )->times( 5 )->with(
+		Functions\expect( 'delete_option' )->times( 6 )->with(
 			Mockery::anyOf(
 				Activador::OPCION_CONSERVAR_DATOS,
 				Activador::OPCION_ACTIVADO_EN,
+				Activador::OPCION_TELEMETRIA_HABILITADA,
 				Desactivador::OPCION_DESACTIVADO_EN,
 				Migrador::OPCION_VERSION,
 				'pluma_opcion_de_un_modulo_futuro'

@@ -560,6 +560,20 @@ final class PantallaPanel {
 				'tablaPosicion'        => __( 'Posición', 'pluma-engine' ),
 				'sinMetricas'          => __( 'todavía no hay métricas sincronizadas', 'pluma-engine' ),
 			),
+			'telemetria'    => array(
+				'titulo'         => __( 'Telemetría', 'pluma-engine' ),
+				'explicacion'    => __( 'Opcional y anónima: versiones, modo de operación y conteos agregados (nunca contenido de piezas ni llaves). Hoy no se envía a ningún servidor todavía — solo se prepara el dato que se compartiría.', 'pluma-engine' ),
+				'habilitar'      => __( 'Habilitar telemetría', 'pluma-engine' ),
+				'deshabilitar'   => __( 'Telemetría habilitada', 'pluma-engine' ),
+				'verPayload'     => __( 'Ver qué se compartiría', 'pluma-engine' ),
+				'ocultarPayload' => __( 'Ocultar', 'pluma-engine' ),
+			),
+			'diagnostico'   => array(
+				'titulo'      => __( 'Modo diagnóstico', 'pluma-engine' ),
+				'explicacion' => __( 'Genera un reporte técnico (versiones, bitácora reciente, conflictos detectados) para pegar en un ticket de soporte. Nunca incluye contenido de piezas ni llaves.', 'pluma-engine' ),
+				'descargar'   => __( 'Descargar reporte de diagnóstico', 'pluma-engine' ),
+				'descargando' => __( 'Generando…', 'pluma-engine' ),
+			),
 		);
 	}
 
