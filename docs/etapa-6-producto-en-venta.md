@@ -1,6 +1,6 @@
 # Etapa 6 — Producto en venta
 
-**Estado: EN CURSO.** Porciones 1 (Versionado SemVer + empaquetado reproducible + matriz de compatibilidad) y 2 (telemetría opt-in + modo diagnóstico) completas. Porciones 3-4 (documentación de venta, cierre formal con beta cerrada externa) pendientes.
+**Estado: EN CURSO.** Porciones 1 (Versionado SemVer + empaquetado reproducible + matriz de compatibilidad), 2 (telemetría opt-in + modo diagnóstico) y 3 (documentación de venta) completas. Porción 4 (cierre formal con beta cerrada externa) pendiente.
 
 ## Objetivo y criterio de salida (PLAN-MAESTRO)
 
@@ -72,3 +72,15 @@ A diferencia de las Etapas 1-5, esta no añade un módulo de dominio editorial n
 | `npx tsc --noEmit` | limpio |
 | `npm run build` | build de producción real generado |
 | `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
+
+## Porción 3 — Documentación de venta (commit pendiente)
+
+**Qué se agregó:**
+
+- **`documentation/`** (nueva, raíz del repo — fuera de `docs/`, que es 100% documentación interna de ingeniería): las cuatro piezas mínimas de GOVERNANCE §5.7, como HTML autocontenido (decisión explícita del propietario: no Markdown interno, diseño propio "digno de un best-seller") — `instalacion.html`, `onboarding.html`, `referencia-pantallas.html`, `faq-conflictos.html`, más `index.html` como portada de navegación.
+- **`documentation/assets/estilo.css`**: sistema visual compartido por las cinco páginas — reutiliza literalmente los tokens de color de `panel/src/estilos.css` (mismos valores hexadecimales, misma variable `--pluma-color-*`) para que la documentación se sienta una extensión del producto real, no un sitio de marketing aparte. Tipografía serif para titulares/sans para cuerpo (mismo lenguaje que el panel, Libro Cap. 10.1), modo oscuro nativo vía `prefers-color-scheme`, totalmente responsivo.
+- Contenido verificado contra el código real y el `CHANGELOG.md` antes de escribirse (cero invención): capacidades exactas por pantalla (`Capacidades::CONFIGURAR_MOTOR`/`APROBAR_PIEZAS`/`GESTIONAR_PERIODISTAS`, leídas de cada `RestXxx::autorizado()`), endpoint y cabecera reales del cron (`/pluma/v1/motor/tick`, `X-Pluma-Token`, límite de 30s entre llamadas), matriz de compatibilidad de la porción 1, y la tabla de límites conocidos (sitemap de noticias, imagen destacada, notificaciones Telegram/Slack, envío de telemetría) enlazada 1:1 con `docs/deuda.md`.
+
+**Honestidad de alcance:** el FAQ de "límites conocidos" declara explícitamente lo que esta versión NO incluye todavía (mismo principio de "escasez honesta" que gobierna el resto del producto) en vez de omitirlo — incluye la propia telemetría diferida (`PLUMA-E6-2`) y la ausencia de licenciamiento (`PLUMA-E6-1`, mencionada como "no necesitas clave de licencia en esta versión", sin exponer jerga interna de deuda técnica al cliente).
+
+**Verificación visual:** las cinco páginas se renderizaron con Playwright (Chromium) en modo claro y oscuro para confirmar el sistema de diseño antes de cerrar la porción — capturas de pantalla revisadas y descartadas (no forman parte del entregable).

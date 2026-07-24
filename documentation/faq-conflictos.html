@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FAQ de conflictos — PLUMA Engine</title>
+<meta name="description" content="Convivencia con Yoast/Rank Math, matriz de compatibilidad y límites conocidos de PLUMA Engine." />
+<link rel="stylesheet" href="assets/estilo.css" />
+</head>
+<body>
+
+<header class="pluma-doc__marca">
+    <a class="pluma-doc__marca-nombre" href="index.html">PLUMA <span>Engine</span></a>
+    <nav class="pluma-doc__marca-nav">
+        <a href="instalacion.html">Instalación</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="referencia-pantallas.html">Pantallas</a>
+        <a href="faq-conflictos.html" aria-current="page">FAQ</a>
+    </nav>
+</header>
+
+<div class="pluma-doc__layout">
+    <nav class="pluma-doc__indice" aria-label="Contenido de esta guía">
+        <h2>En esta guía</h2>
+        <ol>
+            <li><a href="#compatibilidad">Matriz de compatibilidad</a></li>
+            <li><a href="#seo">Convivencia con Yoast / Rank Math</a></li>
+            <li><a href="#hosting">Hosting, cron y multisitio</a></li>
+            <li><a href="#limitaciones">Límites conocidos de esta versión</a></li>
+            <li><a href="#datos">Tus datos</a></li>
+        </ol>
+    </nav>
+
+    <main class="pluma-doc__contenido">
+        <h1>FAQ de conflictos y límites conocidos</h1>
+        <p class="pluma-doc__subtitulo">
+            Honestidad completa sobre qué está probado, qué convive bien y qué todavía no incluye
+            esta versión — nada se maquilla aquí para vender más rápido.
+        </p>
+
+        <section id="compatibilidad">
+            <h2>Matriz de compatibilidad</h2>
+            <p>Combinaciones verificadas activamente antes de cada release:</p>
+            <table class="pluma-doc__tabla">
+                <thead>
+                    <tr><th>Componente</th><th>Cobertura testeada</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>WordPress</td><td>Versión mínima declarada (6.4) y la última estable</td></tr>
+                    <tr><td>PHP</td><td>8.2 y 8.3</td></tr>
+                    <tr><td>SEO</td><td>Sin plugin de SEO, con Yoast SEO, con Rank Math (por separado)</td></tr>
+                </tbody>
+            </table>
+            <p>
+                La matriz se ejecuta antes de publicar cada release, no en cada cambio de código —
+                pero cada combinación de la tabla corre contra un WordPress real, nunca solo
+                documentada de oídas.
+            </p>
+        </section>
+
+        <section id="seo">
+            <h2>Convivencia con Yoast SEO / Rank Math</h2>
+
+            <details class="pluma-doc__faq">
+                <summary>¿PLUMA duplica mis metadatos SEO si ya uso Yoast o Rank Math?</summary>
+                <div class="pluma-doc__faq-cuerpo">
+                    No. PLUMA detecta si Yoast SEO o Rank Math están activos y escribe el título SEO y
+                    la meta descripción directamente en los campos reales de ese plugin — nunca crea
+                    una capa paralela. Solo si ninguno de los dos está activo, PLUMA usa sus propios
+                    campos.
+                </div>
+            </details>
+
+            <details class="pluma-doc__faq">
+                <summary>¿Qué pasa si tengo ambos, Yoast y Rank Math, activos a la vez?</summary>
+                <div class="pluma-doc__faq-cuerpo">
+                    Es una configuración inusual que ninguno de los dos plugins soporta bien entre sí.
+                    PLUMA da prioridad fija a Yoast en ese caso y te lo advierte explícitamente en el
+                    reporte de diagnóstico (Sala de Máquinas) — los campos de Rank Math quedan sin
+                    usar mientras ambos sigan activos.
+                </div>
+            </details>
+        </section>
+
+        <section id="hosting">
+            <h2>Hosting, cron y multisitio</h2>
+
+            <details class="pluma-doc__faq">
+                <summary>¿Funciona con cualquier hosting?</summary>
+                <div class="pluma-doc__faq-cuerpo">
+                    Con cualquier hosting que te permita configurar un cron real (una tarea programada
+                    del servidor, no solo <code>WP-Cron</code>) — la inmensa mayoría de hostings de
+                    WordPress, compartidos o no. Ver la <a href="instalacion.html#cron">guía de
+                    instalación</a> para el paso exacto.
+                </div>
+            </details>
+
+            <details class="pluma-doc__faq">
+                <summary>¿Puedo usarlo en un multisitio?</summary>
+                <div class="pluma-doc__faq-cuerpo">
+                    Sí, con banco de periodistas, tablas y configuración independientes por cada sitio
+                    de la red — activar en red completa activa cada sitio individualmente, no comparte
+                    un único banco entre todos.
+                </div>
+            </details>
+
+            <details class="pluma-doc__faq">
+                <summary>¿Necesito una clave de licencia?</summary>
+                <div class="pluma-doc__faq-cuerpo">
+                    No en esta versión — PLUMA se activa e instala igual que cualquier plugin
+                    convencional, sin verificación de licencia contra un servidor externo.
+                </div>
+            </details>
+        </section>
+
+        <section id="limitaciones">
+            <h2>Límites conocidos de esta versión</h2>
+            <p>
+                Todo lo que sigue está deliberadamente fuera de esta versión — no es un error, es una
+                priorización explícita que preferimos declarar en vez de dejar que la descubras a
+                medias:
+            </p>
+            <table class="pluma-doc__tabla">
+                <thead>
+                    <tr><th>Área</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Sitemap de Google News</td>
+                        <td><span class="pluma-doc__etiqueta pluma-doc__etiqueta--limitacion">No incluido todavía</span></td>
+                    </tr>
+                    <tr>
+                        <td>Imagen destacada generada automáticamente</td>
+                        <td><span class="pluma-doc__etiqueta pluma-doc__etiqueta--limitacion">No incluido todavía</span></td>
+                    </tr>
+                    <tr>
+                        <td>Notificaciones de Piezas retenidas</td>
+                        <td><span class="pluma-doc__etiqueta pluma-doc__etiqueta--ok">Correo electrónico</span> — Telegram/Slack no incluidos todavía</td>
+                    </tr>
+                    <tr>
+                        <td>Informe editorial semanal</td>
+                        <td><span class="pluma-doc__etiqueta pluma-doc__etiqueta--ok">Bajo demanda en el panel</span> — sin envío automático por correo</td>
+                    </tr>
+                    <tr>
+                        <td>Telemetría opt-in</td>
+                        <td><span class="pluma-doc__etiqueta pluma-doc__etiqueta--limitacion">Solo local</span> — puedes activarla y ver exactamente qué se compartiría, pero todavía no se envía a ningún servidor</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="datos">
+            <h2>Tus datos</h2>
+            <details class="pluma-doc__faq">
+                <summary>¿Qué pasa con mis Piezas y mi banco de periodistas si desinstalo el plugin?</summary>
+                <div class="pluma-doc__faq-cuerpo">
+                    Por defecto, se conservan. Desinstalar (no solo desactivar) borra tus datos
+                    únicamente si elegiste explícitamente esa opción — nunca por accidente.
+                </div>
+            </details>
+            <details class="pluma-doc__faq">
+                <summary>¿PLUMA envía contenido de mi sitio a algún lado sin que yo lo sepa?</summary>
+                <div class="pluma-doc__faq-cuerpo">
+                    No. La única llamada saliente además de tu proveedor de lenguaje (que tú
+                    conectaste) es, opcionalmente, Google Search Console si decides conectarlo. La
+                    telemetría es opt-in, anónima, y —a día de hoy— ni siquiera se envía todavía (ver
+                    arriba).
+                </div>
+            </details>
+        </section>
+    </main>
+</div>
+
+<footer class="pluma-doc__pie">
+    PLUMA Engine — FAQ de conflictos. Ver también: <a href="instalacion.html">Instalación</a> · <a href="referencia-pantallas.html">Referencia de pantallas</a>.
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,522 @@
+/*
+ * PLUMA Engine — Documentación de venta (GOVERNANCE §5.7)
+ * Sistema visual compartido por las cuatro guías + el índice.
+ *
+ * Reutiliza literalmente los tokens de color del panel real
+ * (panel/src/estilos.css) — la documentación tiene que sentirse como una
+ * extensión del producto, no como un sitio de marketing genérico aparte.
+ */
+
+:root {
+    --pluma-color-fondo: #f7f5f2;
+    --pluma-color-superficie: #ffffff;
+    --pluma-color-texto: #1c1a17;
+    --pluma-color-texto-tenue: #6b6459;
+    --pluma-color-borde: #e2ddd4;
+
+    --pluma-color-publicada: #1e7d3c;
+    --pluma-color-en-revision: #b8860b;
+    --pluma-color-retenida: #b3261e;
+    --pluma-color-neutro: #6b6459;
+
+    --pluma-acento: #8a5a2f;
+    --pluma-acento-superficie: #f3e9dd;
+
+    --pluma-fuente-titular: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+    --pluma-fuente-cuerpo: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --pluma-fuente-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+    --pluma-radio: 8px;
+    --pluma-sombra: 0 1px 2px rgba(28, 26, 23, 0.06), 0 8px 24px rgba(28, 26, 23, 0.06);
+    --pluma-ancho-contenido: 46rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --pluma-color-fondo: #17150f;
+        --pluma-color-superficie: #221f19;
+        --pluma-color-texto: #f1ede6;
+        --pluma-color-texto-tenue: #b3ab9d;
+        --pluma-color-borde: #38332a;
+
+        --pluma-color-publicada: #4caf6e;
+        --pluma-color-en-revision: #e0af3d;
+        --pluma-color-retenida: #e5615a;
+        --pluma-color-neutro: #b3ab9d;
+
+        --pluma-acento: #d3a06c;
+        --pluma-acento-superficie: #2c2318;
+
+        --pluma-sombra: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: var(--pluma-color-fondo);
+    color: var(--pluma-color-texto);
+    font-family: var(--pluma-fuente-cuerpo);
+    line-height: 1.65;
+    font-size: 17px;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Cabecera de marca ---------- */
+
+.pluma-doc__marca {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1.5rem;
+    background: color-mix(in srgb, var(--pluma-color-superficie) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--pluma-color-borde);
+}
+
+.pluma-doc__marca-nombre {
+    font-family: var(--pluma-fuente-titular);
+    font-weight: 600;
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+    color: var(--pluma-color-texto);
+    text-decoration: none;
+}
+
+.pluma-doc__marca-nombre span {
+    color: var(--pluma-acento);
+}
+
+.pluma-doc__marca-nav {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.pluma-doc__marca-nav a {
+    color: var(--pluma-color-texto-tenue);
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 500;
+    padding: 0.3rem 0;
+    border-bottom: 2px solid transparent;
+}
+
+.pluma-doc__marca-nav a:hover,
+.pluma-doc__marca-nav a[aria-current='page'] {
+    color: var(--pluma-color-texto);
+    border-bottom-color: var(--pluma-acento);
+}
+
+/* ---------- Estructura de página ---------- */
+
+.pluma-doc__layout {
+    display: flex;
+    max-width: 78rem;
+    margin: 0 auto;
+    align-items: flex-start;
+}
+
+.pluma-doc__indice {
+    position: sticky;
+    top: 4.5rem;
+    flex: 0 0 15rem;
+    padding: 2.5rem 1.5rem 2.5rem 1.5rem;
+    font-size: 0.88rem;
+}
+
+.pluma-doc__indice h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--pluma-color-texto-tenue);
+    margin: 0 0 0.75rem;
+}
+
+.pluma-doc__indice ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.pluma-doc__indice a {
+    color: var(--pluma-color-texto-tenue);
+    text-decoration: none;
+    display: block;
+    padding: 0.15rem 0;
+    border-left: 2px solid transparent;
+    padding-left: 0.75rem;
+}
+
+.pluma-doc__indice a:hover {
+    color: var(--pluma-color-texto);
+    border-left-color: var(--pluma-color-borde);
+}
+
+.pluma-doc__contenido {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 2.5rem 2rem 6rem;
+    max-width: var(--pluma-ancho-contenido);
+}
+
+/* ---------- Portada (hero) ---------- */
+
+.pluma-doc__hero {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 5rem 2rem 3rem;
+    text-align: center;
+}
+
+.pluma-doc__hero-etiqueta {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--pluma-acento);
+    background: var(--pluma-acento-superficie);
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    margin-bottom: 1.25rem;
+}
+
+.pluma-doc__hero h1 {
+    font-family: var(--pluma-fuente-titular);
+    font-size: clamp(2.2rem, 5vw, 3.2rem);
+    line-height: 1.15;
+    margin: 0 0 1rem;
+}
+
+.pluma-doc__hero p {
+    font-size: 1.15rem;
+    color: var(--pluma-color-texto-tenue);
+    max-width: 38rem;
+    margin: 0 auto;
+}
+
+.pluma-doc__tarjetas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1.25rem;
+    max-width: 62rem;
+    margin: 2.5rem auto 0;
+    padding: 0 2rem 5rem;
+}
+
+.pluma-doc__tarjeta {
+    display: block;
+    background: var(--pluma-color-superficie);
+    border: 1px solid var(--pluma-color-borde);
+    border-radius: var(--pluma-radio);
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: var(--pluma-sombra);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.pluma-doc__tarjeta:hover {
+    transform: translateY(-2px);
+}
+
+.pluma-doc__tarjeta-numero {
+    font-family: var(--pluma-fuente-titular);
+    font-size: 0.85rem;
+    color: var(--pluma-acento);
+    font-weight: 600;
+}
+
+.pluma-doc__tarjeta h3 {
+    font-family: var(--pluma-fuente-titular);
+    font-size: 1.25rem;
+    margin: 0.4rem 0 0.5rem;
+}
+
+.pluma-doc__tarjeta p {
+    margin: 0;
+    color: var(--pluma-color-texto-tenue);
+    font-size: 0.95rem;
+}
+
+/* ---------- Tipografía de contenido ---------- */
+
+.pluma-doc__contenido h1 {
+    font-family: var(--pluma-fuente-titular);
+    font-size: clamp(1.9rem, 4vw, 2.5rem);
+    line-height: 1.2;
+    margin: 0 0 0.5rem;
+}
+
+.pluma-doc__subtitulo {
+    color: var(--pluma-color-texto-tenue);
+    font-size: 1.1rem;
+    margin: 0 0 2.5rem;
+}
+
+.pluma-doc__contenido h2 {
+    font-family: var(--pluma-fuente-titular);
+    font-size: 1.5rem;
+    margin: 3rem 0 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--pluma-color-borde);
+}
+
+.pluma-doc__contenido section:first-of-type h2 {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 1.5rem;
+}
+
+.pluma-doc__contenido h3 {
+    font-size: 1.1rem;
+    margin: 1.75rem 0 0.6rem;
+}
+
+.pluma-doc__contenido p,
+.pluma-doc__contenido li {
+    color: var(--pluma-color-texto);
+}
+
+.pluma-doc__contenido ul,
+.pluma-doc__contenido ol {
+    padding-left: 1.3rem;
+}
+
+.pluma-doc__contenido li + li {
+    margin-top: 0.4rem;
+}
+
+.pluma-doc__contenido a {
+    color: var(--pluma-acento);
+}
+
+.pluma-doc__contenido code {
+    font-family: var(--pluma-fuente-mono);
+    font-size: 0.85em;
+    background: var(--pluma-acento-superficie);
+    padding: 0.1em 0.4em;
+    border-radius: 4px;
+}
+
+.pluma-doc__contenido pre {
+    background: var(--pluma-color-texto);
+    color: var(--pluma-color-fondo);
+    padding: 1rem 1.25rem;
+    border-radius: var(--pluma-radio);
+    overflow-x: auto;
+    font-size: 0.85rem;
+}
+
+.pluma-doc__contenido pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+/* ---------- Componentes de contenido ---------- */
+
+.pluma-doc__nota {
+    display: flex;
+    gap: 0.75rem;
+    background: var(--pluma-color-superficie);
+    border: 1px solid var(--pluma-color-borde);
+    border-left: 3px solid var(--pluma-acento);
+    border-radius: var(--pluma-radio);
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    font-size: 0.95rem;
+}
+
+.pluma-doc__nota--advertencia {
+    border-left-color: var(--pluma-color-en-revision);
+}
+
+.pluma-doc__nota-icono {
+    flex: 0 0 auto;
+    font-family: var(--pluma-fuente-titular);
+    font-weight: 700;
+}
+
+.pluma-doc__pasos {
+    counter-reset: paso;
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+}
+
+.pluma-doc__pasos > li {
+    counter-increment: paso;
+    position: relative;
+    padding: 0 0 1.75rem 3rem;
+    border-left: 2px solid var(--pluma-color-borde);
+    margin-left: 0.9rem;
+}
+
+.pluma-doc__pasos > li:last-child {
+    border-left-color: transparent;
+    padding-bottom: 0;
+}
+
+.pluma-doc__pasos > li::before {
+    content: counter(paso);
+    position: absolute;
+    left: -1.1rem;
+    top: -0.1rem;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 50%;
+    background: var(--pluma-color-superficie);
+    border: 1px solid var(--pluma-color-borde);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--pluma-fuente-titular);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.pluma-doc__pasos > li > strong {
+    display: block;
+    font-size: 1.05rem;
+    margin-bottom: 0.3rem;
+}
+
+.pluma-doc__tabla {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.25rem 0;
+    font-size: 0.9rem;
+}
+
+.pluma-doc__tabla th,
+.pluma-doc__tabla td {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--pluma-color-borde);
+    vertical-align: top;
+}
+
+.pluma-doc__tabla th {
+    color: var(--pluma-color-texto-tenue);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.pluma-doc__etiqueta {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: var(--pluma-color-borde);
+    color: var(--pluma-color-texto);
+}
+
+.pluma-doc__etiqueta--ok {
+    background: color-mix(in srgb, var(--pluma-color-publicada) 18%, transparent);
+    color: var(--pluma-color-publicada);
+}
+
+.pluma-doc__etiqueta--limitacion {
+    background: color-mix(in srgb, var(--pluma-color-en-revision) 20%, transparent);
+    color: var(--pluma-color-en-revision);
+}
+
+details.pluma-doc__faq {
+    background: var(--pluma-color-superficie);
+    border: 1px solid var(--pluma-color-borde);
+    border-radius: var(--pluma-radio);
+    padding: 0;
+    margin: 0 0 0.9rem;
+    box-shadow: var(--pluma-sombra);
+}
+
+details.pluma-doc__faq summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+details.pluma-doc__faq summary::-webkit-details-marker {
+    display: none;
+}
+
+details.pluma-doc__faq summary::after {
+    content: '+';
+    font-family: var(--pluma-fuente-titular);
+    font-size: 1.3rem;
+    color: var(--pluma-acento);
+    flex: 0 0 auto;
+}
+
+details.pluma-doc__faq[open] summary::after {
+    content: '–';
+}
+
+details.pluma-doc__faq .pluma-doc__faq-cuerpo {
+    padding: 0 1.25rem 1.25rem;
+    color: var(--pluma-color-texto-tenue);
+}
+
+/* ---------- Pie de página ---------- */
+
+.pluma-doc__pie {
+    max-width: var(--pluma-ancho-contenido);
+    margin: 0 auto;
+    padding: 2rem;
+    color: var(--pluma-color-texto-tenue);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--pluma-color-borde);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 860px) {
+    .pluma-doc__layout {
+        flex-direction: column;
+    }
+
+    .pluma-doc__indice {
+        position: static;
+        width: 100%;
+        padding: 1.5rem 1.5rem 0;
+    }
+
+    .pluma-doc__indice ol {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.25rem;
+    }
+
+    .pluma-doc__contenido {
+        padding: 1.5rem 1.5rem 4rem;
+        max-width: none;
+    }
+
+    .pluma-doc__marca-nav {
+        display: none;
+    }
+}

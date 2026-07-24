@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Referencia de pantallas — PLUMA Engine</title>
+<meta name="description" content="Qué decisión habilita cada una de las ocho pantallas del panel de PLUMA Engine." />
+<link rel="stylesheet" href="assets/estilo.css" />
+</head>
+<body>
+
+<header class="pluma-doc__marca">
+    <a class="pluma-doc__marca-nombre" href="index.html">PLUMA <span>Engine</span></a>
+    <nav class="pluma-doc__marca-nav">
+        <a href="instalacion.html">Instalación</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="referencia-pantallas.html" aria-current="page">Pantallas</a>
+        <a href="faq-conflictos.html">FAQ</a>
+    </nav>
+</header>
+
+<div class="pluma-doc__layout">
+    <nav class="pluma-doc__indice" aria-label="Contenido de esta guía">
+        <h2>Las ocho pantallas</h2>
+        <ol>
+            <li><a href="#portada">La Portada</a></li>
+            <li><a href="#tendencias">Sala de Tendencias</a></li>
+            <li><a href="#editorial">Mesa Editorial</a></li>
+            <li><a href="#periodistas">Banco de Periodistas</a></li>
+            <li><a href="#revision">Sala de Revisión</a></li>
+            <li><a href="#seo">Estudio SEO y Taxonomía</a></li>
+            <li><a href="#maquinas">Sala de Máquinas</a></li>
+            <li><a href="#informes">Informes Editoriales</a></li>
+        </ol>
+    </nav>
+
+    <main class="pluma-doc__contenido">
+        <h1>Referencia de cada pantalla</h1>
+        <p class="pluma-doc__subtitulo">
+            El panel de PLUMA se piensa como una sala de redacción, no como un panel de
+            configuración: cada pantalla existe para habilitar una decisión concreta. Esta guía
+            explica cuál, y qué capacidad de WordPress necesita cada persona de tu equipo para verla.
+        </p>
+
+        <section id="portada">
+            <h2>La Portada <span class="pluma-doc__etiqueta">pluma_configurar_motor</span></h2>
+            <p><strong>Decisión que habilita:</strong> "¿va todo bien hoy, y qué necesita mi atención ahora mismo?"</p>
+            <p>
+                Barra de estado siempre visible (modo activo, cuota del día, próxima publicación,
+                coste contra presupuesto), un kanban compacto de Piezas por estado, alertas de Piezas
+                retenidas o fallidas con su motivo exacto, las tendencias del momento, y un aviso claro
+                cuando el sistema no llegó a la cuota del día — nunca oculto, nunca rellenado con algo
+                de menor calidad para disimularlo.
+            </p>
+        </section>
+
+        <section id="tendencias">
+            <h2>Sala de Tendencias <span class="pluma-doc__etiqueta">pluma_aprobar_piezas</span></h2>
+            <p><strong>Decisión que habilita:</strong> "¿cubrimos esto, lo ignoramos, o lo vigilamos sin gastar todavía?"</p>
+            <p>
+                El radar en vivo: cada tendencia detectada con su puntuación de oportunidad
+                desglosada, quién más la está cubriendo, y tres acciones directas —
+                <em>Cubrir ahora</em> (salta a la cabeza de la cola), <em>Ignorar</em> (la descarta con
+                auditoría) y <em>Vigilar</em> (la mantiene visible sin gastar investigación ni
+                redacción todavía). Cuando una tendencia es la evolución de una historia que ya
+                cubriste, aparece marcada como posible actualización con un botón dedicado — nunca se
+                crea sola una segunda Pieza de la misma historia.
+            </p>
+        </section>
+
+        <section id="editorial">
+            <h2>Mesa Editorial <span class="pluma-doc__etiqueta">pluma_aprobar_piezas</span></h2>
+            <p><strong>Decisión que habilita:</strong> "¿qué está pasando ahora mismo con cada Pieza, y necesito intervenir?"</p>
+            <p>
+                El kanban completo de Piezas por las trece columnas del pipeline. Al abrir una: el
+                expediente completo (fuentes con su extracto, URL y nivel de verificación), la Ficha
+                de Decisión Editorial, el desglose de las tres Compuertas con sus motivos, y el
+                historial de borradores con diff línea a línea entre ciclos. Cuatro acciones,
+                auditadas: reasignar periodista, editar el borrador a mano, descartar, y aprobar una
+                Pieza retenida.
+            </p>
+        </section>
+
+        <section id="periodistas">
+            <h2>Banco de Periodistas <span class="pluma-doc__etiqueta">pluma_gestionar_periodistas</span></h2>
+            <p><strong>Decisión que habilita:</strong> "¿quién escribe con qué voz, y cómo calibro esa voz?"</p>
+            <p>
+                La pantalla que más tiempo vas a usar. Tarjetas con métricas reales de cada
+                periodista (Piezas publicadas, verticales donde más publica), crear desde plantilla,
+                clonar o jubilar. Al abrir uno: el Estudio de Conducta completo — diales de
+                temperamento, reglas cualitativas (línea editorial, líneas rojas, muletillas,
+                vocabulario prohibido), la matriz de tonos (con la fila de Tragedia siempre bloqueada,
+                nunca editable), memoria editorial reciente, y una <strong>vista previa en vivo</strong>:
+                un párrafo de muestra que se re-redacta con la conducta candidata al mover cualquier
+                control, antes de guardar nada.
+            </p>
+        </section>
+
+        <section id="revision">
+            <h2>Sala de Revisión <span class="pluma-doc__etiqueta">pluma_aprobar_piezas</span></h2>
+            <p><strong>Decisión que habilita:</strong> "¿esta Pieza sale tal cual, se corrige, o se descarta?"</p>
+            <p>
+                Diseñada para decidir rápido, incluso desde el móvil: bandeja de Piezas retenidas con
+                su diagnóstico completo de Compuertas y el borrador legible sin salir de la pantalla,
+                más la cola de veto del modo Copiloto con cuenta regresiva en vivo hasta que la
+                publicación se ejecuta sola. Tres botones — aprobar, devolver con nota, descartar — y
+                uno más para vetar desde la cola de Copiloto.
+            </p>
+        </section>
+
+        <section id="seo">
+            <h2>Estudio SEO y Taxonomía <span class="pluma-doc__etiqueta">pluma_configurar_motor</span></h2>
+            <p><strong>Decisión que habilita:</strong> "¿mis propias Piezas se están pisando entre ellas, o mi taxonomía necesita limpieza?"</p>
+            <p>
+                Auditoría de canibalización real (todos los grupos de Piezas ya publicadas que
+                comparten la misma keyword principal, con enlace directo a cada una) y salud
+                taxonómica (etiquetas en cuarentena, propuestas de fusión entre casi-duplicadas). Es de
+                solo lectura: muestra las propuestas, no las ejecuta — fusionar de verdad implica
+                reasignar términos sobre contenido ya publicado.
+            </p>
+        </section>
+
+        <section id="maquinas">
+            <h2>Sala de Máquinas <span class="pluma-doc__etiqueta">pluma_configurar_motor</span></h2>
+            <p><strong>Decisión que habilita:</strong> "¿el motor está sano por dentro, y qué configuración técnica necesita?"</p>
+            <p>
+                Salud del entorno (versiones, cron), bitácora del motor con cada ejecución, coste de
+                hoy contra tu límite diario editable, estado de cada API conectada, gestión de la
+                llave de tu proveedor de lenguaje, conexión con Google Search Console, el interruptor
+                de telemetría opcional (con vista previa exacta de qué se compartiría) y el botón de
+                descarga del reporte de diagnóstico para soporte.
+            </p>
+        </section>
+
+        <section id="informes">
+            <h2>Informes Editoriales <span class="pluma-doc__etiqueta">pluma_configurar_motor</span></h2>
+            <p><strong>Decisión que habilita:</strong> "¿qué pasó realmente esta semana, resumido en un solo lugar?"</p>
+            <p>
+                Una fotografía bajo demanda de los últimos 7 días: Piezas publicadas (por periodista y
+                por vertical), retenidas y fallidas de la semana, tendencias por estado, salud del
+                motor, y actividad de audiencia (comentarios procesados, aprendizajes registrados,
+                sentimiento, respuestas aprobadas o descartadas). Se calcula al momento — no hay envío
+                automático por correo en esta versión.
+            </p>
+        </section>
+    </main>
+</div>
+
+<footer class="pluma-doc__pie">
+    PLUMA Engine — Referencia de pantallas. Ver también: <a href="onboarding.html">Onboarding</a> · <a href="faq-conflictos.html">FAQ de conflictos</a>.
+</footer>
+
+</body>
+</html>

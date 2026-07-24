@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Onboarding — PLUMA Engine</title>
+<meta name="description" content="Los cinco actos del asistente de primer uso de PLUMA Engine." />
+<link rel="stylesheet" href="assets/estilo.css" />
+</head>
+<body>
+
+<header class="pluma-doc__marca">
+    <a class="pluma-doc__marca-nombre" href="index.html">PLUMA <span>Engine</span></a>
+    <nav class="pluma-doc__marca-nav">
+        <a href="instalacion.html">Instalación</a>
+        <a href="onboarding.html" aria-current="page">Onboarding</a>
+        <a href="referencia-pantallas.html">Pantallas</a>
+        <a href="faq-conflictos.html">FAQ</a>
+    </nav>
+</header>
+
+<div class="pluma-doc__layout">
+    <nav class="pluma-doc__indice" aria-label="Contenido de esta guía">
+        <h2>Los cinco actos</h2>
+        <ol>
+            <li><a href="#acto-1">1. Verificación técnica</a></li>
+            <li><a href="#acto-2">2. Proveedor de lenguaje</a></li>
+            <li><a href="#acto-3">3. Línea editorial</a></li>
+            <li><a href="#acto-4">4. Primer periodista</a></li>
+            <li><a href="#acto-5">5. Modo y primer ciclo</a></li>
+        </ol>
+    </nav>
+
+    <main class="pluma-doc__contenido">
+        <h1>Guía del onboarding</h1>
+        <p class="pluma-doc__subtitulo">
+            La primera vez que abres el panel de PLUMA, un asistente de cinco actos te lleva de la
+            instalación en blanco a ver el motor completar un ciclo real delante de ti — sin salir de
+            esa pantalla. Puedes pulsar "Saltar por ahora" en cualquier acto si ya configuraste algo a
+            mano; nada se pierde ni se repite.
+        </p>
+
+        <section id="acto-1">
+            <h2>Acto 1 — Verificación técnica</h2>
+            <p>
+                El asistente comprueba en vivo tu entorno real: versión de PHP, de WordPress, de la
+                base de datos, y si <code>WP-Cron</code> está desactivado como debe. Si el cron real
+                todavía no está configurado, te muestra la URL, la cabecera y el token exactos de tu
+                instalación — los mismos tres datos que pide la <a href="instalacion.html#cron">guía de
+                instalación</a> — junto a recetas genéricas de cPanel y cron de sistema.
+            </p>
+            <p>
+                PLUMA no adivina qué proveedor de hosting usas: las recetas son genéricas a propósito,
+                para no darte una instrucción concreta que pueda ser incorrecta para tu caso.
+            </p>
+        </section>
+
+        <section id="acto-2">
+            <h2>Acto 2 — Proveedor de lenguaje</h2>
+            <p>
+                El mismo bloque de conexión que encontrarás después en la Sala de Máquinas: pegas tu
+                llave de OpenRouter, la pruebas en vivo (sin gastar presupuesto de redacción) y queda
+                cifrada. Si prefieres seguir sin ella por ahora, el asistente avanza igual — PLUMA usa
+                el redactor mecánico de respaldo hasta que conectes una llave real.
+            </p>
+        </section>
+
+        <section id="acto-3">
+            <h2>Acto 3 — Línea editorial</h2>
+            <p>
+                Describes en un párrafo la línea editorial del sitio (el criterio, no el tema — "qué
+                preguntas hacemos", no "de qué hablamos"). Este texto alimenta después la Ficha de
+                Decisión Editorial de cada Pieza.
+            </p>
+            <p>
+                El mismo acto importa tus categorías reales de WordPress hacia el vocabulario interno
+                de PLUMA (categorías ya existentes, no inventadas) — así el Taxónomo parte de tu
+                estructura real desde la primera Pieza, en vez de un vocabulario vacío.
+            </p>
+        </section>
+
+        <section id="acto-4">
+            <h2>Acto 4 — Tu primer periodista</h2>
+            <p>
+                Eliges uno de los tres periodistas de plantilla del banco recomendado (analista de
+                datos, columnista crítica o cronista satírico) como punto de partida y ajustas sus
+                diales de temperamento en el mismo Estudio de Conducta que usarás después para calibrar
+                el resto del banco — con vista previa en vivo del cambio de tono antes de guardar nada.
+            </p>
+        </section>
+
+        <section id="acto-5">
+            <h2>Acto 5 — Modo y primer ciclo</h2>
+            <p>
+                Eliges el modo de operación de arranque. <strong>Piloto</strong> viene preseleccionado
+                de verdad (no solo visualmente): PLUMA hace todo el trabajo real pero deja las Piezas
+                como borradores — el modo recomendado mientras calibras el banco de periodistas las
+                primeras semanas.
+            </p>
+            <p>
+                El asistente termina disparando un ciclo real del motor delante de ti: una tendencia de
+                verdad, investigada, redactada por tu primer periodista y evaluada por las tres
+                Compuertas — sin humo, el mismo camino que correrá el cron real cada vez a partir de
+                ahora.
+            </p>
+            <div class="pluma-doc__nota">
+                <span class="pluma-doc__nota-icono">i</span>
+                <div>
+                    Terminar el asistente (o saltarlo) no es reversible desde el propio asistente — pero
+                    todo lo que configura (línea editorial, periodista, modo) se sigue editando después
+                    con normalidad desde sus pantallas respectivas. Nada queda bloqueado.
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<footer class="pluma-doc__pie">
+    PLUMA Engine — Guía de onboarding. Ver también: <a href="instalacion.html">Instalación</a> · <a href="referencia-pantallas.html">Referencia de pantallas</a>.
+</footer>
+
+</body>
+</html>

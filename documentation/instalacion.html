@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Instalación — PLUMA Engine</title>
+<meta name="description" content="Requisitos, subida del plugin y configuración del cron real del servidor para PLUMA Engine." />
+<link rel="stylesheet" href="assets/estilo.css" />
+</head>
+<body>
+
+<header class="pluma-doc__marca">
+    <a class="pluma-doc__marca-nombre" href="index.html">PLUMA <span>Engine</span></a>
+    <nav class="pluma-doc__marca-nav">
+        <a href="instalacion.html" aria-current="page">Instalación</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="referencia-pantallas.html">Pantallas</a>
+        <a href="faq-conflictos.html">FAQ</a>
+    </nav>
+</header>
+
+<div class="pluma-doc__layout">
+    <nav class="pluma-doc__indice" aria-label="Contenido de esta guía">
+        <h2>En esta guía</h2>
+        <ol>
+            <li><a href="#requisitos">Requisitos reales</a></li>
+            <li><a href="#subir">Subir e instalar el plugin</a></li>
+            <li><a href="#cron">Configurar el cron real</a></li>
+            <li><a href="#llave">Conectar un proveedor de lenguaje</a></li>
+            <li><a href="#verificar">Verificar que quedó activo</a></li>
+        </ol>
+    </nav>
+
+    <main class="pluma-doc__contenido">
+        <h1>Guía de instalación</h1>
+        <p class="pluma-doc__subtitulo">
+            Diez minutos, de la descarga al primer motor funcionando. Esta guía asume que ya tienes
+            acceso de administrador a tu WordPress y, para el paso del cron, acceso al panel de tu
+            hosting o a una terminal.
+        </p>
+
+        <section id="requisitos">
+            <h2>Requisitos reales</h2>
+            <table class="pluma-doc__tabla">
+                <thead>
+                    <tr><th>Componente</th><th>Mínimo</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>WordPress</td><td>6.4 o superior</td></tr>
+                    <tr><td>PHP</td><td>8.2 o superior</td></tr>
+                    <tr><td>Base de datos</td><td>MySQL/MariaDB — el mismo mínimo que ya exige WordPress 6.4</td></tr>
+                    <tr><td>Cron real del servidor</td><td>Imprescindible (ver más abajo) — WP-Cron por sí solo no alcanza</td></tr>
+                </tbody>
+            </table>
+            <div class="pluma-doc__nota">
+                <span class="pluma-doc__nota-icono">i</span>
+                <div>
+                    PLUMA se instala como cualquier plugin premium de WordPress: no requiere clave de
+                    licencia en esta versión ni una cuenta externa para activarse. Sí necesitarás,
+                    aparte, una cuenta propia en un proveedor de lenguaje (ver "Conectar un proveedor
+                    de lenguaje" más abajo) para que la redacción sintética real funcione.
+                </div>
+            </div>
+        </section>
+
+        <section id="subir">
+            <h2>Subir e instalar el plugin</h2>
+            <ol class="pluma-doc__pasos">
+                <li>
+                    <strong>Sube el ZIP</strong>
+                    Desde <code>wp-admin → Plugins → Añadir nueva → Subir plugin</code>, selecciona el
+                    archivo <code>pluma-engine-{versión}.zip</code> que recibiste y pulsa
+                    <em>Instalar ahora</em>. Si prefieres FTP/SFTP, descomprime el ZIP directamente en
+                    <code>wp-content/plugins/</code>.
+                </li>
+                <li>
+                    <strong>Actívalo</strong>
+                    Al activar, PLUMA concede automáticamente sus tres capacidades propias
+                    (<code>pluma_gestionar_periodistas</code>, <code>pluma_aprobar_piezas</code>,
+                    <code>pluma_configurar_motor</code>) al rol Administrador — no hace falta tocar
+                    nada manualmente. Reactivar el plugin más adelante nunca reinicia tu configuración
+                    ni tu banco de periodistas.
+                </li>
+                <li>
+                    <strong>Abre el panel</strong>
+                    Un nuevo elemento de menú "PLUMA" aparece en el escritorio de WordPress. La
+                    primera vez que entres, el asistente de instalación de 5 actos te recibe
+                    automáticamente — ver la <a href="onboarding.html">guía de onboarding</a>.
+                </li>
+            </ol>
+        </section>
+
+        <section id="cron">
+            <h2>Configurar el cron real</h2>
+            <p>
+                WordPress dispara <code>WP-Cron</code> solo cuando alguien visita el sitio — inaceptable
+                para un motor que tiene que investigar, redactar y publicar en horarios reales, con o
+                sin visitas. PLUMA necesita el cron real del servidor apuntando a su propio endpoint.
+            </p>
+            <ol class="pluma-doc__pasos">
+                <li>
+                    <strong>Desactiva WP-Cron</strong>
+                    Añade esta línea a tu <code>wp-config.php</code> (antes de la línea
+                    <code>/* ¡Eso es todo, deja de editar! */</code>):
+                    <pre><code>define( 'DISABLE_WP_CRON', true );</code></pre>
+                </li>
+                <li>
+                    <strong>Copia tu URL y token exactos</strong>
+                    El Acto 1 del asistente de instalación (o la Sala de Máquinas, más adelante) te
+                    muestra la URL de tu instalación y un token único generado solo para tu sitio.
+                    Tienen esta forma:
+                    <pre><code>URL:      https://tu-sitio.com/wp-json/pluma/v1/motor/tick
+Cabecera: X-Pluma-Token
+Token:    (generado automáticamente al activar, único por instalación)</code></pre>
+                </li>
+                <li>
+                    <strong>Da de alta el cron en tu hosting</strong>
+                    La receta exacta depende de tu proveedor — dos recetas genéricas que cubren la
+                    mayoría de hostings:
+                    <p><strong>cPanel</strong> (Cron Jobs → Añadir nuevo cron job, cada minuto):</p>
+                    <pre><code>curl -s "https://tu-sitio.com/wp-json/pluma/v1/motor/tick" -H "X-Pluma-Token: TU_TOKEN" >/dev/null 2>&1</code></pre>
+                    <p><strong>Cron de sistema (crontab -e)</strong>, también cada minuto:</p>
+                    <pre><code>* * * * * curl -s "https://tu-sitio.com/wp-json/pluma/v1/motor/tick" -H "X-Pluma-Token: TU_TOKEN" >/dev/null 2>&1</code></pre>
+                </li>
+            </ol>
+            <div class="pluma-doc__nota pluma-doc__nota--advertencia">
+                <span class="pluma-doc__nota-icono">!</span>
+                <div>
+                    El endpoint acepta como mucho una ejecución cada 30 segundos y exige el token
+                    exacto de tu instalación — una petición sin token, con un token equivocado, o
+                    demasiado seguida de la anterior, se rechaza sin gastar presupuesto ni tocar el
+                    pipeline. No existe una ruta de instalación por hosting: si tu proveedor no aparece
+                    aquí, cualquier cron real capaz de ejecutar <code>curl</code> (o equivalente) cada
+                    minuto sirve igual.
+                </div>
+            </div>
+        </section>
+
+        <section id="llave">
+            <h2>Conectar un proveedor de lenguaje</h2>
+            <p>
+                Sin una llave de proveedor de lenguaje configurada, PLUMA sigue funcionando — pero cae
+                automáticamente a un redactor mecánico de respaldo (sin periodista, sin diales, sin
+                Corrector Interno) y te lo notifica. Para redacción sintética real:
+            </p>
+            <ol class="pluma-doc__pasos">
+                <li>
+                    <strong>Crea tu propia cuenta en el proveedor</strong>
+                    PLUMA se conecta vía OpenRouter, que da acceso a múltiples modelos de IA con una
+                    sola llave. La cuenta y su gasto son tuyos — PLUMA nunca comparte una llave entre
+                    clientes.
+                </li>
+                <li>
+                    <strong>Pégala en la Sala de Máquinas</strong>
+                    Panel PLUMA → Sala de Máquinas → "Llave de OpenRouter". Se cifra en tu base de
+                    datos antes de guardarse (nunca en texto plano) y puedes probarla en vivo antes de
+                    confirmar — la prueba no gasta presupuesto de redacción.
+                </li>
+                <li>
+                    <strong>Fija tu límite diario</strong>
+                    La misma pantalla tiene un límite de gasto diario en USD, editable en cualquier
+                    momento. Al 80% del límite se te avisa; al 100%, el motor pausa la generación
+                    nueva — nunca deja de publicar lo que ya estaba aprobado.
+                </li>
+            </ol>
+        </section>
+
+        <section id="verificar">
+            <h2>Verificar que quedó activo</h2>
+            <p>La Sala de Máquinas (o el propio Acto 1 del asistente) confirma en tiempo real:</p>
+            <ul>
+                <li>Versión de PHP, WordPress y base de datos detectadas.</li>
+                <li>Si <code>WP-Cron</code> quedó correctamente desactivado.</li>
+                <li>Si tu proveedor de lenguaje responde (estado "conectada" / "en enfriamiento tras fallos").</li>
+                <li>La bitácora de las últimas ejecuciones del motor, en cuanto el cron real empiece a llamar.</li>
+            </ul>
+            <p>
+                Si la bitácora sigue vacía diez minutos después de dar de alta el cron, el paso a
+                revisar casi siempre es el mismo: el token o la URL copiados en el paso anterior.
+            </p>
+        </section>
+    </main>
+</div>
+
+<footer class="pluma-doc__pie">
+    PLUMA Engine — Guía de instalación. Ver también: <a href="onboarding.html">Onboarding</a> · <a href="faq-conflictos.html">FAQ de conflictos</a>.
+</footer>
+
+</body>
+</html>
