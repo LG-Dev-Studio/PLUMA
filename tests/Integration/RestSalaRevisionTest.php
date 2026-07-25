@@ -125,7 +125,7 @@ final class RestSalaRevisionTest extends WP_UnitTestCase {
 				false,
 				array(),
 				ModoOperacion::Copiloto,
-				new DiagnosticoCalidad( 80, 70, true, array() ),
+				new DiagnosticoCalidad( 80, 70, true, true, array() ),
 				new DiagnosticoRiesgo( false, false, false, false, true, 'x', false, null ),
 				new DiagnosticoOriginalidad( false, false, 0.8, 0.4 )
 			),

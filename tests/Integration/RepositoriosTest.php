@@ -131,7 +131,7 @@ final class RepositoriosTest extends WP_UnitTestCase {
 			true,
 			array( 'riesgoDifamacion' ),
 			ModoOperacion::Copiloto,
-			new DiagnosticoCalidad( 82, 70, true, array() ),
+			new DiagnosticoCalidad( 82, 70, true, true, array() ),
 			new DiagnosticoRiesgo( true, false, false, false, true, 'acusación sin atribución', false, null ),
 			new DiagnosticoOriginalidad( false, false, 0.6, 0.4 )
 		);

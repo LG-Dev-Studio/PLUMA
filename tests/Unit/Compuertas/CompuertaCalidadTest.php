@@ -69,7 +69,9 @@ final class CompuertaCalidadTest extends CasoDePruebaUnitario {
 		);
 
 		self::assertFalse( $diagnostico->aprobada() );
-		self::assertSame( 75, $diagnostico->puntuacionTotal );
+		// Nivel Tres K.2: sin el piso de sustento, la puntuación es 0 — no se
+		// diluye en el promedio de los demás factores.
+		self::assertSame( 0, $diagnostico->puntuacionTotal );
 		self::assertStringContainsString( 'Sustento', implode( ' ', $diagnostico->detalle ) );
 	}
 
@@ -85,7 +87,11 @@ final class CompuertaCalidadTest extends CasoDePruebaUnitario {
 			true
 		);
 
-		self::assertSame( 80, $diagnostico->puntuacionTotal );
+		// Nivel Tres K.2: la estructura completa ahora es un piso propio,
+		// independiente del sustento — su ausencia también lleva la
+		// puntuación a 0, no solo resta puntos.
+		self::assertSame( 0, $diagnostico->puntuacionTotal );
+		self::assertFalse( $diagnostico->estructuraCompleta );
 		self::assertFalse( $diagnostico->aprobada() );
 		self::assertStringContainsString( 'Estructura incompleta', implode( ' ', $diagnostico->detalle ) );
 	}
@@ -100,7 +106,31 @@ final class CompuertaCalidadTest extends CasoDePruebaUnitario {
 			false
 		);
 
-		self::assertSame( 80, $diagnostico->puntuacionTotal );
+		self::assertSame( 0, $diagnostico->puntuacionTotal );
+		self::assertFalse( $diagnostico->estructuraCompleta );
+		self::assertFalse( $diagnostico->aprobada() );
+	}
+
+	/**
+	 * Nivel Tres K.2: ambos pisos (sustento y estructura) superados, pero un
+	 * factor de PRIORIDAD flojo (voz no aprobada) sí debe reflejarse en la
+	 * puntuación ponderada — a diferencia de los pisos, los contribuyentes sí
+	 * se combinan entre sí.
+	 */
+	public function test_con_ambos_pisos_superados_los_factores_de_prioridad_se_ponderan(): void {
+		Functions\when( 'get_option' )->justReturn( 80 );
+
+		$diagnostico = ( new CompuertaCalidad( new VerificadorLegibilidad() ) )->evaluar(
+			$this->borrador( true, true, false ),
+			$this->esqueletoCompleto(),
+			self::TEXTO_LEGIBLE,
+			true
+		);
+
+		self::assertTrue( $diagnostico->sustentoAprobado );
+		self::assertTrue( $diagnostico->estructuraCompleta );
+		// proporción (0.40*100) + legibilidad (0.35*100, texto legible) + voz no aprobada (0.25*0) = 75.
+		self::assertSame( 75, $diagnostico->puntuacionTotal );
 		self::assertFalse( $diagnostico->aprobada() );
 	}
 

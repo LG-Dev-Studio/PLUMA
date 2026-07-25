@@ -41,7 +41,7 @@ Estado en código: **PENDIENTE DE RETROFIT** — Etapa 8 (C.2–C.3). Hoy el `As
 | Compatibilidad con línea editorial | Contribuyente (0.35) | — | — |
 | Potencial de conversación | Contribuyente (0.25) | — | — |
 
-Estado en código: **PENDIENTE DE RETROFIT** — Etapa 7 (K.1, TIER 0). Sin este piso, "el criterio se vende por potencial viral".
+Estado en código: **RETROFITADA — Etapa 7 (K.1), 2026-07-25.** `SelectorAngulo::generarCandidatos()` ya filtraba por el piso; `CandidatoTesis::puntuacionTotal()` ahora pondera solo los tres factores de prioridad (antes era media simple de los 4, incluido el sustento ya gateado).
 
 ## 4. Compuerta de Calidad
 *Origen: Libro 8.1 · corrección: Nivel Tres K.2 (el hallazgo más grave) · vive en `Pluma\Compuertas\CompuertaCalidad`.*
@@ -54,7 +54,7 @@ Estado en código: **PENDIENTE DE RETROFIT** — Etapa 7 (K.1, TIER 0). Sin este
 | Legibilidad | Contribuyente (0.35) | — | — |
 | Presencia de voz | Contribuyente (0.25) | — | — |
 
-Estado en código: **PENDIENTE DE RETROFIT** — Etapa 7 (K.2, TIER 0). Hoy la compuerta promedia: una pieza bien escrita y mal sustentada puede superar el umbral. "Una compuerta que promedia no es una compuerta."
+Estado en código: **RETROFITADA — Etapa 7 (K.2), 2026-07-25.** `CompuertaCalidad::evaluar()` ya no suma los puntos de sustento/estructura al total: ambos son puertas binarias (`elegible = sustentoAprobado && estructuraCompleta`); si `!elegible`, `puntuacionTotal = 0` sin excepción. Solo tras superar ambos pisos se pondera proporción/legibilidad/voz.
 
 ---
 

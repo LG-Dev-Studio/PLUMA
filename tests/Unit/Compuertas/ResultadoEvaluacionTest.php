@@ -33,7 +33,7 @@ final class ResultadoEvaluacionTest extends CasoDePruebaUnitario {
 			true,
 			array( 'riesgoDifamacion' ),
 			ModoOperacion::Copiloto,
-			new DiagnosticoCalidad( 82, 70, true, array( 'estructura completa' ) ),
+			new DiagnosticoCalidad( 82, 70, true, true, array( 'estructura completa' ) ),
 			new DiagnosticoRiesgo( true, false, false, true, true, 'acusación sin atribución', false, TemaRegulado::Legal ),
 			new DiagnosticoOriginalidad( false, true, 0.55, 0.4 )
 		);
@@ -60,7 +60,7 @@ final class ResultadoEvaluacionTest extends CasoDePruebaUnitario {
 			false,
 			array(),
 			ModoOperacion::Autonomo,
-			new DiagnosticoCalidad( 90, 70, true, array() ),
+			new DiagnosticoCalidad( 90, 70, true, true, array() ),
 			new DiagnosticoRiesgo( false, false, false, false, false, '', false, null ),
 			new DiagnosticoOriginalidad( false, false, 0.8, 0.4 )
 		);

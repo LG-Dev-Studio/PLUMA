@@ -108,6 +108,26 @@ final class SelectorAnguloTest extends CasoDePruebaUnitario {
 		self::assertSame( 'fuerte', $candidatos[ $selector->elegirGanadora( $candidatos ) ]->tesis );
 	}
 
+	/**
+	 * Nivel Tres K.1: el sustento ya se aplicó como piso eliminatorio (ambos
+	 * candidatos superan `UMBRAL_SUSTENTO_MINIMO`) — a partir de ahí, un
+	 * sustento más alto NO debe inclinar la balanza. La ganadora se decide
+	 * solo por originalidad/compatibilidad/conversacional.
+	 */
+	public function test_puntuacion_total_ignora_el_sustento_una_vez_superado_el_piso(): void {
+		$proveedor = new ProveedorLenguajeFalso(
+			'{"candidatos": ['
+				. '{"tesis": "menos sustento pero mejor en lo demás", "puntuacionOriginalidad": 90, "puntuacionCompatibilidadLinea": 90, "puntuacionSustento": 45, "puntuacionConversacional": 90},'
+				. '{"tesis": "mucho más sustento pero peor en lo demás", "puntuacionOriginalidad": 40, "puntuacionCompatibilidadLinea": 40, "puntuacionSustento": 100, "puntuacionConversacional": 40}'
+				. ']}'
+		);
+
+		$selector   = new SelectorAngulo( $proveedor );
+		$candidatos = $selector->generarCandidatos( $this->periodista(), $this->expediente(), $this->clasificacion(), array() );
+
+		self::assertSame( 'menos sustento pero mejor en lo demás', $candidatos[ $selector->elegirGanadora( $candidatos ) ]->tesis );
+	}
+
 	public function test_lanza_excepcion_si_la_respuesta_llego_truncada(): void {
 		$proveedor = new ProveedorLenguajeFalso(
 			'{"candidatos": [{"tesis": "x", "puntuacionOriginalidad": 70, "puntuacionCompatibilidadLinea": 70, "puntuacionSustento": 70, "puntuacionConversacional": 70}]}',

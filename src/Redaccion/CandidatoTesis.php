@@ -21,17 +21,20 @@ final readonly class CandidatoTesis {
 	}
 
 	/**
-	 * Media simple de las cuatro puntuaciones (Libro Cap. 5.5): una tesis sin
-	 * sustento en hechos verificados debe descartarse antes de llegar aquí,
-	 * no diluirse en el promedio — ver `SelectorAngulo::candidatosValidos()`.
+	 * Media ponderada de los tres factores de PRIORIDAD (Nivel Tres K.1):
+	 * originalidad 0.40, compatibilidad con la línea editorial 0.35,
+	 * potencial de conversación 0.25. El sustento en hechos verificados es un
+	 * piso ELIMINATORIO, no un contribuyente — ya se aplicó en
+	 * `SelectorAngulo::generarCandidatos()` (`puntuacionSustento >= UMBRAL_SUSTENTO_MINIMO`)
+	 * antes de que el candidato llegue aquí. Sumarlo también al promedio
+	 * diluiría el piso exactamente como K.1 diagnostica: una tesis con
+	 * sustento apenas por encima del umbral pero muy alta en potencial de
+	 * conversación podría ganarle a una mejor sustentada.
 	 */
 	public function puntuacionTotal(): float {
-		return (
-			$this->puntuacionOriginalidad
-			+ $this->puntuacionCompatibilidadLinea
-			+ $this->puntuacionSustento
-			+ $this->puntuacionConversacional
-		) / 4.0;
+		return 0.40 * $this->puntuacionOriginalidad
+			+ 0.35 * $this->puntuacionCompatibilidadLinea
+			+ 0.25 * $this->puntuacionConversacional;
 	}
 
 	/**

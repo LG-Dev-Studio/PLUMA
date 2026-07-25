@@ -10,9 +10,10 @@ use Pluma\Proveedores\PeticionLenguaje;
 use Pluma\Proveedores\PropositoLenguaje;
 
 /**
- * Paso 3 del Algoritmo de Decisión Editorial (Libro Cap. 5.5): genera 3–5
- * candidatos de tesis y los puntúa. Una tesis sin sustento en hechos
- * verificados se descarta antes de competir, no se diluye en el promedio.
+ * Paso 3 del Algoritmo de Decisión Editorial (Libro Cap. 5.5), endurecido por
+ * Nivel Tres K.1: genera 3–5 candidatos de tesis y aplica el sustento en
+ * hechos verificados como piso ELIMINATORIO (`UMBRAL_SUSTENTO_MINIMO`) antes
+ * de competir — nunca se diluye en el promedio de `CandidatoTesis::puntuacionTotal()`.
  *
  * pl-periodistas §3 "memoria antes de tesis": las posturas previas del
  * periodista sobre este tema viajan como parte del material — si una tesis
