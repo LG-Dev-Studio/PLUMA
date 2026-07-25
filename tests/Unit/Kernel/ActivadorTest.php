@@ -56,6 +56,11 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 			->with( Activador::OPCION_ACTIVADO_EN, '2026-07-22T12:00:00+00:00', false )
 			->andReturn( true );
 
+		Functions\expect( 'update_option' )
+			->once()
+			->with( Activador::OPCION_FLUSH_REESCRITURA_PENDIENTE, true, false )
+			->andReturn( true );
+
 		Activador::activar( new RelojFijo(), '0.1.0' );
 
 		$this->expectNotToPerformAssertions();
@@ -71,7 +76,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		Functions\expect( 'get_option' )->once()->andReturn( '0.1.0' );
 		Functions\expect( 'wp_generate_password' )->once()->andReturn( 'token-de-prueba' );
 		Functions\expect( 'add_option' )->times( 3 )->andReturn( true );
-		Functions\expect( 'update_option' )->once();
+		Functions\expect( 'update_option' )->twice();
 
 		Activador::activarParaRed( false, new RelojFijo(), '0.1.0' );
 
@@ -91,7 +96,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		Functions\expect( 'get_option' )->twice()->andReturn( '0.1.0' );
 		Functions\expect( 'wp_generate_password' )->twice()->andReturn( 'token-de-prueba' );
 		Functions\expect( 'add_option' )->times( 6 )->andReturn( true ); // 3 opciones × 2 sitios
-		Functions\expect( 'update_option' )->twice();
+		Functions\expect( 'update_option' )->times( 4 ); // (activado_en + flush pendiente) × 2 sitios
 
 		Activador::activarParaRed( true, new RelojFijo(), '0.1.0' );
 
@@ -130,6 +135,10 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		Functions\expect( 'update_option' )
 			->once()
 			->with( Activador::OPCION_ACTIVADO_EN, '2026-07-22T12:00:00+00:00', false )
+			->andReturn( true );
+		Functions\expect( 'update_option' )
+			->once()
+			->with( Activador::OPCION_FLUSH_REESCRITURA_PENDIENTE, true, false )
 			->andReturn( true );
 
 		Activador::actualizarEsquemaSiHaceFalta( new RelojFijo(), '0.9.0' );

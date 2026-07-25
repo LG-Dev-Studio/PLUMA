@@ -66,3 +66,30 @@ horneado en `post_content`). Sobre una pieza singular publicada por PLUMA
 Lee solo post meta ya persistidas por `Pluma\Publicacion\Publicador` al publicar
 — cero consultas a repositorios en tiempo de render (CLAUDE.md: peso adicional
 en frontend ≈ 0).
+
+## Página de autor por periodista (Etapa 6, porción 4b)
+
+`Pluma\Seo\PaginaAutorPeriodista` es la **primera página virtual del plugin**:
+no existía hasta ahora ningún `add_rewrite_rule`/`query_vars`/`template_include`
+en el proyecto. Patrón:
+
+- `init` (prioridad por defecto): `registrarReglaReescritura()` añade
+  `^periodista/([^/]+)/?$` → `index.php?pluma_periodista_slug=$matches[1]`.
+- `init` (prioridad 20): `flushSiHaceFalta()` consume una vez la opción
+  `pluma_flush_reescritura_pendiente` (fijada por `Pluma\Kernel\Activador::activar()`)
+  y llama `flush_rewrite_rules()`. **Necesario** porque `activar()` también
+  corre en `plugins_loaded` (auto-actualización de esquema), antes de que
+  `$wp_rewrite` exista — no puede purgar ahí mismo.
+- `query_vars`: registra `pluma_periodista_slug`.
+- `template_redirect`: resuelve el slug contra `RepositorioPeriodistasInterface::obtenerTodos()`
+  (solo periodistas `EstadoPeriodista::Activo`); si no resuelve, `$wp_query->set_404()`
+  + `status_header(404)` — el tema activo renderiza su 404 normal.
+- `template_include`: cuando resuelve, sirve `src/Seo/templates/pagina-autor.php`,
+  que envuelve con `get_header()`/`get_footer()` del tema activo (nunca `exit`/`die`
+  fuera del guard `ABSPATH`, GOVERNANCE §1.5).
+
+Declara siempre, sin opción de ocultarla, `Pluma\Redaccion\DeclaracionIdentidadSintetica`
+(Art. 50 del Reglamento (UE) 2024/1689, Nivel Tres N.3): el nombre del
+periodista es una identidad editorial sintética, no una persona física. El
+`author.url` del JSON-LD emitido por `EmisorEsquemaFrontend` apunta aquí
+cuando el nombre de la pieza resuelve a un periodista activo real.

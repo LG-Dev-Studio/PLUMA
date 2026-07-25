@@ -122,3 +122,36 @@ Primera de las 3 porciones del arco N.3 (Nivel Tres N.3 + Nivel Cuatro verif. 1;
 | `npm run build` | build de producción real |
 | `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
 | Verificación manual del `<head>` real | JSON-LD + marcado IPTC emitidos en la página publicada |
+
+## Porción 4b — Página de autor con identidad sintética (commit pendiente)
+
+Segunda de las 3 porciones del arco N.3. Paga la parte (b) de `PLUMA-E6-3`.
+
+**Qué se agregó:**
+
+- **`Pluma\Redaccion\DeclaracionIdentidadSintetica`** (mismo molde que `AvisoTransparenciaIa`): texto fijo, no configurable, que declara sin ambigüedad que el nombre del periodista es una identidad editorial sintética generada por IA, no una persona física, bajo dirección editorial humana. Cero cambio de esquema — se genera en el momento, igual que el aviso de transparencia.
+- **`Pluma\Seo\PaginaAutorPeriodista`** — **primera página virtual del plugin**: `add_rewrite_rule` (`^periodista/([^/]+)/?$`), `query_vars`, `template_redirect` (resuelve el slug contra el banco de periodistas, solo `EstadoPeriodista::Activo`; si no resuelve, 404 real vía `$wp_query->set_404()` — nunca `exit`/`die`) y `template_include` (sirve `src/Seo/templates/pagina-autor.php`, integrada con `get_header()`/`get_footer()` del tema activo). Un periodista jubilado no gana página nueva, pero su firma en piezas ya publicadas no se toca.
+- **`Pluma\Kernel\Activador`**: la regla debe existir desde la activación, pero `activar()` también corre en `plugins_loaded` (auto-actualización de esquema) antes de que `$wp_rewrite` exista — se difiere la purga a una opción-bandera (`pluma_flush_reescritura_pendiente`) que el próximo `init` real consume y borra una sola vez.
+- **`Pluma\Seo\EmisorEsquemaFrontend`**: el `author.url` del JSON-LD (antes siempre ausente) ahora apunta a la página de autor cuando el nombre de la pieza resuelve a un periodista activo real — cierra el hueco que dejó abierto 4a.
+- **`CLAUDE.md`** (ley de ingeniería, cambio declarado explícitamente): la lista de "el frontend público solo recibe…" se amplía para incluir la página de autor por periodista.
+
+**Decisión del propietario:** página virtual renderizada por el plugin, no usuarios WP reales por periodista — evita contaminar `wp_users` con cuentas logueables innecesarias.
+
+**Honestidad de alcance:** con esto, N.3 (a) y (b) están pagadas. Solo queda N.3 (c) — tipo de aprobación de primera clase + acción "aprobar ahora" en Copiloto — para la porción 4c.
+
+**Verificación real (no solo test):** en el sitio dev de wp-env, plugin reactivado (confirma que la opción-bandera de purga se consume en el primer `init` real), un periodista creado vía `wp-cli`/`RepositorioPeriodistas`, `curl` a `/periodista/{slug}/` → 200 con el nombre y la declaración de identidad sintética presentes; `curl` a un slug inventado → 404 real.
+
+### Evidencia de gates — Porción 4b
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 374/374 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 155/155 (2 skipped esperados) |
+| `npx vitest run` | 86/86 (sin cambios — porción 100% backend) |
+| `npx tsc --noEmit` | limpio |
+| `npm run build` | build de producción real, sin cambios |
+| `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
+| Verificación manual (`curl`) | `/periodista/{slug-real}/` → 200 con declaración; slug inventado → 404 real |

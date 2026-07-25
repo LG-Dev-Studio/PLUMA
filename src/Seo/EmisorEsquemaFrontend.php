@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Pluma\Seo;
 
 use DateTimeImmutable;
+use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Publicacion\Publicador;
+use Pluma\Redaccion\EstadoPeriodista;
 
 /**
  * Único punto de emisión de metadatos de PLUMA en el frontend público
@@ -28,7 +30,10 @@ final class EmisorEsquemaFrontend {
 
 	private const IPTC_TRAINED_ALGORITHMIC_MEDIA = 'http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia';
 
-	public function __construct( private readonly ConstructorEsquemaNewsArticle $constructor ) {
+	public function __construct(
+		private readonly ConstructorEsquemaNewsArticle $constructor,
+		private readonly RepositorioPeriodistasInterface $periodistas,
+	) {
 	}
 
 	public function registrar(): void {
@@ -57,14 +62,16 @@ final class EmisorEsquemaFrontend {
 	}
 
 	private function emitirJsonLd( int $postId ): void {
+		$nombreAutor = $this->autorNombre( $postId );
+
 		$documento = $this->constructor->construir(
 			$this->tipoEsquema( $postId ),
 			(string) get_the_title( $postId ),
 			$this->urlsImagenes( $postId ),
 			$this->fecha( $postId, 'date' ),
 			$this->fecha( $postId, 'modified' ),
-			$this->autorNombre( $postId ),
-			null,
+			$nombreAutor,
+			$this->urlPerfilAutor( $nombreAutor ),
 			(string) get_bloginfo( 'name' ),
 			$this->urlLogoSitio(),
 			(string) get_permalink( $postId )
@@ -89,6 +96,21 @@ final class EmisorEsquemaFrontend {
 		// sitio como Organización — la página de autor con Persona llega en la
 		// porción 4b.
 		return '' !== $nombre ? $nombre : (string) get_bloginfo( 'name' );
+	}
+
+	/**
+	 * URL de la página de autor (porción 4b) cuando el nombre resuelve a un
+	 * periodista real y activo — un jubilado o el redactor mecánico de
+	 * respaldo no tienen página, así que el JSON-LD omite `author.url`.
+	 */
+	private function urlPerfilAutor( string $nombreAutor ): ?string {
+		foreach ( $this->periodistas->obtenerTodos() as $periodista ) {
+			if ( EstadoPeriodista::Activo === $periodista->estado && $periodista->nombre === $nombreAutor ) {
+				return PaginaAutorPeriodista::urlDe( $periodista );
+			}
+		}
+
+		return null;
 	}
 
 	/**

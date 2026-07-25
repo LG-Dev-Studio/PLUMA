@@ -86,6 +86,7 @@ use Pluma\Redaccion\ClasificadorNoticia;
 use Pluma\Redaccion\CompiladorDirectrices;
 use Pluma\Redaccion\CorrectorInterno;
 use Pluma\Redaccion\DecisionEditorial;
+use Pluma\Redaccion\DeclaracionIdentidadSintetica;
 use Pluma\Redaccion\ExportadorBancoPeriodistas;
 use Pluma\Redaccion\GeneradorBloqueEditor;
 use Pluma\Redaccion\GeneradorEsqueleto;
@@ -108,6 +109,7 @@ use Pluma\Seo\EnlazadorInterno;
 use Pluma\Seo\ExtractorPalabrasClave;
 use Pluma\Seo\GeneradorMetadatosSeo;
 use Pluma\Seo\MotorSeo;
+use Pluma\Seo\PaginaAutorPeriodista;
 use Pluma\Sensores\ComparadorHistorias;
 use Pluma\Sensores\SensorGoogleTrends;
 use Pluma\Sensores\SensorInterface;
@@ -677,7 +679,18 @@ final class Nucleo {
 		$this->contenedor->registrar( ConstructorEsquemaNewsArticle::class, static fn (): ConstructorEsquemaNewsArticle => new ConstructorEsquemaNewsArticle() );
 		$this->contenedor->registrar(
 			EmisorEsquemaFrontend::class,
-			fn ( Contenedor $c ): EmisorEsquemaFrontend => new EmisorEsquemaFrontend( $c->obtener( ConstructorEsquemaNewsArticle::class ) )
+			fn ( Contenedor $c ): EmisorEsquemaFrontend => new EmisorEsquemaFrontend(
+				$c->obtener( ConstructorEsquemaNewsArticle::class ),
+				$c->obtener( RepositorioPeriodistasInterface::class )
+			)
+		);
+		$this->contenedor->registrar( DeclaracionIdentidadSintetica::class, static fn (): DeclaracionIdentidadSintetica => new DeclaracionIdentidadSintetica() );
+		$this->contenedor->registrar(
+			PaginaAutorPeriodista::class,
+			fn ( Contenedor $c ): PaginaAutorPeriodista => new PaginaAutorPeriodista(
+				$c->obtener( RepositorioPeriodistasInterface::class ),
+				$c->obtener( DeclaracionIdentidadSintetica::class )
+			)
 		);
 	}
 
@@ -707,5 +720,6 @@ final class Nucleo {
 		$this->contenedor->obtener( RestInformesEditoriales::class )->registrar();
 		$this->contenedor->obtener( RestTransparencia::class )->registrar();
 		$this->contenedor->obtener( EmisorEsquemaFrontend::class )->registrar();
+		$this->contenedor->obtener( PaginaAutorPeriodista::class )->registrar();
 	}
 }

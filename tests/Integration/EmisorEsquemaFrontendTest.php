@@ -4,13 +4,26 @@ declare(strict_types=1);
 
 namespace Pluma\Tests\Integration;
 
+use Pluma\Datos\RepositorioPeriodistas;
+use Pluma\Kernel\RelojSistema;
 use Pluma\Publicacion\AsignadorTaxonomiaWp;
 use Pluma\Publicacion\EscritorCamposSeo;
 use Pluma\Publicacion\Publicador;
 use Pluma\Publicacion\SnapshotPublicacion;
+use Pluma\Redaccion\Diales;
+use Pluma\Redaccion\EntradaMatrizTono;
+use Pluma\Redaccion\EstadoPeriodista;
+use Pluma\Redaccion\MatrizTonos;
+use Pluma\Redaccion\NivelSatiraPermitida;
+use Pluma\Redaccion\ReglasConducta;
+use Pluma\Redaccion\RolPeriodista;
+use Pluma\Redaccion\TipoNoticia;
+use Pluma\Redaccion\Tono;
+use Pluma\Redaccion\TratamientoLector;
 use Pluma\Seo\ConstructorEsquemaNewsArticle;
 use Pluma\Seo\EmisorEsquemaFrontend;
 use Pluma\Seo\MetadatosSeo;
+use Pluma\Seo\PaginaAutorPeriodista;
 use Pluma\Seo\TipoEsquemaArticulo;
 use Pluma\Seo\TipoPluginSeo;
 use Pluma\Taxonomia\ResultadoTaxonomia;
@@ -38,12 +51,35 @@ final class EmisorEsquemaFrontendTest extends WP_UnitTestCase {
 	}
 
 	private function emitirSobre( int $postId ): string {
+		global $wpdb;
 		$this->go_to( (string) get_permalink( $postId ) );
 
 		ob_start();
-		( new EmisorEsquemaFrontend( new ConstructorEsquemaNewsArticle() ) )->emitir();
+		( new EmisorEsquemaFrontend( new ConstructorEsquemaNewsArticle(), new RepositorioPeriodistas( $wpdb ) ) )->emitir();
 
 		return (string) ob_get_clean();
+	}
+
+	private function crearPeriodista( string $nombre, EstadoPeriodista $estado = EstadoPeriodista::Activo ): int {
+		global $wpdb;
+		$diales = new Diales( 60, 40, 20, 60, 50, 50, 60, 50 );
+		$reglas = new ReglasConducta( 'Línea de prueba.', array(), array(), array(), TratamientoLector::Tu, 'Pregunta de cierre.' );
+		$matriz = MatrizTonos::desdeFilas(
+			array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) )
+		);
+
+		return ( new RepositorioPeriodistas( $wpdb ) )->crear(
+			$nombre,
+			null,
+			'Biografía de prueba.',
+			RolPeriodista::Columnista,
+			array(),
+			$estado,
+			$diales,
+			$reglas,
+			$matriz,
+			( new RelojSistema() )->ahora()
+		);
 	}
 
 	public function test_publicar_persiste_las_metas_de_emision(): void {
@@ -93,5 +129,24 @@ final class EmisorEsquemaFrontendTest extends WP_UnitTestCase {
 		$html = $this->emitirSobre( $postId );
 
 		self::assertSame( '', trim( $html ) );
+	}
+
+	public function test_author_url_apunta_a_la_pagina_de_autor_cuando_el_periodista_existe(): void {
+		$this->crearPeriodista( 'Valentina Ruiz' );
+		$postId = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		$this->publicar( $postId, true );
+
+		$html = $this->emitirSobre( $postId );
+
+		self::assertStringContainsString( 'periodista\/valentina-ruiz', $html );
+	}
+
+	public function test_author_url_ausente_cuando_el_nombre_no_resuelve_a_un_periodista_real(): void {
+		$postId = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		$this->publicar( $postId, true, 'Nadie Registrado' );
+
+		$html = $this->emitirSobre( $postId );
+
+		self::assertStringNotContainsString( '/periodista/', $html );
 	}
 }

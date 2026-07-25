@@ -61,7 +61,7 @@ Pluma\Dto               → Objetos inmutables `final readonly`. Cero lógica.
 
 Reglas duras:
 - `$wpdb` SOLO en `Pluma\Datos`. `wp_remote_*`/HTTP SOLO en `Pluma\Proveedores`. `wp_insert_post` SOLO en `Pluma\Publicacion`.
-- El frontend público solo recibe: bloque del editor, schema JSON-LD y (opcional) banner de corrección. Peso adicional en frontend ≈ 0. Prohibido encolar assets de admin fuera de las pantallas de PLUMA.
+- El frontend público solo recibe: bloque del editor, schema JSON-LD, (opcional) banner de corrección, y la página de autor por periodista (identidad editorial sintética, Art. 50 del Reglamento (UE) 2024/1689 — ver `docs/PLAN-MAESTRO-EVOLUCION.md`, Nivel Tres N.3). Peso adicional en frontend ≈ 0. Prohibido encolar assets de admin fuera de las pantallas de PLUMA.
 - Toda transición de estado dispara evento `pluma/pieza_{estado}` vía `do_action`. Los módulos se comunican por eventos y contratos, jamás por llamadas directas entre capas no adyacentes.
 
 ### Contrato del Proveedor de Lenguaje — Innegociable

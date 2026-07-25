@@ -17,10 +17,11 @@ use wpdb;
  */
 final class Activador {
 
-	public const OPCION_CONSERVAR_DATOS       = 'pluma_conservar_datos_al_desinstalar';
-	public const OPCION_ACTIVADO_EN           = 'pluma_activado_en';
-	public const OPCION_MOTOR_TOKEN           = 'pluma_motor_token';
-	public const OPCION_TELEMETRIA_HABILITADA = 'pluma_telemetria_habilitada';
+	public const OPCION_CONSERVAR_DATOS             = 'pluma_conservar_datos_al_desinstalar';
+	public const OPCION_ACTIVADO_EN                 = 'pluma_activado_en';
+	public const OPCION_MOTOR_TOKEN                 = 'pluma_motor_token';
+	public const OPCION_TELEMETRIA_HABILITADA       = 'pluma_telemetria_habilitada';
+	public const OPCION_FLUSH_REESCRITURA_PENDIENTE = 'pluma_flush_reescritura_pendiente';
 
 	public static function activarParaRed( bool $redCompleta, RelojInterface $reloj, string $versionEsquemaObjetivo ): void {
 		if ( is_multisite() && $redCompleta ) {
@@ -51,6 +52,14 @@ final class Activador {
 		// GOVERNANCE §5.5: opt-in explícito — nunca habilitada por defecto.
 		add_option( self::OPCION_TELEMETRIA_HABILITADA, false, '', false );
 		update_option( self::OPCION_ACTIVADO_EN, $reloj->ahora()->format( DATE_ATOM ), false );
+
+		// `activar()` también corre en `plugins_loaded` (vía
+		// `actualizarEsquemaSiHaceFalta()`), antes de que `$wp_rewrite` exista
+		// — llamar `add_rewrite_rule()`/`flush_rewrite_rules()` aquí mismo
+		// fallaría. Se difiere la purga al próximo `init` real (donde
+		// `Pluma\Seo\PaginaAutorPeriodista` ya registró su regla), vía una
+		// opción-bandera que ese `init` consume y borra una sola vez.
+		update_option( self::OPCION_FLUSH_REESCRITURA_PENDIENTE, true, false );
 	}
 
 	/**
