@@ -37,7 +37,9 @@ A diferencia de las Etapas 1-5, esta no añade un módulo de dominio editorial n
 1. `bin/generar-wp-env-matriz` construía el ref de "WP mínimo" como `6.4.0`, pero el mirror git de `WordPress/WordPress` etiqueta la primera versión de cada serie como `6.4` (sin `.0`) — `git fetch` fallaba con `fatal: couldn't find remote ref 6.4.0`. Corregido quitando el sufijo `.0` inventado.
 2. El pin de "WP latest" en `.wp-env.json` estaba fijo en `6.7.1` desde la Etapa 0 — desactualizado en silencio. El job de convivencia con Yoast SEO falló de verdad contra WordPress real: la versión actual de Yoast exige WordPress 6.8 como mínimo, y 6.7.1 ya no lo cumple. Corregido actualizando el pin a `6.9.5` (la última estable real, verificada contra las tags del mirror git) — esto es exactamente el tipo de deriva que GOVERNANCE §5.3 existe para atrapar antes de que lo descubra un cliente.
 
-Ambos se verificaron localmente (suite de Integración 141/141 y Playwright 2/2 contra WordPress 6.9.5 reconstruido) antes de volver a disparar el workflow en CI real.
+Ambos se verificaron localmente (suite de Integración 141/141 y Playwright 2/2 contra WordPress 6.9.5 reconstruido) antes de volver a disparar el workflow en CI real. Corregidos en el commit `f908930` (subido y confirmado en el CI normal, run [30121262068](https://github.com/LG-Dev-Studio/PLUMA/actions/runs/30121262068)).
+
+**`.github/workflows/compatibilidad.yml` verificado en CI real — 6/6 en verde**: tras el fix, se volvió a disparar manualmente (`workflow_dispatch`) y las 6 combinaciones terminaron en `success` (run [30139709968](https://github.com/LG-Dev-Studio/PLUMA/actions/runs/30139709968)): WP mínima × PHP 8.2, WP mínima × PHP 8.3, WP latest × PHP 8.2, WP latest × PHP 8.3, convivencia con Yoast SEO, convivencia con Rank Math. Con esto la porción 1 queda cerrada de verdad — la matriz no solo existe, se ejecutó y pasó contra WordPress real.
 
 ## Evidencia de gates — Porción 1
 
@@ -53,7 +55,7 @@ Ambos se verificaron localmente (suite de Integración 141/141 y Playwright 2/2 
 | `npm run build` | build de producción real generado |
 | `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
 | `bin/build-zip` (local) | reproducibilidad verificada (huella idéntica en dos builds), `.zip.sha256` generado |
-| `.github/workflows/compatibilidad.yml` (CI real, `workflow_dispatch`) | pendiente de disparar tras el push — requiere que el workflow exista en `origin` |
+| `.github/workflows/compatibilidad.yml` (CI real, `workflow_dispatch`) | 6/6 combinaciones en verde (run [30139709968](https://github.com/LG-Dev-Studio/PLUMA/actions/runs/30139709968), tras corregir dos bugs reales — ver "Hallazgo real" arriba) |
 
 ## Porción 2 — Telemetría opt-in (consentimiento + payload) + Modo diagnóstico (commit pendiente)
 
