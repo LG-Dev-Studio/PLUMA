@@ -19,6 +19,7 @@ final readonly class RanuraPublicacion {
 		public ?int $periodistaId,
 		public DateTimeImmutable $horaProgramada,
 		public EstadoColaPublicacion $estado,
+		public bool $aprobacionActiva,
 		public DateTimeImmutable $creadaEn,
 	) {
 	}

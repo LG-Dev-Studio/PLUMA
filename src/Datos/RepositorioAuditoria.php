@@ -6,6 +6,7 @@ namespace Pluma\Datos;
 
 use DateTimeImmutable;
 use Pluma\Pipeline\EstadoPieza;
+use Pluma\Pipeline\TipoAprobacion;
 use wpdb;
 
 /**
@@ -27,7 +28,8 @@ final class RepositorioAuditoria implements RepositorioAuditoriaInterface {
 		EstadoPieza $estadoNuevo,
 		string $actor,
 		string $motivo,
-		DateTimeImmutable $ahora
+		DateTimeImmutable $ahora,
+		?TipoAprobacion $tipoAprobacion = null
 	): void {
 		$this->wpdb->insert(
 			$this->tabla(),
@@ -37,9 +39,10 @@ final class RepositorioAuditoria implements RepositorioAuditoriaInterface {
 				'estado_nuevo'    => $estadoNuevo->value,
 				'actor'           => $actor,
 				'motivo'          => $motivo,
+				'tipo_aprobacion' => $tipoAprobacion?->value,
 				'ocurrida_en'     => $ahora->format( 'Y-m-d H:i:s' ),
 			),
-			array( '%d', '%s', '%s', '%s', '%s', '%s' )
+			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
 	}
 }

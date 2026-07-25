@@ -15,6 +15,7 @@ use Pluma\Compuertas\DiagnosticoRiesgo;
 use Pluma\Datos\RepositorioAuditoriaInterface;
 use Pluma\Datos\RepositorioColaPublicacionInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
+use Pluma\Pipeline\AccionNoDisponibleException;
 use Pluma\Pipeline\EstadoColaPublicacion;
 use Pluma\Pipeline\EstadoPieza;
 use Pluma\Pipeline\GestorSalaRevision;
@@ -71,7 +72,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$piezaCopiloto = $this->pieza( 2, EstadoPieza::Programada, $this->resultado( ModoOperacion::Copiloto ) );
 		$piezaAutonoma = $this->pieza( 3, EstadoPieza::Programada, $this->resultado( ModoOperacion::Autonomo ) );
 
-		$ranura = new RanuraPublicacion( 1, 2, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
+		$ranura = new RanuraPublicacion( 1, 2, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, false, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Programada, Mockery::any() )->andReturn( array( $piezaCopiloto, $piezaAutonoma ) );
@@ -122,7 +123,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 
 		$auditoria = Mockery::mock( RepositorioAuditoriaInterface::class );
 		$auditoria->expects( 'registrar' )
-			->with( 41, EstadoPieza::Retenida, EstadoPieza::Aprobada, Mockery::any(), Mockery::on( static fn ( string $motivo ): bool => str_contains( $motivo, 'la Mesa Editorial' ) ), Mockery::any() );
+			->with( 41, EstadoPieza::Retenida, EstadoPieza::Aprobada, Mockery::any(), Mockery::on( static fn ( string $motivo ): bool => str_contains( $motivo, 'la Mesa Editorial' ) ), Mockery::any(), null );
 
 		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
 
@@ -156,7 +157,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 
 		$auditoria = Mockery::mock( RepositorioAuditoriaInterface::class );
 		$auditoria->expects( 'registrar' )
-			->with( 5, EstadoPieza::Retenida, EstadoPieza::Optimizada, Mockery::any(), Mockery::on( static fn ( string $motivo ): bool => str_contains( $motivo, 'falta contexto' ) ), Mockery::any() );
+			->with( 5, EstadoPieza::Retenida, EstadoPieza::Optimizada, Mockery::any(), Mockery::on( static fn ( string $motivo ): bool => str_contains( $motivo, 'falta contexto' ) ), Mockery::any(), null );
 
 		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
 
@@ -188,11 +189,88 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$this->expectNotToPerformAssertions();
 	}
 
+	public function test_aprobar_ahora_marca_la_ranura_con_aprobacion_activa(): void {
+		$pieza  = $this->pieza( 10, EstadoPieza::Programada, $this->resultado( ModoOperacion::Copiloto ) );
+		$ranura = new RanuraPublicacion( 20, 10, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, false, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->allows( 'obtenerPorId' )->with( 10 )->andReturn( $pieza );
+
+		$cola = Mockery::mock( RepositorioColaPublicacionInterface::class );
+		$cola->expects( 'obtenerProgramadaPorPieza' )->with( 10 )->andReturn( $ranura );
+		$cola->expects( 'marcarAprobacionActiva' )->once()->with( 20 );
+
+		$gestor = new GestorSalaRevision( $piezas, $cola, new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+
+		$gestor->aprobarAhora( 10 );
+
+		$this->expectNotToPerformAssertions();
+	}
+
+	public function test_aprobar_ahora_sobre_una_pieza_no_programada_lanza_excepcion(): void {
+		$pieza = $this->pieza( 11, EstadoPieza::Retenida );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->allows( 'obtenerPorId' )->with( 11 )->andReturn( $pieza );
+
+		$cola = Mockery::mock( RepositorioColaPublicacionInterface::class );
+		$cola->expects( 'obtenerProgramadaPorPieza' )->never();
+
+		$gestor = new GestorSalaRevision( $piezas, $cola, new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+
+		$this->expectException( AccionNoDisponibleException::class );
+
+		$gestor->aprobarAhora( 11 );
+	}
+
+	public function test_aprobar_ahora_sobre_una_pieza_en_modo_autonomo_lanza_excepcion(): void {
+		$pieza = $this->pieza( 12, EstadoPieza::Programada, $this->resultado( ModoOperacion::Autonomo ) );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->allows( 'obtenerPorId' )->with( 12 )->andReturn( $pieza );
+
+		$cola = Mockery::mock( RepositorioColaPublicacionInterface::class );
+		$cola->expects( 'obtenerProgramadaPorPieza' )->never();
+
+		$gestor = new GestorSalaRevision( $piezas, $cola, new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+
+		$this->expectException( AccionNoDisponibleException::class );
+
+		$gestor->aprobarAhora( 12 );
+	}
+
+	public function test_aprobar_ahora_sobre_una_pieza_sin_ranura_lanza_excepcion(): void {
+		$pieza = $this->pieza( 13, EstadoPieza::Programada, $this->resultado( ModoOperacion::Copiloto ) );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->allows( 'obtenerPorId' )->with( 13 )->andReturn( $pieza );
+
+		$cola = Mockery::mock( RepositorioColaPublicacionInterface::class );
+		$cola->expects( 'obtenerProgramadaPorPieza' )->with( 13 )->andReturn( null );
+
+		$gestor = new GestorSalaRevision( $piezas, $cola, new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+
+		$this->expectException( AccionNoDisponibleException::class );
+
+		$gestor->aprobarAhora( 13 );
+	}
+
+	public function test_aprobar_ahora_sobre_una_pieza_inexistente_lanza_excepcion(): void {
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->allows( 'obtenerPorId' )->andReturn( null );
+
+		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+
+		$this->expectException( PiezaNoEncontradaException::class );
+
+		$gestor->aprobarAhora( 999 );
+	}
+
 	public function test_descartar_una_pieza_en_cola_de_veto_expira_su_ranura(): void {
 		Functions\when( 'do_action' )->justReturn( null );
 
 		$pieza  = $this->pieza( 7, EstadoPieza::Programada, $this->resultado( ModoOperacion::Copiloto ) );
-		$ranura = new RanuraPublicacion( 9, 7, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
+		$ranura = new RanuraPublicacion( 9, 7, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, false, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
 		$piezas->allows( 'obtenerPorId' )->with( 7 )->andReturn( $pieza );

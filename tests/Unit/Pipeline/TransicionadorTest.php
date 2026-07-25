@@ -41,7 +41,8 @@ final class TransicionadorTest extends CasoDePruebaUnitario {
 			EstadoPieza::EnInvestigacion,
 			'sistema',
 			'inicio de investigación',
-			Mockery::type( \DateTimeImmutable::class )
+			Mockery::type( \DateTimeImmutable::class ),
+			null
 		);
 
 		Functions\expect( 'do_action' )->once()->with(

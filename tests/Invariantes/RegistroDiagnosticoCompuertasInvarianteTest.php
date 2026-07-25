@@ -141,8 +141,8 @@ final class RegistroDiagnosticoCompuertasInvarianteTest extends CasoDePruebaUnit
 		// GOVERNANCE §2.1: cada transición queda auditada con su motivo —
 		// incluida la retención, que es precisamente la decisión que más
 		// necesita quedar registrada.
-		$auditoria->expects( 'registrar' )->with( 30, EstadoPieza::Optimizada, EstadoPieza::EnRevision, Mockery::any(), Mockery::any(), Mockery::any() )->once();
-		$auditoria->expects( 'registrar' )->with( 30, EstadoPieza::EnRevision, EstadoPieza::Retenida, Mockery::any(), Mockery::any(), Mockery::any() )->once();
+		$auditoria->expects( 'registrar' )->with( 30, EstadoPieza::Optimizada, EstadoPieza::EnRevision, Mockery::any(), Mockery::any(), Mockery::any(), null )->once();
+		$auditoria->expects( 'registrar' )->with( 30, EstadoPieza::EnRevision, EstadoPieza::Retenida, Mockery::any(), Mockery::any(), Mockery::any(), null )->once();
 
 		$borrador = new Borrador(
 			1,

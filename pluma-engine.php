@@ -4,7 +4,7 @@
  * Plugin Name:       PLUMA Engine
  * Plugin URI:        https://github.com/jhonnfrank1995/PLUMA
  * Description:       Sala de redacción sintética: detecta tendencias, investiga multifuente, redacta con periodistas sintéticos parametrizables y publica de forma autónoma bajo compuertas de calidad, riesgo y originalidad.
- * Version:           0.13.0
+ * Version:           0.14.0
  * Requires at least: 6.4
  * Requires PHP:      8.2
  * Author:            PLUMA
@@ -24,8 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PLUMA_ENGINE_VERSION', '0.13.0' );
-define( 'PLUMA_ENGINE_DB_VERSION_OBJETIVO', '0.12.0' );
+define( 'PLUMA_ENGINE_VERSION', '0.14.0' );
+define( 'PLUMA_ENGINE_DB_VERSION_OBJETIVO', '0.13.0' );
 define( 'PLUMA_ENGINE_ARCHIVO', __FILE__ );
 define( 'PLUMA_ENGINE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PLUMA_ENGINE_URL', plugin_dir_url( __FILE__ ) );

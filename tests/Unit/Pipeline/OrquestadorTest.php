@@ -10,9 +10,13 @@ use Mockery;
 use Pluma\Compuertas\CompuertaCalidad;
 use Pluma\Compuertas\CompuertaOriginalidad;
 use Pluma\Compuertas\CompuertaRiesgo;
+use Pluma\Compuertas\DiagnosticoCalidad;
+use Pluma\Compuertas\DiagnosticoOriginalidad;
+use Pluma\Compuertas\DiagnosticoRiesgo;
 use Pluma\Compuertas\EvaluadorCompuertas;
 use Pluma\Compuertas\GestorDegradacion;
 use Pluma\Compuertas\ModoOperacion;
+use Pluma\Compuertas\ResultadoEvaluacion;
 use Pluma\Compuertas\VerificadorLegibilidad;
 use Pluma\Datos\CandadoGlobalInterface;
 use Pluma\Datos\RepositorioAuditoriaInterface;
@@ -36,6 +40,7 @@ use Pluma\Pipeline\Orquestador;
 use Pluma\Pipeline\Pieza;
 use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Pipeline\RanuraPublicacion;
+use Pluma\Pipeline\TipoAprobacion;
 use Pluma\Pipeline\Transicionador;
 use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
@@ -46,6 +51,7 @@ use Pluma\Publicacion\CreadorBorradorInterface;
 use Pluma\Publicacion\LectorComentariosInterface;
 use Pluma\Publicacion\PublicacionException;
 use Pluma\Publicacion\PublicadorInterface;
+use Pluma\Publicacion\SnapshotPublicacion;
 use Pluma\Redaccion\AnalizadorAudiencia;
 use Pluma\Redaccion\AnotacionCorrector;
 use Pluma\Redaccion\Borrador;
@@ -812,7 +818,7 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			$piezaProgramada->actualizadaEn
 		);
 
-		$ranura = new RanuraPublicacion( 1, 25, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
+		$ranura = new RanuraPublicacion( 1, 25, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, false, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
 		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
@@ -845,6 +851,187 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		self::assertTrue( $resultado['ejecutado'] );
 	}
 
+	private function resultadoCompuertas( ModoOperacion $modo ): ResultadoEvaluacion {
+		return new ResultadoEvaluacion(
+			true,
+			false,
+			array(),
+			$modo,
+			new DiagnosticoCalidad( 80, 70, true, array() ),
+			new DiagnosticoRiesgo( false, false, false, false, true, 'x', false, null ),
+			new DiagnosticoOriginalidad( false, false, 0.8, 0.4 )
+		);
+	}
+
+	/**
+	 * Etapa 6, porción 4c (Nivel Tres N.3 (c)): una ranura de Copiloto cuya
+	 * ventana de veto todavía no expiró, y que nadie aprobó activamente
+	 * ("aprobar ahora"), no se publica todavía — el veto sigue vivo.
+	 */
+	public function test_una_ranura_de_copiloto_dentro_de_la_ventana_de_veto_no_se_publica(): void {
+		$piezaProgramada = new Pieza(
+			30,
+			100,
+			EstadoPieza::Programada,
+			null,
+			987,
+			( new RelojFijo() )->ahora(),
+			( new RelojFijo() )->ahora(),
+			null,
+			null,
+			null,
+			$this->resultadoCompuertas( ModoOperacion::Copiloto )
+		);
+
+		// RelojFijo "ahora" = 2026-07-22T12:00:00+00:00; ventana por defecto 2h;
+		// hora_programada 11:00 + 2h = 13:00, todavía en el futuro.
+		$ranura = new RanuraPublicacion( 3, 30, 'economia', 5, new DateTimeImmutable( '2026-07-22T11:00:00+00:00' ), EstadoColaPublicacion::Programada, false, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
+		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
+		$piezas->expects( 'obtenerPorId' )->with( 30 )->andReturn( $piezaProgramada );
+		$piezas->expects( 'actualizarEstado' )->never();
+
+		$cola = Mockery::mock( RepositorioColaPublicacionInterface::class );
+		$cola->expects( 'obtenerVencidas' )->andReturn( array( $ranura ) );
+		$cola->allows( 'obtenerEntre' )->andReturn( array() );
+		$cola->expects( 'marcarPublicada' )->never();
+
+		$publicador = Mockery::mock( PublicadorInterface::class );
+		$publicador->expects( 'publicar' )->never();
+
+		$resultado = $this->construir(
+			array(
+				'piezas'          => $piezas,
+				'colaPublicacion' => $cola,
+				'publicador'      => $publicador,
+			)
+		)->ejecutarTick();
+
+		self::assertTrue( $resultado['ejecutado'] );
+	}
+
+	/**
+	 * "Aprobar ahora" (porción 4c): una ranura de Copiloto con
+	 * `aprobacionActiva` se publica ya, aunque la ventana de veto no haya
+	 * expirado, y sin marcado de IA en el frontend (el humano ya aprobó
+	 * activamente antes de publicar — misma excepción del Art. 50 que Piloto).
+	 */
+	public function test_una_ranura_de_copiloto_con_aprobacion_activa_se_publica_sin_esperar_la_ventana(): void {
+		$piezaProgramada = new Pieza(
+			31,
+			100,
+			EstadoPieza::Programada,
+			null,
+			987,
+			( new RelojFijo() )->ahora(),
+			( new RelojFijo() )->ahora(),
+			null,
+			null,
+			null,
+			$this->resultadoCompuertas( ModoOperacion::Copiloto )
+		);
+
+		$ranura = new RanuraPublicacion( 4, 31, 'economia', 5, new DateTimeImmutable( '2026-07-22T11:00:00+00:00' ), EstadoColaPublicacion::Programada, true, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
+		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
+		$piezas->expects( 'obtenerPorId' )->with( 31 )->twice()->andReturn( $piezaProgramada );
+		$piezas->expects( 'actualizarEstado' )->with( 31, EstadoPieza::Programada, EstadoPieza::Publicada, Mockery::any() )->andReturn( true );
+
+		$auditoria = Mockery::mock( RepositorioAuditoriaInterface::class );
+		$auditoria->expects( 'registrar' )->with( 31, EstadoPieza::Programada, EstadoPieza::Publicada, Mockery::any(), Mockery::any(), Mockery::any(), TipoAprobacion::HumanaActiva );
+
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$cola = Mockery::mock( RepositorioColaPublicacionInterface::class );
+		$cola->expects( 'obtenerVencidas' )->andReturn( array( $ranura ) );
+		$cola->allows( 'obtenerEntre' )->andReturn( array() );
+		$cola->expects( 'marcarPublicada' )->once()->with( 4 );
+
+		$publicador = Mockery::mock( PublicadorInterface::class );
+		$publicador->expects( 'publicar' )->once()->with(
+			987,
+			Mockery::any(),
+			Mockery::any(),
+			Mockery::any(),
+			Mockery::on( static fn ( SnapshotPublicacion $s ): bool => false === $s->generadoIa )
+		);
+
+		$resultado = $this->construir(
+			array(
+				'piezas'          => $piezas,
+				'transicionador'  => new Transicionador( $piezas, $auditoria, new RelojFijo() ),
+				'colaPublicacion' => $cola,
+				'publicador'      => $publicador,
+			)
+		)->ejecutarTick();
+
+		self::assertTrue( $resultado['ejecutado'] );
+	}
+
+	/**
+	 * Publicación automática por expiración de ventana (sin "aprobar ahora"):
+	 * conserva el marcado de IA de fábrica y registra el tipo de aprobación
+	 * correspondiente en la auditoría.
+	 */
+	public function test_una_ranura_de_copiloto_vencida_sin_aprobacion_activa_registra_tipo_automatica(): void {
+		$piezaProgramada = new Pieza(
+			32,
+			100,
+			EstadoPieza::Programada,
+			null,
+			987,
+			( new RelojFijo() )->ahora(),
+			( new RelojFijo() )->ahora(),
+			null,
+			null,
+			null,
+			$this->resultadoCompuertas( ModoOperacion::Copiloto )
+		);
+
+		// hora_programada 09:00 + ventana 2h = 11:00, ya pasó frente a las 12:00.
+		$ranura = new RanuraPublicacion( 5, 32, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, false, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
+		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
+		$piezas->expects( 'obtenerPorId' )->with( 32 )->twice()->andReturn( $piezaProgramada );
+		$piezas->expects( 'actualizarEstado' )->with( 32, EstadoPieza::Programada, EstadoPieza::Publicada, Mockery::any() )->andReturn( true );
+
+		$auditoria = Mockery::mock( RepositorioAuditoriaInterface::class );
+		$auditoria->expects( 'registrar' )->with( 32, EstadoPieza::Programada, EstadoPieza::Publicada, Mockery::any(), Mockery::any(), Mockery::any(), TipoAprobacion::AutomaticaPorExpiracion );
+
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$cola = Mockery::mock( RepositorioColaPublicacionInterface::class );
+		$cola->expects( 'obtenerVencidas' )->andReturn( array( $ranura ) );
+		$cola->allows( 'obtenerEntre' )->andReturn( array() );
+		$cola->expects( 'marcarPublicada' )->once()->with( 5 );
+
+		$publicador = Mockery::mock( PublicadorInterface::class );
+		$publicador->expects( 'publicar' )->once()->with(
+			987,
+			Mockery::any(),
+			Mockery::any(),
+			Mockery::any(),
+			Mockery::on( static fn ( SnapshotPublicacion $s ): bool => true === $s->generadoIa )
+		);
+
+		$resultado = $this->construir(
+			array(
+				'piezas'          => $piezas,
+				'transicionador'  => new Transicionador( $piezas, $auditoria, new RelojFijo() ),
+				'colaPublicacion' => $cola,
+				'publicador'      => $publicador,
+			)
+		)->ejecutarTick();
+
+		self::assertTrue( $resultado['ejecutado'] );
+	}
+
 	/**
 	 * Escenario de fallo (Delivery Guardian: "si toca Orquestador, probar
 	 * API caída/timeout"): un fallo real de `Publicador` (p. ej. el post ya
@@ -862,7 +1049,7 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			( new RelojFijo() )->ahora()
 		);
 
-		$ranura = new RanuraPublicacion( 2, 27, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
+		$ranura = new RanuraPublicacion( 2, 27, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, false, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
 		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );

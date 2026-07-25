@@ -174,6 +174,12 @@ final class Esquema {
                 PRIMARY KEY  (id),
                 KEY iniciada_en (iniciada_en)
             ) {$charset};",
+			// Etapa 6, porción 4c (Art. 50 UE, Nivel Tres N.3 (c)): tipo_aprobacion
+			// distingue, solo en la transición programada→publicada, si la pieza
+			// se publicó por aprobación humana activa ("aprobar ahora" en la cola
+			// de veto de Copiloto) o automáticamente por expiración de ventana —
+			// nulo en cualquier otra transición. Es el registro auditable exigido
+			// por la excepción del Art. 50 al marcado de contenido generado por IA.
 			"CREATE TABLE {$prefijo}auditoria (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 pieza_id BIGINT UNSIGNED NOT NULL,
@@ -181,6 +187,7 @@ final class Esquema {
                 estado_nuevo VARCHAR(30) NOT NULL,
                 actor VARCHAR(20) NOT NULL,
                 motivo VARCHAR(255) NOT NULL,
+                tipo_aprobacion VARCHAR(30) NULL,
                 ocurrida_en DATETIME NOT NULL,
                 PRIMARY KEY  (id),
                 KEY pieza_id (pieza_id),
@@ -210,6 +217,10 @@ final class Esquema {
 			// cuota por vertical/periodista sin deserializar la Pieza; "estado"
 			// distingue programada/publicada/expirada (perecibilidad — Cap. 9.3
 			// punto 4: "mejor no publicar que publicar tarde").
+			// Etapa 6, porción 4c: aprobacion_activa marca que un humano usó
+			// "aprobar ahora" en la cola de veto de Copiloto — el Orquestador la
+			// usa para saltar la ventana de veto restante y para que el marcado
+			// de IA del frontend (Art. 50 UE) NO se emita sobre esta pieza.
 			"CREATE TABLE {$prefijo}cola_publicacion (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 pieza_id BIGINT UNSIGNED NOT NULL,
@@ -217,6 +228,7 @@ final class Esquema {
                 periodista_id BIGINT UNSIGNED NULL,
                 hora_programada DATETIME NOT NULL,
                 estado VARCHAR(20) NOT NULL,
+                aprobacion_activa TINYINT(1) NOT NULL DEFAULT 0,
                 creada_en DATETIME NOT NULL,
                 PRIMARY KEY  (id),
                 KEY pieza_id (pieza_id),
@@ -323,6 +335,10 @@ final class Esquema {
 		$prefijo = $wpdb->prefix . 'pluma_';
 
 		return match ( $versionOrigen . '->' . $versionDestino ) {
+			'0.13.0->0.12.0' => array(
+				"ALTER TABLE {$prefijo}auditoria DROP COLUMN tipo_aprobacion;",
+				"ALTER TABLE {$prefijo}cola_publicacion DROP COLUMN aprobacion_activa;",
+			),
 			'0.12.0->0.11.0' => array(
 				"ALTER TABLE {$prefijo}periodistas_conducta_versiones DROP COLUMN respuestas_habilitadas;",
 				"DROP TABLE IF EXISTS {$prefijo}respuestas_comentarios;",

@@ -2,7 +2,7 @@
     "name": "pluma/pluma-engine",
     "description": "PLUMA Engine — sala de redaccion sintetica para WordPress: deteccion de tendencias, investigacion multifuente, periodistas sinteticos, motor SEO, taxonomia, compuertas de calidad/riesgo/originalidad y publicacion autonoma.",
     "type": "wordpress-plugin",
-    "version": "0.13.0",
+    "version": "0.14.0",
     "license": "proprietary",
     "require": {
         "php": ">=8.2"

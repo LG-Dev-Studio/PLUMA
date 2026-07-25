@@ -69,7 +69,13 @@ final class Transicionador {
 	 * @throws PiezaNoEncontradaException
 	 * @throws TransicionInvalidaException
 	 */
-	public function transitar( int $piezaId, EstadoPieza $nuevoEstado, string $motivo, string $actor = 'sistema' ): ?Pieza {
+	public function transitar(
+		int $piezaId,
+		EstadoPieza $nuevoEstado,
+		string $motivo,
+		string $actor = 'sistema',
+		?TipoAprobacion $tipoAprobacion = null
+	): ?Pieza {
 		$pieza = $this->piezas->obtenerPorId( $piezaId );
 
 		if ( null === $pieza ) {
@@ -88,7 +94,7 @@ final class Transicionador {
 			return null;
 		}
 
-		$this->auditoria->registrar( $piezaId, $pieza->estado, $nuevoEstado, $actor, $motivo, $ahora );
+		$this->auditoria->registrar( $piezaId, $pieza->estado, $nuevoEstado, $actor, $motivo, $ahora, $tipoAprobacion );
 
 		do_action( 'pluma/pieza_' . $nuevoEstado->value, $piezaId, $pieza->estado, $motivo );
 

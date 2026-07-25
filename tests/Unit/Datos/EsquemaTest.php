@@ -29,6 +29,6 @@ final class EsquemaTest extends CasoDePruebaUnitario {
 	public function test_sentencias_reversa_desde_una_transicion_no_registrada_lanza_excepcion(): void {
 		$this->expectException( ReversaNoDisponibleException::class );
 
-		Esquema::sentenciasReversaDesde( new wpdb(), '0.13.0', '0.12.0' );
+		Esquema::sentenciasReversaDesde( new wpdb(), '0.14.0', '0.13.0' );
 	}
 }

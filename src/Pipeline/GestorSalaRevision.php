@@ -99,6 +99,40 @@ final class GestorSalaRevision {
 	 * @throws PiezaNoEncontradaException
 	 * @throws TransicionInvalidaException
 	 */
+	/**
+	 * "Aprobar ahora" (Etapa 6, porción 4c; Nivel Tres N.3 (c)): aprobación
+	 * humana activa sobre una pieza en la cola de veto de Copiloto, antes de
+	 * que expire la ventana. Marca la ranura para que el Orquestador la
+	 * publique en su próximo tick sin esperar el resto de la ventana, y sin
+	 * marcado de IA en el frontend (Art. 50 UE: la excepción aplica cuando
+	 * hubo aprobación humana activa antes de publicar).
+	 *
+	 * @throws PiezaNoEncontradaException
+	 * @throws AccionNoDisponibleException si la pieza no está en la cola de veto de Copiloto
+	 */
+	public function aprobarAhora( int $piezaId ): void {
+		$pieza = $this->piezas->obtenerPorId( $piezaId );
+
+		if ( null === $pieza ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- mensaje de excepción interno, nunca se imprime como HTML.
+			throw new PiezaNoEncontradaException( $piezaId );
+		}
+
+		if ( EstadoPieza::Programada !== $pieza->estado || ModoOperacion::Copiloto !== ( $pieza->resultadoCompuertas->modoEfectivo ?? null ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- mensaje de excepción interno, nunca se imprime como HTML.
+			throw new AccionNoDisponibleException( "La pieza {$piezaId} no está en la cola de veto de Copiloto." );
+		}
+
+		$ranura = $this->colaPublicacion->obtenerProgramadaPorPieza( $piezaId );
+
+		if ( null === $ranura ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- mensaje de excepción interno, nunca se imprime como HTML.
+			throw new AccionNoDisponibleException( "La pieza {$piezaId} no tiene una ranura programada activa." );
+		}
+
+		$this->colaPublicacion->marcarAprobacionActiva( $ranura->id );
+	}
+
 	public function descartar( int $piezaId, string $origen = 'la Sala de Revisión' ): void {
 		$pieza = $this->piezas->obtenerPorId( $piezaId );
 

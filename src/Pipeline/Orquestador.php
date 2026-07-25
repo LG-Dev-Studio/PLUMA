@@ -452,7 +452,7 @@ final class Orquestador {
 
 				$modoEfectivo = $pieza->resultadoCompuertas->modoEfectivo ?? ModoOperacion::Copiloto;
 
-				if ( ModoOperacion::Copiloto === $modoEfectivo && $ahora < $ranura->horaProgramada->modify( "+{$ventanaVetoHoras} hours" ) ) {
+				if ( ModoOperacion::Copiloto === $modoEfectivo && ! $ranura->aprobacionActiva && $ahora < $ranura->horaProgramada->modify( "+{$ventanaVetoHoras} hours" ) ) {
 					continue;
 				}
 
@@ -460,9 +460,14 @@ final class Orquestador {
 				$plugin    = $pieza->datosSeo->pluginDetectado ?? TipoPluginSeo::Ninguno;
 				$taxonomia = $pieza->resultadoTaxonomia ?? new ResultadoTaxonomia( null, array() );
 
-				$this->publicador->publicar( $pieza->postId, $metadatos, $plugin, $taxonomia, $this->snapshotPublicacion( $pieza, $modoEfectivo ) );
+				$this->publicador->publicar( $pieza->postId, $metadatos, $plugin, $taxonomia, $this->snapshotPublicacion( $pieza, $modoEfectivo, $ranura->aprobacionActiva ) );
 				$this->colaPublicacion->marcarPublicada( $ranura->id );
-				$this->transicionador->transitar( $pieza->id, EstadoPieza::Publicada, 'publicada por el Orquestador' );
+
+				$tipoAprobacion = ModoOperacion::Copiloto === $modoEfectivo
+					? ( $ranura->aprobacionActiva ? TipoAprobacion::HumanaActiva : TipoAprobacion::AutomaticaPorExpiracion )
+					: null;
+
+				$this->transicionador->transitar( $pieza->id, EstadoPieza::Publicada, 'publicada por el Orquestador', 'sistema', $tipoAprobacion );
 			} catch ( Throwable $e ) {
 				$errores[] = "ranura {$ranura->id} (pieza {$ranura->piezaId}): " . $e->getMessage();
 			}
@@ -610,13 +615,16 @@ final class Orquestador {
 
 	/**
 	 * Instantánea para el marcado de frontend (Art. 50 UE, Nivel Tres N.3).
-	 * `generadoIa` es verdadero para todo lo que publica el sistema (Autónomo
-	 * o Copiloto por expiración de ventana) — Piloto nunca llega aquí: sus
-	 * borradores los publica un humano a mano, que asume la responsabilidad
-	 * editorial de la excepción del Art. 50. El nombre del periodista viaja en
-	 * la instantánea para no consultar repositorios en tiempo de render.
+	 * `generadoIa` es verdadero para todo lo que publica el sistema sin
+	 * aprobación humana activa (Autónomo, o Copiloto por expiración de
+	 * ventana) — Piloto nunca llega aquí: sus borradores los publica un
+	 * humano a mano. Copiloto con `aprobacionActiva` (porción 4c: "aprobar
+	 * ahora") tampoco lleva el marcado — un humano revisó y aprobó antes de
+	 * publicar, la misma excepción que ya cubre a Piloto. El nombre del
+	 * periodista viaja en la instantánea para no consultar repositorios en
+	 * tiempo de render.
 	 */
-	private function snapshotPublicacion( Pieza $pieza, ModoOperacion $modoEfectivo ): SnapshotPublicacion {
+	private function snapshotPublicacion( Pieza $pieza, ModoOperacion $modoEfectivo, bool $aprobacionActiva = false ): SnapshotPublicacion {
 		$autorNombre = '';
 
 		if ( null !== $pieza->periodistaId ) {
@@ -628,7 +636,7 @@ final class Orquestador {
 
 		return new SnapshotPublicacion(
 			$pieza->id,
-			ModoOperacion::Piloto !== $modoEfectivo,
+			ModoOperacion::Piloto !== $modoEfectivo && ! $aprobacionActiva,
 			$modoEfectivo->value,
 			$tipoEsquema,
 			$autorNombre

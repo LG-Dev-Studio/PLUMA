@@ -155,3 +155,34 @@ Segunda de las 3 porciones del arco N.3. Paga la parte (b) de `PLUMA-E6-3`.
 | `npm run build` | build de producción real, sin cambios |
 | `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
 | Verificación manual (`curl`) | `/periodista/{slug-real}/` → 200 con declaración; slug inventado → 404 real |
+
+## Porción 4c — "Aprobar ahora" en Copiloto + tipo de aprobación auditable (commit pendiente)
+
+Tercera y última porción del arco N.3. Paga por completo `PLUMA-E6-3` — el arco Art. 50 UE queda cerrado.
+
+**Qué se agregó:**
+
+- **`Pluma\Pipeline\GestorSalaRevision::aprobarAhora()`** (nuevo): aprobación humana activa sobre una pieza en la cola de veto de Copiloto, antes de que expire la ventana. Exige que la pieza esté `PROGRAMADA` en modo Copiloto con una ranura real; si no, lanza `AccionNoDisponibleException` (nueva). Endpoint `POST /pluma/v1/revision/{id}/aprobar-ahora`, misma capacidad `pluma_aprobar_piezas`.
+- **Esquema `0.13.0`**: `pluma_cola_publicacion` gana `aprobacion_activa` (`TINYINT(1) DEFAULT 0`) y `pluma_auditoria` gana `tipo_aprobacion` (`VARCHAR(30) NULL`, valores `humana_activa`/`automatica_por_expiracion`, nuevo enum `Pluma\Pipeline\TipoAprobacion`) — nulo en cualquier transición que no sea programada→publicada. Reversa `0.13.0→0.12.0` registrada y probada con datos reales sembrados (`tests/Integration/MigracionA0130ConDatosRealesTest.php`).
+- **`Pluma\Pipeline\Orquestador`**: `obtenerVencidas()` ahora también trae ranuras con `aprobacion_activa`, sin importar si su hora aún no llegó; el chequeo de ventana de Copiloto se salta cuando `aprobacionActiva` es verdadero. `snapshotPublicacion()` ya NO marca `generadoIa` cuando hubo aprobación activa — la misma excepción del Art. 50 que ya cubría a Piloto. La transición programada→publicada registra el `TipoAprobacion` correspondiente.
+- **Panel**: nuevo botón "Aprobar ahora (publicar sin esperar)" en la Cola de veto de la Sala de Revisión, junto a "Vetar".
+
+**Diseño deliberado:** "aprobar ahora" no publica de forma síncrona dentro del propio endpoint — solo marca la ranura. La publicación real sigue ocurriendo únicamente en el próximo tick del Orquestador (`procesarPublicacionesVencidas()`), preservando `wp_insert_post`/`Publicador` como el único punto de creación/actualización del post (CLAUDE.md § Ley de Arquitectura) y el patrón de lotes pequeños del cron real.
+
+**Verificación real (no solo test):** en el sitio dev de wp-env — plugin reactivado (esquema confirmado en `0.13.0`, columnas nuevas presentes con sus valores por defecto); pieza real creada en estado Programada/Copiloto con una ranura 3 horas en el futuro; `GestorSalaRevision::aprobarAhora()` invocado; tick real del motor vía `POST /pluma/v1/motor/tick` con el token real; el post resultante quedó `publish` con `_pluma_generado_ia` vacío; la página real del post no emite `iptc.digitalSourceType` (a diferencia de una pieza publicada por expiración, que sí la lleva — 4a); la fila de `pluma_auditoria` quedó con `tipo_aprobacion = humana_activa`.
+
+### Evidencia de gates — Porción 4c
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 382/382 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 160/160 (2 skipped esperados) |
+| `npx vitest run` | 87/87 |
+| `npx tsc --noEmit` | limpio |
+| `npm run build` | build de producción real |
+| `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
+| Migración `0.12.0→0.13.0` con datos reales | probada up y reversa (`MigracionA0130ConDatosRealesTest`) |
+| Verificación manual end-to-end | aprobar ahora → tick real → post publicado sin marcado de IA, auditoría con `tipo_aprobacion=humana_activa` |

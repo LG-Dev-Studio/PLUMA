@@ -61,9 +61,15 @@ final class RepositorioColaPublicacion implements RepositorioColaPublicacionInte
 		return array_map( fn ( array $fila ): RanuraPublicacion => $this->filaARanura( $fila ), $filas ?? array() );
 	}
 
+	/**
+	 * "Vencidas" incluye, además de las que ya cruzaron `hora_programada`, las
+	 * ranuras con `aprobacion_activa` (Etapa 6, porción 4c: "aprobar ahora" en
+	 * la cola de veto de Copiloto) sin importar si su hora aún no llegó — la
+	 * aprobación humana activa adelanta la publicación al próximo tick.
+	 */
 	public function obtenerVencidas( DateTimeImmutable $ahora ): array {
 		$sql = $this->wpdb->prepare(
-			"SELECT * FROM {$this->tabla()} WHERE estado = %s AND hora_programada <= %s ORDER BY hora_programada ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type
+			"SELECT * FROM {$this->tabla()} WHERE estado = %s AND (hora_programada <= %s OR aprobacion_activa = 1) ORDER BY hora_programada ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type
 			EstadoColaPublicacion::Programada->value,
 			$ahora->format( 'Y-m-d H:i:s' )
 		);
@@ -97,6 +103,18 @@ final class RepositorioColaPublicacion implements RepositorioColaPublicacionInte
 		return $this->actualizarEstado( $id, EstadoColaPublicacion::Expirada );
 	}
 
+	public function marcarAprobacionActiva( int $id ): bool {
+		$filasAfectadas = $this->wpdb->update(
+			$this->tabla(),
+			array( 'aprobacion_activa' => 1 ),
+			array( 'id' => $id ),
+			array( '%d' ),
+			array( '%d' )
+		);
+
+		return false !== $filasAfectadas;
+	}
+
 	private function actualizarEstado( int $id, EstadoColaPublicacion $estado ): bool {
 		$filasAfectadas = $this->wpdb->update(
 			$this->tabla(),
@@ -120,6 +138,7 @@ final class RepositorioColaPublicacion implements RepositorioColaPublicacionInte
 			null !== $fila['periodista_id'] ? (int) $fila['periodista_id'] : null,
 			new DateTimeImmutable( (string) $fila['hora_programada'] ),
 			EstadoColaPublicacion::from( (string) $fila['estado'] ),
+			(bool) $fila['aprobacion_activa'],
 			new DateTimeImmutable( (string) $fila['creada_en'] )
 		);
 	}

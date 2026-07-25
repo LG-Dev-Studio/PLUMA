@@ -54,6 +54,7 @@ export interface TextosSalaRevision {
     notaOpcional: string;
     descartar: string;
     vetar: string;
+    aprobarAhora: string;
     tiempoRestante: string;
     tiempoAgotado: string;
     confirmarDescartar: string;
@@ -92,7 +93,7 @@ export function PantallaSalaRevision({ restUrl, nonce, textos }: Props) {
         cargar();
     }, [cargar]);
 
-    const ejecutar = (piezaId: number, accion: 'aprobar' | 'devolver' | 'descartar') => {
+    const ejecutar = (piezaId: number, accion: 'aprobar' | 'aprobar-ahora' | 'devolver' | 'descartar') => {
         setEnCurso(piezaId);
 
         const cuerpo = 'devolver' === accion ? { nota: notas[piezaId] ?? '' } : {};
@@ -186,6 +187,9 @@ export function PantallaSalaRevision({ restUrl, nonce, textos }: Props) {
                                 <TarjetaPieza pieza={entrada} textos={textos} />
                                 <CuentaRegresiva horaLimiteVeto={entrada.horaLimiteVeto} textos={textos} />
                                 <div className="pluma-revision__acciones">
+                                    <button type="button" disabled={enCurso === entrada.id} onClick={() => ejecutar(entrada.id, 'aprobar-ahora')}>
+                                        {textos.aprobarAhora}
+                                    </button>
                                     <button
                                         type="button"
                                         className="pluma-revision__boton--descartar"

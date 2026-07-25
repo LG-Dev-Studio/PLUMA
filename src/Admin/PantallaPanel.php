@@ -475,6 +475,7 @@ final class PantallaPanel {
 			'notaOpcional'       => __( 'Nota (opcional)', 'pluma-engine' ),
 			'descartar'          => __( 'Descartar', 'pluma-engine' ),
 			'vetar'              => __( 'Vetar (descartar antes de publicar)', 'pluma-engine' ),
+			'aprobarAhora'       => __( 'Aprobar ahora (publicar sin esperar)', 'pluma-engine' ),
 			'tiempoRestante'     => __( 'Tiempo restante para vetar', 'pluma-engine' ),
 			'tiempoAgotado'      => __( 'La ventana de veto ya expiró — se publicará en el próximo tick del motor', 'pluma-engine' ),
 			'confirmarDescartar' => __( '¿Descartar esta Pieza? Esta acción queda registrada en la auditoría y no se puede deshacer.', 'pluma-engine' ),

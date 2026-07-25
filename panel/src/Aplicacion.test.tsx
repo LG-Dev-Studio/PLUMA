@@ -258,6 +258,7 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
             notaOpcional: 'Nota (opcional)',
             descartar: 'Descartar',
             vetar: 'Vetar (descartar antes de publicar)',
+            aprobarAhora: 'Aprobar ahora (publicar sin esperar)',
             tiempoRestante: 'Tiempo restante para vetar',
             tiempoAgotado: 'La ventana de veto ya expiró.',
             confirmarDescartar: '¿Descartar esta Pieza?',

@@ -42,6 +42,14 @@ interface RepositorioColaPublicacionInterface {
 	public function marcarExpirada( int $id ): bool;
 
 	/**
+	 * Marca que un humano usó "aprobar ahora" sobre esta ranura en la cola de
+	 * veto de Copiloto (Etapa 6, porción 4c, Nivel Tres N.3 (c)): el
+	 * Orquestador la publica en el próximo tick sin esperar el resto de la
+	 * ventana de veto, y sin marcado de IA en el frontend (Art. 50 UE).
+	 */
+	public function marcarAprobacionActiva( int $id ): bool;
+
+	/**
 	 * La ranura `programada` más reciente de una Pieza (Sala de Revisión,
 	 * Libro Cap. 10.2: "en modo Copiloto, la cola de veto con cuenta
 	 * regresiva" — necesita la hora programada para calcular el límite de

@@ -26,6 +26,7 @@ function textosDeEjemplo(): TextosSalaRevision {
         notaOpcional: 'Nota (opcional)',
         descartar: 'Descartar',
         vetar: 'Vetar (descartar antes de publicar)',
+        aprobarAhora: 'Aprobar ahora (publicar sin esperar)',
         tiempoRestante: 'Tiempo restante para vetar',
         tiempoAgotado: 'La ventana de veto ya expiró.',
         confirmarDescartar: '¿Descartar esta Pieza?',
@@ -144,6 +145,21 @@ describe('PantallaSalaRevision', () => {
 
         expect(confirmSimulado).toHaveBeenCalledWith('¿Descartar esta Pieza?');
         confirmSimulado.mockRestore();
+    });
+
+    it('aprueba ahora una pieza de la cola de veto contra el endpoint correcto', async () => {
+        const fetchSimulado = stubFetch([], [entradaVetoDeEjemplo()]);
+
+        render(<PantallaSalaRevision restUrl="https://ejemplo.test/wp-json/" nonce="nonce-x" textos={textosDeEjemplo()} />);
+
+        await userEvent.click(await screen.findByRole('button', { name: 'Aprobar ahora (publicar sin esperar)' }));
+
+        await waitFor(() =>
+            expect(fetchSimulado).toHaveBeenCalledWith(
+                'https://ejemplo.test/wp-json/pluma/v1/revision/7/aprobar-ahora',
+                expect.objectContaining({ method: 'POST', headers: expect.objectContaining({ 'X-WP-Nonce': 'nonce-x' }) })
+            )
+        );
     });
 
     it('vetar llama al mismo endpoint de descartar', async () => {

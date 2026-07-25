@@ -8,6 +8,7 @@ use Pluma\Datos\RepositorioBorradoresInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Kernel\Capacidades;
+use Pluma\Pipeline\AccionNoDisponibleException;
 use Pluma\Pipeline\EntradaColaDeVeto;
 use Pluma\Pipeline\GestorSalaRevision;
 use Pluma\Pipeline\Pieza;
@@ -26,11 +27,12 @@ use WP_REST_Response;
  */
 final class RestSalaRevision {
 
-	private const RUTA_RETENIDAS = '/revision/retenidas';
-	private const RUTA_VETO      = '/revision/veto';
-	private const RUTA_APROBAR   = '/revision/(?P<id>\d+)/aprobar';
-	private const RUTA_DEVOLVER  = '/revision/(?P<id>\d+)/devolver';
-	private const RUTA_DESCARTAR = '/revision/(?P<id>\d+)/descartar';
+	private const RUTA_RETENIDAS     = '/revision/retenidas';
+	private const RUTA_VETO          = '/revision/veto';
+	private const RUTA_APROBAR       = '/revision/(?P<id>\d+)/aprobar';
+	private const RUTA_APROBAR_AHORA = '/revision/(?P<id>\d+)/aprobar-ahora';
+	private const RUTA_DEVOLVER      = '/revision/(?P<id>\d+)/devolver';
+	private const RUTA_DESCARTAR     = '/revision/(?P<id>\d+)/descartar';
 
 	public function __construct(
 		private readonly GestorSalaRevision $gestor,
@@ -72,6 +74,22 @@ final class RestSalaRevision {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'aprobar' ),
+				'permission_callback' => array( $this, 'autorizado' ),
+				'args'                => array(
+					'id' => array(
+						'required'          => true,
+						'validate_callback' => static fn ( $valor ): bool => is_numeric( $valor ),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			'pluma/v1',
+			self::RUTA_APROBAR_AHORA,
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'aprobarAhora' ),
 				'permission_callback' => array( $this, 'autorizado' ),
 				'args'                => array(
 					'id' => array(
@@ -156,6 +174,16 @@ final class RestSalaRevision {
 	/**
 	 * @return WP_REST_Response|WP_Error
 	 */
+	public function aprobarAhora( WP_REST_Request $request ) {
+		return $this->ejecutarAccion(
+			(int) $request->get_param( 'id' ),
+			fn ( int $id ) => $this->gestor->aprobarAhora( $id )
+		);
+	}
+
+	/**
+	 * @return WP_REST_Response|WP_Error
+	 */
 	public function devolver( WP_REST_Request $request ) {
 		$nota = $request->get_param( 'nota' );
 
@@ -186,6 +214,8 @@ final class RestSalaRevision {
 			return new WP_Error( 'pluma_pieza_no_encontrada', $e->getMessage(), array( 'status' => 404 ) );
 		} catch ( TransicionInvalidaException $e ) {
 			return new WP_Error( 'pluma_transicion_invalida', $e->getMessage(), array( 'status' => 409 ) );
+		} catch ( AccionNoDisponibleException $e ) {
+			return new WP_Error( 'pluma_accion_no_disponible', $e->getMessage(), array( 'status' => 409 ) );
 		}
 
 		return new WP_REST_Response( array( 'piezaId' => $piezaId ), 200 );

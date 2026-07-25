@@ -6,6 +6,7 @@ namespace Pluma\Datos;
 
 use DateTimeImmutable;
 use Pluma\Pipeline\EstadoPieza;
+use Pluma\Pipeline\TipoAprobacion;
 
 interface RepositorioAuditoriaInterface {
 
@@ -15,6 +16,7 @@ interface RepositorioAuditoriaInterface {
 		EstadoPieza $estadoNuevo,
 		string $actor,
 		string $motivo,
-		DateTimeImmutable $ahora
+		DateTimeImmutable $ahora,
+		?TipoAprobacion $tipoAprobacion = null
 	): void;
 }
