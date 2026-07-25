@@ -573,6 +573,17 @@ final class PantallaPanel {
 				'errorCarga'       => __( 'No se pudo cargar la configuración de transparencia.', 'pluma-engine' ),
 				'errorAccion'      => __( 'No se pudo guardar. Reintenta en unos segundos.', 'pluma-engine' ),
 			),
+			'riesgoLegal'   => array(
+				'titulo'          => __( 'Perfil de riesgo legal', 'pluma-engine' ),
+				'explicacion'     => __( 'Declara el régimen de responsabilidad de tu jurisdicción real para difamación. En régimen penal, toda pieza con una afirmación negativa sobre una persona u organización identificable exige retención humana y excluye el modo Autónomo, sin excepción — no es un ajuste para relajar protecciones, es un hecho sobre dónde opera tu medio.', 'pluma-engine' ),
+				'etiquetaRegimen' => __( 'Régimen de responsabilidad', 'pluma-engine' ),
+				'regimenCivil'    => __( 'Civil (responsabilidad civil, sin figura penal de difamación)', 'pluma-engine' ),
+				'regimenPenal'    => __( 'Penal (la difamación conserva figuras penales en mi jurisdicción)', 'pluma-engine' ),
+				'guardar'         => __( 'Guardar régimen', 'pluma-engine' ),
+				'guardado'        => __( 'Régimen actualizado', 'pluma-engine' ),
+				'errorCarga'      => __( 'No se pudo cargar el perfil de riesgo legal.', 'pluma-engine' ),
+				'errorAccion'     => __( 'No se pudo guardar. Reintenta en unos segundos.', 'pluma-engine' ),
+			),
 			'telemetria'    => array(
 				'titulo'         => __( 'Telemetría', 'pluma-engine' ),
 				'explicacion'    => __( 'Opcional y anónima: versiones, modo de operación y conteos agregados (nunca contenido de piezas ni llaves). Hoy no se envía a ningún servidor todavía — solo se prepara el dato que se compartiría.', 'pluma-engine' ),

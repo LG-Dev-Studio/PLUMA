@@ -123,6 +123,17 @@ function textosDeEjemplo(): TextosSalaMaquinas {
             errorCarga: 'No se pudo cargar la configuración de transparencia.',
             errorAccion: 'No se pudo guardar.',
         },
+        riesgoLegal: {
+            titulo: 'Perfil de riesgo legal',
+            explicacion: 'Declara el régimen de responsabilidad de tu jurisdicción real.',
+            etiquetaRegimen: 'Régimen de responsabilidad',
+            regimenCivil: 'Civil',
+            regimenPenal: 'Penal',
+            guardar: 'Guardar régimen',
+            guardado: 'Régimen actualizado',
+            errorCarga: 'No se pudo cargar el perfil de riesgo legal.',
+            errorAccion: 'No se pudo guardar.',
+        },
         telemetria: {
             titulo: 'Telemetría',
             explicacion: 'Opcional y anónima.',
@@ -171,6 +182,9 @@ function stubFetch(bitacora: EjecucionBitacora[], estado: EstadoMotor, telemetri
         }
         if (url.endsWith('/motor/transparencia')) {
             return Promise.resolve({ ok: true, json: () => Promise.resolve({ formato: 'breve', marcadoIaDeFabrica: true }) });
+        }
+        if (url.endsWith('/motor/riesgo-legal')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({ regimenResponsabilidad: 'civil' }) });
         }
         if (url.endsWith('/motor/diagnostico')) {
             return Promise.resolve({ ok: true, json: () => Promise.resolve({ version: '1.0', entorno: {} }) });

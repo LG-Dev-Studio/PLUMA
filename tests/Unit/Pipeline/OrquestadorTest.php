@@ -162,7 +162,7 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 	private function evaluadorCompuertasFalso(): EvaluadorCompuertas {
 		return new EvaluadorCompuertas(
 			new CompuertaCalidad( new VerificadorLegibilidad() ),
-			new CompuertaRiesgo( new ProveedorLenguajeFalso( '{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": false, "detalleDifamacion": "", "hechosDisputadosSinSenalar": false, "temaRegulado": null}' ) ),
+			new CompuertaRiesgo( new ProveedorLenguajeFalso( '{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": false, "detalleDifamacion": "", "hechosDisputadosSinSenalar": false, "temaRegulado": null, "afirmacionNegativaSobrePersonaIdentificable": false, "posturaSenaladoAusente": false}' ) ),
 			new CompuertaOriginalidad(),
 			new GestorDegradacion()
 		);

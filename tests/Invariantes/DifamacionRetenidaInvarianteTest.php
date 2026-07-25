@@ -50,7 +50,7 @@ final class DifamacionRetenidaInvarianteTest extends CasoDePruebaUnitario {
 		$proveedor = new ProveedorLenguajeFalso(
 			'{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": true, '
 				. '"detalleDifamacion": "la pieza acusa a un funcionario identificable de corrupción con una sola fuente atribuida, no verificada", '
-				. '"hechosDisputadosSinSenalar": false, "temaRegulado": null}'
+				. '"hechosDisputadosSinSenalar": false, "temaRegulado": null, "afirmacionNegativaSobrePersonaIdentificable": false, "posturaSenaladoAusente": false}'
 		);
 
 		$evaluador = new EvaluadorCompuertas(

@@ -36,7 +36,7 @@ final class EvaluadorCompuertasTest extends CasoDePruebaUnitario {
 	private const TEXTO_LEGIBLE = 'El banco central subió la tasa de interés al nueve por ciento este martes. '
 		. 'Los analistas esperaban un movimiento más cauto según el último informe trimestral publicado.';
 
-	private const RIESGO_SIN_PROBLEMAS = '{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": false, "detalleDifamacion": "", "hechosDisputadosSinSenalar": false, "temaRegulado": null}';
+	private const RIESGO_SIN_PROBLEMAS = '{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": false, "detalleDifamacion": "", "hechosDisputadosSinSenalar": false, "temaRegulado": null, "afirmacionNegativaSobrePersonaIdentificable": false, "posturaSenaladoAusente": false}';
 
 	private function expediente(): Expediente {
 		return new Expediente(
@@ -102,7 +102,7 @@ final class EvaluadorCompuertasTest extends CasoDePruebaUnitario {
 		Functions\when( 'get_option' )->justReturn( false );
 
 		$proveedor = new ProveedorLenguajeFalso(
-			'{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": true, "detalleDifamacion": "acusación sin doble fuente", "hechosDisputadosSinSenalar": false, "temaRegulado": null}'
+			'{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": true, "detalleDifamacion": "acusación sin doble fuente", "hechosDisputadosSinSenalar": false, "temaRegulado": null, "afirmacionNegativaSobrePersonaIdentificable": false, "posturaSenaladoAusente": false}'
 		);
 
 		$resultado = $this->evaluador( $proveedor )->evaluar(
@@ -173,11 +173,74 @@ final class EvaluadorCompuertasTest extends CasoDePruebaUnitario {
 		self::assertStringContainsString( 'Calidad insuficiente', $resultado->motivos[0] );
 	}
 
+	/**
+	 * Nivel Tres M.1: motivo de retención independiente, distinto del texto
+	 * de difamación (que aquí es falso).
+	 */
+	public function test_postura_del_senalado_ausente_retiene_con_motivo_propio(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+
+		$proveedor = new ProveedorLenguajeFalso(
+			'{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": false, "detalleDifamacion": "", "hechosDisputadosSinSenalar": false, "temaRegulado": null, "afirmacionNegativaSobrePersonaIdentificable": true, "posturaSenaladoAusente": true}'
+		);
+
+		$resultado = $this->evaluador( $proveedor )->evaluar(
+			$this->expediente(),
+			$this->clasificacion(),
+			$this->esqueletoCompleto(),
+			$this->borradorAprobado(),
+			self::TEXTO_LEGIBLE,
+			true,
+			array(),
+			ModoOperacion::Autonomo
+		);
+
+		self::assertTrue( $resultado->retenida );
+		self::assertCount( 1, $resultado->motivos );
+		self::assertStringContainsString( 'réplica previa', $resultado->motivos[0] );
+	}
+
+	/**
+	 * Nivel Tres N.1: en régimen penal, la retención aplica aunque la
+	 * postura del señalado sí esté registrada — "nunca Autónomo" para esta
+	 * categoría, motivo propio distinto del de M.1.
+	 */
+	public function test_regimen_penal_retiene_con_motivo_propio_aunque_postura_este_presente(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $opcion, $defecto = false ) {
+				if ( CompuertaRiesgo::OPCION_REGIMEN_RESPONSABILIDAD === $opcion ) {
+					return 'penal';
+				}
+
+				return $defecto;
+			}
+		);
+
+		$proveedor = new ProveedorLenguajeFalso(
+			'{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": false, "detalleDifamacion": "", "hechosDisputadosSinSenalar": false, "temaRegulado": null, "afirmacionNegativaSobrePersonaIdentificable": true, "posturaSenaladoAusente": false}'
+		);
+
+		$resultado = $this->evaluador( $proveedor )->evaluar(
+			$this->expediente(),
+			$this->clasificacion(),
+			$this->esqueletoCompleto(),
+			$this->borradorAprobado(),
+			self::TEXTO_LEGIBLE,
+			true,
+			array(),
+			ModoOperacion::Autonomo
+		);
+
+		self::assertTrue( $resultado->retenida );
+		self::assertCount( 1, $resultado->motivos );
+		self::assertStringContainsString( 'régimen de responsabilidad penal', $resultado->motivos[0] );
+	}
+
 	public function test_puede_haber_varios_motivos_de_retencion_a_la_vez(): void {
 		Functions\when( 'get_option' )->justReturn( 70 );
 
 		$proveedor = new ProveedorLenguajeFalso(
-			'{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": true, "detalleDifamacion": "x", "hechosDisputadosSinSenalar": true, "temaRegulado": null}'
+			'{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": true, "detalleDifamacion": "x", "hechosDisputadosSinSenalar": true, "temaRegulado": null, "afirmacionNegativaSobrePersonaIdentificable": false, "posturaSenaladoAusente": false}'
 		);
 
 		$resultado = $this->evaluador( $proveedor )->evaluar(

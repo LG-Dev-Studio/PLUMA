@@ -56,6 +56,14 @@ final class EvaluadorCompuertas {
 			$motivos[] = 'Hechos disputados en el expediente presentados como consenso sin señalar la disputa.';
 		}
 
+		if ( $riesgo->posturaSenaladoAusente ) {
+			$motivos[] = 'Postura del señalado ausente en las fuentes recolectadas — derecho de réplica previa no satisfecho (Nivel Tres M.1).';
+		}
+
+		if ( $riesgo->retencionObligatoriaPorRegimenPenal ) {
+			$motivos[] = 'Afirmación fáctica negativa sobre persona identificable bajo régimen de responsabilidad penal — retención humana obligatoria, modo Autónomo excluido (Nivel Tres N.1).';
+		}
+
 		if ( ! $calidad->aprobada() ) {
 			$motivos[] = sprintf(
 				'Calidad insuficiente (%d/100, umbral %d): %s',

@@ -119,7 +119,7 @@ final class RegistroDiagnosticoCompuertasInvarianteTest extends CasoDePruebaUnit
 		// prueba es que, aun así, el diagnóstico se persiste — retener no es
 		// excusa para dejar de auditar.
 		$proveedorRiesgo = new ProveedorLenguajeFalso(
-			'{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": true, "detalleDifamacion": "acusación sin doble fuente", "hechosDisputadosSinSenalar": false, "temaRegulado": null}'
+			'{"implicaMenores": false, "implicaSalud": false, "implicaViolencia": false, "riesgoDifamacion": true, "detalleDifamacion": "acusación sin doble fuente", "hechosDisputadosSinSenalar": false, "temaRegulado": null, "afirmacionNegativaSobrePersonaIdentificable": false, "posturaSenaladoAusente": false}'
 		);
 
 		$piezaEnRevision = new Pieza( 30, 100, EstadoPieza::EnRevision, $expediente, null, $reloj->ahora(), $reloj->ahora(), 5, null, $ficha );

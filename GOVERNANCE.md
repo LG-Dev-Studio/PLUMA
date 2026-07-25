@@ -61,7 +61,7 @@ Un factor de elegibilidad (piso) nunca se promedia con factores de prioridad: ac
 
 2.1 No existe ruta de código que publique una Pieza sin registro de las tres compuertas en `pluma_auditoria`. Test de arquitectura obligatorio.
 2.2 La degradación por sensibilidad (tragedia/menores/salud → nunca Autónomo, sátira bloqueada) se implementa en `Pluma\Compuertas` y NINGUNA opción de usuario la anula. Test obligatorio.
-2.3 Afirmación fáctica negativa sobre persona identificable sin doble fuente `verificada` → estado RETENIDA. Test obligatorio.
+2.3 Afirmación fáctica negativa sobre persona identificable sin doble fuente `verificada` → estado RETENIDA. Ausencia registrada de postura del señalado (Nivel Tres M.1, derecho de réplica previa) es motivo de retención independiente, incluso con doble fuente verificada — un hecho puede estar perfectamente verificado y aun así publicarse sin que la parte señalada haya tenido nunca oportunidad de responder. Bajo perfil de jurisdicción de régimen penal (Nivel Tres N.1, `Pluma\Compuertas\RegimenResponsabilidad`, default de fábrica `Civil`), toda afirmación fáctica negativa sobre persona identificable exige retención humana y excluye el modo Autónomo, sin excepción configurable por el cliente. Test obligatorio.
 2.4 El redactor solo conoce el expediente: toda afirmación del borrador debe ser trazable a un hecho del expediente (anti-alucinación). El Corrector Interno lo verifica; el test verifica al Corrector.
 2.5 Extractos de fuentes: material interno, longitud acotada, jamás reproducidos en la pieza publicada; toda fuente usada se cita y enlaza.
 2.6 Transparencia de autoría IA: el bloque configurable existe siempre; la opción controla el formato, no la existencia.
