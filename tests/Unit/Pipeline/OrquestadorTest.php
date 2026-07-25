@@ -831,7 +831,7 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$cola->expects( 'marcarPublicada' )->once()->with( 1 );
 
 		$publicador = Mockery::mock( PublicadorInterface::class );
-		$publicador->expects( 'publicar' )->once()->with( 987, Mockery::any(), Mockery::any(), Mockery::any() );
+		$publicador->expects( 'publicar' )->once()->with( 987, Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any() );
 
 		$resultado = $this->construir(
 			array(

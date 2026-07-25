@@ -22,6 +22,7 @@ use Pluma\Publicacion\ComentarioWordPress;
 use Pluma\Publicacion\CreadorBorradorInterface;
 use Pluma\Publicacion\LectorComentariosInterface;
 use Pluma\Publicacion\PublicadorInterface;
+use Pluma\Publicacion\SnapshotPublicacion;
 use Pluma\Redaccion\AnalizadorAudiencia;
 use Pluma\Redaccion\EstadoRespuestaComentario;
 use Pluma\Redaccion\GeneradorRespuestaComentario;
@@ -33,6 +34,7 @@ use Pluma\Sensores\RelacionHistoria;
 use Pluma\Sensores\SensorInterface;
 use Pluma\Seo\MetadatosSeo;
 use Pluma\Seo\MotorSeo;
+use Pluma\Seo\TipoEsquemaArticulo;
 use Pluma\Seo\TipoPluginSeo;
 use Pluma\Taxonomia\ResultadoTaxonomia;
 use Pluma\Taxonomia\Taxonomo;
@@ -458,7 +460,7 @@ final class Orquestador {
 				$plugin    = $pieza->datosSeo->pluginDetectado ?? TipoPluginSeo::Ninguno;
 				$taxonomia = $pieza->resultadoTaxonomia ?? new ResultadoTaxonomia( null, array() );
 
-				$this->publicador->publicar( $pieza->postId, $metadatos, $plugin, $taxonomia );
+				$this->publicador->publicar( $pieza->postId, $metadatos, $plugin, $taxonomia, $this->snapshotPublicacion( $pieza, $modoEfectivo ) );
 				$this->colaPublicacion->marcarPublicada( $ranura->id );
 				$this->transicionador->transitar( $pieza->id, EstadoPieza::Publicada, 'publicada por el Orquestador' );
 			} catch ( Throwable $e ) {
@@ -603,6 +605,33 @@ final class Orquestador {
 			null,
 			EstadoRespuestaComentario::Procesado,
 			$this->reloj->ahora()
+		);
+	}
+
+	/**
+	 * Instantánea para el marcado de frontend (Art. 50 UE, Nivel Tres N.3).
+	 * `generadoIa` es verdadero para todo lo que publica el sistema (Autónomo
+	 * o Copiloto por expiración de ventana) — Piloto nunca llega aquí: sus
+	 * borradores los publica un humano a mano, que asume la responsabilidad
+	 * editorial de la excepción del Art. 50. El nombre del periodista viaja en
+	 * la instantánea para no consultar repositorios en tiempo de render.
+	 */
+	private function snapshotPublicacion( Pieza $pieza, ModoOperacion $modoEfectivo ): SnapshotPublicacion {
+		$autorNombre = '';
+
+		if ( null !== $pieza->periodistaId ) {
+			$periodista  = $this->periodistas->obtenerPorId( $pieza->periodistaId );
+			$autorNombre = null !== $periodista ? $periodista->nombre : '';
+		}
+
+		$tipoEsquema = $pieza->datosSeo->tipoEsquema->value ?? TipoEsquemaArticulo::NewsArticle->value;
+
+		return new SnapshotPublicacion(
+			$pieza->id,
+			ModoOperacion::Piloto !== $modoEfectivo,
+			$modoEfectivo->value,
+			$tipoEsquema,
+			$autorNombre
 		);
 	}
 

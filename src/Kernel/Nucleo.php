@@ -19,6 +19,7 @@ use Pluma\Admin\RestSalaMaquinas;
 use Pluma\Admin\RestSalaRevision;
 use Pluma\Admin\RestSalaTendencias;
 use Pluma\Admin\RestSearchConsole;
+use Pluma\Admin\RestTransparencia;
 use Pluma\Compuertas\CompuertaCalidad;
 use Pluma\Compuertas\CompuertaOriginalidad;
 use Pluma\Compuertas\CompuertaRiesgo;
@@ -100,7 +101,9 @@ use Pluma\Redaccion\VerificadorComentarioSustantivo;
 use Pluma\Redaccion\VerificadorNGramas;
 use Pluma\Redaccion\VerificadorVoz;
 use Pluma\Seo\AuditorCanibalizacion;
+use Pluma\Seo\ConstructorEsquemaNewsArticle;
 use Pluma\Seo\DetectorPluginSeo;
+use Pluma\Seo\EmisorEsquemaFrontend;
 use Pluma\Seo\EnlazadorInterno;
 use Pluma\Seo\ExtractorPalabrasClave;
 use Pluma\Seo\GeneradorMetadatosSeo;
@@ -670,6 +673,12 @@ final class Nucleo {
 				$c->obtener( RelojInterface::class )
 			)
 		);
+		$this->contenedor->registrar( RestTransparencia::class, static fn (): RestTransparencia => new RestTransparencia() );
+		$this->contenedor->registrar( ConstructorEsquemaNewsArticle::class, static fn (): ConstructorEsquemaNewsArticle => new ConstructorEsquemaNewsArticle() );
+		$this->contenedor->registrar(
+			EmisorEsquemaFrontend::class,
+			fn ( Contenedor $c ): EmisorEsquemaFrontend => new EmisorEsquemaFrontend( $c->obtener( ConstructorEsquemaNewsArticle::class ) )
+		);
 	}
 
 	public function arrancar( string $archivoPrincipalPlugin, string $versionEsquemaObjetivo ): void {
@@ -696,5 +705,7 @@ final class Nucleo {
 		$this->contenedor->obtener( RestSearchConsole::class )->registrar();
 		$this->contenedor->obtener( RestRespuestasComentarios::class )->registrar();
 		$this->contenedor->obtener( RestInformesEditoriales::class )->registrar();
+		$this->contenedor->obtener( RestTransparencia::class )->registrar();
+		$this->contenedor->obtener( EmisorEsquemaFrontend::class )->registrar();
 	}
 }

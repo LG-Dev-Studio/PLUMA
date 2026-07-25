@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BloqueLlaveOpenRouter } from './BloqueLlaveOpenRouter';
 import { BloqueSearchConsole, type TextosSearchConsole } from './BloqueSearchConsole';
+import { BloqueTransparencia, type TextosTransparencia } from './BloqueTransparencia';
 
 export interface DatosSalud {
     versionPhp: string;
@@ -93,6 +94,7 @@ export interface TextosSalaMaquinas {
         confirmarQuitar: string;
     };
     searchConsole: TextosSearchConsole;
+    transparencia: TextosTransparencia;
     telemetria: {
         titulo: string;
         explicacion: string;
@@ -331,6 +333,8 @@ function SeccionesMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: st
             />
 
             <BloqueSearchConsole restUrl={restUrl} nonce={nonce} textos={textos.searchConsole} />
+
+            <BloqueTransparencia restUrl={restUrl} nonce={nonce} textos={textos.transparencia} />
 
             <section className="pluma-maquinas__seccion">
                 <h2>{textos.telemetria.titulo}</h2>

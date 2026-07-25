@@ -111,6 +111,18 @@ function textosDeEjemplo(): TextosSalaMaquinas {
             tablaPosicion: 'Posición',
             sinMetricas: 'todavía no hay métricas sincronizadas',
         },
+        transparencia: {
+            titulo: 'Transparencia y cumplimiento',
+            explicacion: 'Aviso visible + marcado legible por máquina.',
+            etiquetaFormato: 'Formato del aviso visible',
+            formatoBreve: 'Breve',
+            formatoExtendido: 'Extendido',
+            guardar: 'Guardar formato',
+            guardado: 'Formato actualizado',
+            marcadoDeFabrica: 'El marcado legible por máquina es requisito de fábrica.',
+            errorCarga: 'No se pudo cargar la configuración de transparencia.',
+            errorAccion: 'No se pudo guardar.',
+        },
         telemetria: {
             titulo: 'Telemetría',
             explicacion: 'Opcional y anónima.',
@@ -156,6 +168,9 @@ function stubFetch(bitacora: EjecucionBitacora[], estado: EstadoMotor, telemetri
         }
         if (url.endsWith('/motor/telemetria')) {
             return Promise.resolve({ ok: true, json: () => Promise.resolve(telemetria) });
+        }
+        if (url.endsWith('/motor/transparencia')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({ formato: 'breve', marcadoIaDeFabrica: true }) });
         }
         if (url.endsWith('/motor/diagnostico')) {
             return Promise.resolve({ ok: true, json: () => Promise.resolve({ version: '1.0', entorno: {} }) });

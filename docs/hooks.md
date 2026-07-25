@@ -47,3 +47,22 @@ credenciales configuradas — decisión explícita del propietario: notificar y
 usar `RedactorMecanico` en vez de bloquear la pieza (CLAUDE.md § Contrato del
 Proveedor de Lenguaje). Un fallo técnico real (red, HTTP, formato, circuito
 abierto) NO dispara este hook: se propaga y la pieza se marca `fallida`.
+
+## Frontend público (Etapa 6, porción 4a)
+
+`wp_head` — `Pluma\Seo\EmisorEsquemaFrontend::emitir()` es el **primer y único
+hook de frontend del plugin** (hasta ahora el frontend público solo recibía lo
+horneado en `post_content`). Sobre una pieza singular publicada por PLUMA
+(identificada por la post meta `_pluma_pieza_id`) emite:
+
+- El documento JSON-LD `NewsArticle`/`OpinionNewsArticle`/`AnalysisNewsArticle`
+  (Libro Cap. 6.2). Paga la deuda `PLUMA-E3-4`.
+- El marcado de transparencia de IA legible por máquina (Reglamento (UE)
+  2024/1689, Art. 50; Nivel Tres N.3): la etiqueta `<meta name="iptc.digitalSourceType">`
+  con el valor de vocabulario controlado IPTC `trainedAlgorithmicMedia`, solo
+  sobre piezas generadas y publicadas por el sistema sin aprobación humana
+  activa (post meta `_pluma_generado_ia`). Piso de fábrica no desactivable.
+
+Lee solo post meta ya persistidas por `Pluma\Publicacion\Publicador` al publicar
+— cero consultas a repositorios en tiempo de render (CLAUDE.md: peso adicional
+en frontend ≈ 0).

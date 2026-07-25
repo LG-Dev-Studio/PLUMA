@@ -16,7 +16,17 @@ final class Publicador implements PublicadorInterface {
 	) {
 	}
 
-	public function publicar( int $postId, MetadatosSeo $metadatos, TipoPluginSeo $plugin, ResultadoTaxonomia $taxonomia ): void {
+	/**
+	 * Post metas que consume `Pluma\Seo\EmisorEsquemaFrontend` en `wp_head`.
+	 * Se escriben una sola vez al publicar; el render no vuelve a calcularlos.
+	 */
+	public const META_PIEZA_ID     = '_pluma_pieza_id';
+	public const META_GENERADO_IA  = '_pluma_generado_ia';
+	public const META_MODO         = '_pluma_modo_publicacion';
+	public const META_ESQUEMA_TIPO = '_pluma_esquema_tipo';
+	public const META_AUTOR_NOMBRE = '_pluma_autor_nombre';
+
+	public function publicar( int $postId, MetadatosSeo $metadatos, TipoPluginSeo $plugin, ResultadoTaxonomia $taxonomia, SnapshotPublicacion $snapshot ): void {
 		$resultado = wp_update_post(
 			array(
 				'ID'          => $postId,
@@ -32,5 +42,11 @@ final class Publicador implements PublicadorInterface {
 
 		$this->escritorSeo->escribir( $postId, $metadatos, $plugin );
 		$this->asignadorTaxonomia->asignar( $postId, $taxonomia );
+
+		update_post_meta( $postId, self::META_PIEZA_ID, $snapshot->piezaId );
+		update_post_meta( $postId, self::META_GENERADO_IA, $snapshot->generadoIa ? '1' : '' );
+		update_post_meta( $postId, self::META_MODO, $snapshot->modoPublicacion );
+		update_post_meta( $postId, self::META_ESQUEMA_TIPO, $snapshot->tipoEsquema );
+		update_post_meta( $postId, self::META_AUTOR_NOMBRE, $snapshot->autorNombre );
 	}
 }

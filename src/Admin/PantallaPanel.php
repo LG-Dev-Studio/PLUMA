@@ -560,6 +560,18 @@ final class PantallaPanel {
 				'tablaPosicion'        => __( 'Posición', 'pluma-engine' ),
 				'sinMetricas'          => __( 'todavía no hay métricas sincronizadas', 'pluma-engine' ),
 			),
+			'transparencia' => array(
+				'titulo'           => __( 'Transparencia y cumplimiento', 'pluma-engine' ),
+				'explicacion'      => __( 'Cada pieza redactada por IA lleva un aviso de transparencia visible. Elige su formato; el marcado legible por máquina (Reglamento UE de IA, Art. 50) se añade siempre y no es desactivable.', 'pluma-engine' ),
+				'etiquetaFormato'  => __( 'Formato del aviso visible', 'pluma-engine' ),
+				'formatoBreve'     => __( 'Breve', 'pluma-engine' ),
+				'formatoExtendido' => __( 'Extendido', 'pluma-engine' ),
+				'guardar'          => __( 'Guardar formato', 'pluma-engine' ),
+				'guardado'         => __( 'Formato actualizado', 'pluma-engine' ),
+				'marcadoDeFabrica' => __( 'Las piezas publicadas por el motor sin aprobación humana activa (Autónomo, o Copiloto por expiración de la ventana de veto) se marcan como generadas por IA en metadatos legibles por máquina. Es un requisito de fábrica, no una opción.', 'pluma-engine' ),
+				'errorCarga'       => __( 'No se pudo cargar la configuración de transparencia.', 'pluma-engine' ),
+				'errorAccion'      => __( 'No se pudo guardar. Reintenta en unos segundos.', 'pluma-engine' ),
+			),
 			'telemetria'    => array(
 				'titulo'         => __( 'Telemetría', 'pluma-engine' ),
 				'explicacion'    => __( 'Opcional y anónima: versiones, modo de operación y conteos agregados (nunca contenido de piezas ni llaves). Hoy no se envía a ningún servidor todavía — solo se prepara el dato que se compartiría.', 'pluma-engine' ),

@@ -1,6 +1,6 @@
 # Etapa 6 — Producto en venta
 
-**Estado: EN CURSO.** Porciones 1 (Versionado SemVer + empaquetado reproducible + matriz de compatibilidad), 2 (telemetría opt-in + modo diagnóstico) y 3 (documentación de venta) completas. Porción 4 (cierre formal con beta cerrada externa) pendiente.
+**Estado: EN CURSO.** Porciones 1 (Versionado SemVer + empaquetado reproducible + matriz de compatibilidad), 2 (telemetría opt-in + modo diagnóstico), 3 (documentación de venta) y 4a (cumplimiento Art. 50 UE — capa de emisión de frontend + marcado legible por máquina, primera del arco N.3) completas. Pendientes: porciones 4b (página de autor con identidad sintética) y 4c (tipo de aprobación + aprobar-activo en Copiloto) del arco N.3, y el cierre formal con beta cerrada externa.
 
 ## Objetivo y criterio de salida (PLAN-MAESTRO)
 
@@ -92,3 +92,33 @@ Ambos se verificaron localmente (suite de Integración 141/141 y Playwright 2/2 
 **Honestidad de alcance:** el FAQ de "límites conocidos" declara explícitamente lo que esta versión NO incluye todavía (mismo principio de "escasez honesta" que gobierna el resto del producto) en vez de omitirlo — incluye la propia telemetría diferida (`PLUMA-E6-2`) y la ausencia de licenciamiento (`PLUMA-E6-1`, mencionada como "no necesitas clave de licencia en esta versión", sin exponer jerga interna de deuda técnica al cliente).
 
 **Verificación visual:** las cinco páginas se renderizaron con Playwright (Chromium) en modo claro y oscuro para confirmar el sistema de diseño antes de cerrar la porción — capturas de pantalla revisadas y descartadas (no forman parte del entregable).
+
+## Porción 4a — Cumplimiento del Art. 50 UE: capa de emisión de frontend + marcado legible por máquina (commit pendiente)
+
+Primera de las 3 porciones del arco N.3 (Nivel Tres N.3 + Nivel Cuatro verif. 1; plan en `docs/PLAN-MAESTRO-EVOLUCION.md`, ADR 0002). Núcleo legal embarcable antes de la beta.
+
+**Qué se agregó:**
+
+- **Primer hook de frontend del plugin** (`Pluma\Seo\EmisorEsquemaFrontend`, `wp_head`): sobre una pieza singular publicada por PLUMA emite (1) el documento JSON-LD `NewsArticle`/`OpinionNewsArticle`/`AnalysisNewsArticle` — **paga la deuda `PLUMA-E3-4`**, el JSON-LD que `ConstructorEsquemaNewsArticle` construía desde la Etapa 3 pero nunca se emitía en una página real; y (2) el marcado de transparencia de IA legible por máquina del Art. 50 (Reglamento (UE) 2024/1689): `<meta name="iptc.digitalSourceType" content="…/trainedAlgorithmicMedia">`, el valor de vocabulario controlado IPTC verificado contra la fuente oficial (cero invención — Art. 50 no manda un formato único, se implementa el más reconocido).
+- **`Pluma\Publicacion\Publicador`** persiste al publicar una instantánea (`SnapshotPublicacion`) como post meta (`_pluma_pieza_id`, `_pluma_generado_ia`, `_pluma_modo_publicacion`, `_pluma_esquema_tipo`, `_pluma_autor_nombre`); el emisor lee solo esas metas en render — cero consultas a repositorios en el frontend (CLAUDE.md: peso adicional ≈ 0).
+- **Piso de fábrica inamovible** (ADR 0002): el marcado existe en toda pieza generada y publicada por el sistema sin aprobación humana activa (Autónomo, o Copiloto por expiración de ventana). Hoy Copiloto solo publica por expiración → se marca todo lo publicado por el motor (postura conservadora correcta hasta la porción 4c).
+- **Configurable por el cliente**: `Pluma\Admin\RestTransparencia` + sección "Transparencia y cumplimiento" del panel — selector del formato del bloque de transparencia visible (breve/extendido), con nota de solo lectura de que el marcado legible por máquina es piso de fábrica.
+
+**Honestidad de alcance:** 4a entrega el núcleo legal. La página de autor con identidad sintética (N.3 (b)) y el tipo de aprobación de primera clase + acción "aprobar ahora" en Copiloto (N.3 (c)) quedan en las porciones 4b/4c, registradas como deuda `PLUMA-E6-3`. Sin nombre de periodista, el JSON-LD emite `author` como Organización (sitio) — se enriquece a Persona con página propia en 4b.
+
+**Verificación real (no solo test):** publicada una pieza en el sitio dev de wp-env, el `<head>` real emite el `<script type="application/ld+json">` con `OpinionNewsArticle` y la etiqueta `iptc.digitalSourceType` apuntando a `trainedAlgorithmicMedia`.
+
+### Evidencia de gates — Porción 4a
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores (349 archivos) |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 372/372 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 149/149 (2 skipped esperados) |
+| `npx vitest run` | 86/86 |
+| `npx tsc --noEmit` | limpio |
+| `npm run build` | build de producción real |
+| `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
+| Verificación manual del `<head>` real | JSON-LD + marcado IPTC emitidos en la página publicada |

@@ -12,9 +12,9 @@ namespace Pluma\Redaccion;
  */
 final class AvisoTransparenciaIa {
 
-	public const OPCION_FORMATO     = 'pluma_transparencia_ia_formato';
-	private const FORMATO_BREVE     = 'breve';
-	private const FORMATO_EXTENDIDO = 'extendido';
+	public const OPCION_FORMATO    = 'pluma_transparencia_ia_formato';
+	public const FORMATO_BREVE     = 'breve';
+	public const FORMATO_EXTENDIDO = 'extendido';
 
 	public function comoHtml( string $nombrePeriodista ): string {
 		$formato = get_option( self::OPCION_FORMATO, self::FORMATO_BREVE );
