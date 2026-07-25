@@ -5,7 +5,7 @@
 # .wp-env.json automáticamente si existe en la raíz del plugin.
 #
 # Uso: bin/generar-wp-env-matriz WP_VERSION PHP_VERSION
-#   WP_VERSION: "minima" | "latest" | una versión explícita ("6.4.0")
+#   WP_VERSION: "minima" | "latest" | una versión explícita ("6.4")
 #   PHP_VERSION: "8.2" | "8.3"
 #
 # Reproducible localmente: el mismo comando que usa
@@ -23,9 +23,12 @@ PHP_VERSION="${2:?Uso: bin/generar-wp-env-matriz WP_VERSION PHP_VERSION}"
 # "WP mínimo" se lee del propio header del plugin (Requires at least) — nunca
 # un literal hardcodeado que pueda quedar desactualizado en silencio (mismo
 # principio que corrigió el CI de la Etapa 5: leer el dato real, no copiarlo).
+# El mirror git de WordPress/WordPress etiqueta la primera versión de cada
+# serie como "X.Y" (sin ".0") — "X.Y.0" no existe como ref y falla el fetch
+# (detectado en CI real: "fatal: couldn't find remote ref 6.4.0").
 case "$WP_VERSION_ARG" in
     minima)
-        WP_CORE="WordPress/WordPress#$(grep -oP 'Requires at least:\s*\K[0-9.]+' pluma-engine.php).0"
+        WP_CORE="WordPress/WordPress#$(grep -oP 'Requires at least:\s*\K[0-9.]+' pluma-engine.php)"
         ;;
     latest)
         WP_CORE="$(grep -oP '"core":\s*"\K[^"]+' .wp-env.json)"

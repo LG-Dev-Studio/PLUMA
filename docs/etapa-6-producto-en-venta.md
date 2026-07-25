@@ -33,6 +33,12 @@ A diferencia de las Etapas 1-5, esta no añade un módulo de dominio editorial n
 
 **Hallazgo real durante la verificación — comportamiento no documentado de `WP_UnitTestCase`:** `tests/Integration/MigracionConDatosRealesTest.php` inicialmente fallaba de forma silenciosa (la reversa "no borraba" `pluma_respuestas_comentarios`, sin ningún error). La causa: WordPress core intercepta **tanto** `CREATE TABLE` como `DROP TABLE` dentro de la ventana de `WP_UnitTestCase::set_up()`/`tear_down()` de un test normal (`_create_temporary_tables` y su gemelo `_drop_temporary_tables`, ambos en `abstract-testcase.php` del core de pruebas de WordPress) — el segundo no estaba documentado en las lecciones previas del proyecto (solo se conocía el primero, de la Etapa 3). Un `DROP TABLE IF EXISTS` real se reescribe silenciosamente a `DROP TEMPORARY TABLE IF EXISTS`, que no toca la tabla permanente y no lanza error (`IF EXISTS` absorbe el "unknown table" de la temporal inexistente). Corregido quitando ambos filtros (`remove_filter('query', ...)`) justo antes de invocar la reversa real dentro del test, y restaurándolos después — documentado en el docblock de la clase para que no se repita el mismo hallazgo "a la mala" en un futuro test que necesite DDL real dentro de un método normal.
 
+**Hallazgo real durante la verificación — `.github/workflows/compatibilidad.yml` disparado en CI real reveló dos bugs genuinos que la CI rápida nunca podía ver:**
+1. `bin/generar-wp-env-matriz` construía el ref de "WP mínimo" como `6.4.0`, pero el mirror git de `WordPress/WordPress` etiqueta la primera versión de cada serie como `6.4` (sin `.0`) — `git fetch` fallaba con `fatal: couldn't find remote ref 6.4.0`. Corregido quitando el sufijo `.0` inventado.
+2. El pin de "WP latest" en `.wp-env.json` estaba fijo en `6.7.1` desde la Etapa 0 — desactualizado en silencio. El job de convivencia con Yoast SEO falló de verdad contra WordPress real: la versión actual de Yoast exige WordPress 6.8 como mínimo, y 6.7.1 ya no lo cumple. Corregido actualizando el pin a `6.9.5` (la última estable real, verificada contra las tags del mirror git) — esto es exactamente el tipo de deriva que GOVERNANCE §5.3 existe para atrapar antes de que lo descubra un cliente.
+
+Ambos se verificaron localmente (suite de Integración 141/141 y Playwright 2/2 contra WordPress 6.9.5 reconstruido) antes de volver a disparar el workflow en CI real.
+
 ## Evidencia de gates — Porción 1
 
 | Gate | Resultado |
