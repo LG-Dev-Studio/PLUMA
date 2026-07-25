@@ -41,7 +41,18 @@ Al exceder: extraer, no ampliar el límite. Excepción única documentable: matr
 | Capacidades | `pluma_` + verbo_objeto | `pluma_aprobar_piezas` |
 
 ### 1.5 Prohibido en cualquier archivo no-test
-`dd/dump/var_dump/print_r/echo` (fuera de vistas escapadas) · `exit/die` (salvo guarda `ABSPATH`) · `eval` · `extract` · `$_GET/$_POST/$_REQUEST` crudos (siempre vía Request sanitizado) · SQL interpolado (siempre `$wpdb->prepare`) · `@` supresor de errores · credenciales/IPs/URLs de API hardcodeadas · código muerto comentado · desactivación de compuertas por flag.
+`dd/dump/var_dump/print_r/echo` (fuera de vistas escapadas) · `exit/die` (salvo guarda `ABSPATH`) · `eval` · `extract` · `$_GET/$_POST/$_REQUEST` crudos (siempre vía Request sanitizado) · SQL interpolado (siempre `$wpdb->prepare`) · `@` supresor de errores · credenciales/IPs/URLs de API hardcodeadas · código muerto comentado · desactivación de compuertas por flag · superficie paralela de contenido servida a crawlers de IA distinta de la que ve el lector (cloaking — Google/Bing lo tratan como abuso desde feb-2026; Nivel Cuatro, verificación 2).
+
+### 1.6 Regla de Puntuaciones Compuestas
+*Cuatro puntuaciones compuestas del sistema (Radar, asignación de periodista, selección de ángulo, Compuerta de Calidad) tuvieron el mismo defecto de diseño —sumar factores de elegibilidad con factores de prioridad— y se corrigió ad hoc cuatro veces (Nivel Dos C.1–C.3, Nivel Tres K.1–K.2). Esta regla impide la quinta recurrencia (Nivel Tres K.3).*
+
+Toda puntuación compuesta del sistema —presente o futura, en cualquier capa `Pluma\*`— declara, para cada factor que la compone y ANTES de poder implementarse, una tabla de tres columnas:
+
+1. **¿Piso eliminatorio o contribuyente ponderado?**
+2. **Si es piso: ¿cuál es el umbral y qué ocurre exactamente por debajo** (RETENIDA / DESCARTADO / no elegible / regreso a etapa anterior)?
+3. **¿El piso tiene valor de fábrica no editable a la baja, o es enteramente configurable por el cliente?**
+
+Un factor de elegibilidad (piso) nunca se promedia con factores de prioridad: actúa como puerta binaria previa a la ponderación. El registro vivo de todas las puntuaciones y sus tablas vive en `docs/puntuaciones.md`. **Test de arquitectura obligatorio**: ninguna función de puntuación nueva se acepta sin su tabla de tres columnas completa y registrada.
 
 ---
 
@@ -55,6 +66,7 @@ Al exceder: extraer, no ampliar el límite. Excepción única documentable: matr
 2.5 Extractos de fuentes: material interno, longitud acotada, jamás reproducidos en la pieza publicada; toda fuente usada se cita y enlaza.
 2.6 Transparencia de autoría IA: el bloque configurable existe siempre; la opción controla el formato, no la existencia.
 2.7 Escasez honesta (CLAUDE.md § Orquestador): déficit se reporta, umbrales no se tocan.
+2.8 Independencia epistémica del verificador (Nivel Tres J). El modo Autónomo exige que el punto 1 del Corrector Interno (trazabilidad de hechos al expediente, §2.4) lo resuelva un proveedor de **familia de modelo declarada como distinta** a la del redactor, más una capa de verificación **determinista** (similitud de embeddings unidad-a-unidad contra el expediente) ejecutada antes de cualquier pasada generativa de corrección. Test de arquitectura obligatorio: intentar activar Autónomo con `verificador_provider` de la misma familia que `redactor_provider` debe fallar de forma explícita, nunca degradar en silencio. La obligatoriedad dura del Autónomo se valida empíricamente en Piloto antes de activarse (Nivel Tres T.2); el contrato de metadata de familia en `LenguajeInterface` existe desde que se construye el Corrector.
 
 ---
 
