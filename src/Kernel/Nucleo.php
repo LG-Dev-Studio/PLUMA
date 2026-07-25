@@ -19,6 +19,7 @@ use Pluma\Admin\RestSalaMaquinas;
 use Pluma\Admin\RestSalaRevision;
 use Pluma\Admin\RestSalaTendencias;
 use Pluma\Admin\RestSearchConsole;
+use Pluma\Admin\RestModeloVerificador;
 use Pluma\Admin\RestRiesgoLegal;
 use Pluma\Admin\RestTransparencia;
 use Pluma\Compuertas\CompuertaCalidad;
@@ -678,6 +679,7 @@ final class Nucleo {
 		);
 		$this->contenedor->registrar( RestTransparencia::class, static fn (): RestTransparencia => new RestTransparencia() );
 		$this->contenedor->registrar( RestRiesgoLegal::class, static fn (): RestRiesgoLegal => new RestRiesgoLegal() );
+		$this->contenedor->registrar( RestModeloVerificador::class, static fn (): RestModeloVerificador => new RestModeloVerificador() );
 		$this->contenedor->registrar( ConstructorEsquemaNewsArticle::class, static fn (): ConstructorEsquemaNewsArticle => new ConstructorEsquemaNewsArticle() );
 		$this->contenedor->registrar(
 			EmisorEsquemaFrontend::class,
@@ -722,6 +724,7 @@ final class Nucleo {
 		$this->contenedor->obtener( RestInformesEditoriales::class )->registrar();
 		$this->contenedor->obtener( RestTransparencia::class )->registrar();
 		$this->contenedor->obtener( RestRiesgoLegal::class )->registrar();
+		$this->contenedor->obtener( RestModeloVerificador::class )->registrar();
 		$this->contenedor->obtener( EmisorEsquemaFrontend::class )->registrar();
 		$this->contenedor->obtener( PaginaAutorPeriodista::class )->registrar();
 	}

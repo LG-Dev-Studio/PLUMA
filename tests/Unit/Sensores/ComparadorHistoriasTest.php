@@ -121,6 +121,10 @@ final class ComparadorHistoriasTest extends CasoDePruebaUnitario {
 			public function completar( \Pluma\Proveedores\PeticionLenguaje $peticion ): \Pluma\Proveedores\RespuestaLenguaje {
 				throw new ProveedorLenguajeException( 'proveedor caído' );
 			}
+
+			public function familiaDe( string $modelo ): string {
+				return $modelo;
+			}
 		};
 
 		$resultado = ( new ComparadorHistorias( $proveedor, $this->presupuestoDisponible() ) )->comparar( $this->tendenciaNueva(), $this->candidatas() );

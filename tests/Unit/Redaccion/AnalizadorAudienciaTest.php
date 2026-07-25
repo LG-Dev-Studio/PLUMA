@@ -55,6 +55,10 @@ final class AnalizadorAudienciaTest extends CasoDePruebaUnitario {
 			public function completar( \Pluma\Proveedores\PeticionLenguaje $peticion ): \Pluma\Proveedores\RespuestaLenguaje {
 				throw new ProveedorLenguajeException( 'proveedor caído' );
 			}
+
+			public function familiaDe( string $modelo ): string {
+				return $modelo;
+			}
 		};
 
 		$aprendizaje = ( new AnalizadorAudiencia( $proveedor, $this->presupuestoDisponible() ) )->analizar( 'economia', 'comentario' );

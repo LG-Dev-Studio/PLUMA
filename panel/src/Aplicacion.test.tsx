@@ -361,6 +361,16 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
                 errorCarga: 'No se pudo cargar el perfil de riesgo legal.',
                 errorAccion: 'No se pudo guardar.',
             },
+            modeloVerificador: {
+                titulo: 'Modelo verificador',
+                explicacion: 'Declara un modelo distinto al premium.',
+                etiquetaModelo: 'Slug del modelo verificador',
+                guardar: 'Guardar modelo',
+                guardado: 'Modelo actualizado',
+                notaAlcance: 'Hoy es informativo.',
+                errorCarga: 'No se pudo cargar el modelo verificador.',
+                errorAccion: 'No se pudo guardar.',
+            },
             telemetria: {
                 titulo: 'Telemetría',
                 explicacion: 'Opcional y anónima.',
@@ -568,6 +578,12 @@ describe('Aplicacion', () => {
                 }
                 if (url.endsWith('/motor/riesgo-legal')) {
                     return Promise.resolve({ ok: true, json: () => Promise.resolve({ regimenResponsabilidad: 'civil' }) });
+                }
+                if (url.endsWith('/motor/modelo-verificador')) {
+                    return Promise.resolve({
+                        ok: true,
+                        json: () => Promise.resolve({ modeloVerificador: 'anthropic/claude-sonnet-5', obligatoriedadDeFabrica: false }),
+                    });
                 }
                 return Promise.resolve({ ok: true, json: () => Promise.resolve(portadaDeEjemplo()) });
             })

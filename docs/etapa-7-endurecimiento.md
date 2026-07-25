@@ -1,6 +1,6 @@
 # Etapa 7 — Endurecimiento del criterio (retrofit crítico, TIER 0)
 
-**Estado: EN CURSO.** Porciones 1 (K.1 + K.2, pisos no compensables) y 2 (M.1 + N.1, derecho de réplica previa + perfil de jurisdicción) completas. Pendiente: porción 3 (J.1-J.2, contrato de independencia de familia de modelo).
+**Estado: COMPLETA.** Las 3 porciones (K.1 + K.2, M.1 + N.1, J.1-J.2) están cerradas. Criterio de salida del `PLAN-MAESTRO-EVOLUCION.md` cumplido para el TIER 0.
 
 ## Objetivo y criterio de salida (`docs/PLAN-MAESTRO-EVOLUCION.md` §6)
 
@@ -66,3 +66,31 @@ Ambas piezas viven en la misma Compuerta de Riesgo y comparten el mismo dato bas
 | `npx tsc --noEmit` / `npm run build` | limpio |
 | `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
 | Verificación manual end-to-end (wp-env real) | GET devuelve `civil` por defecto; POST persiste `penal`; valor inválido → 400; reactivación del plugin sin errores |
+
+## Porción 3 — Contrato de independencia de familia de modelo (J.1-J.2)
+
+**Alcance explícito y limitado** (per `PLAN-MAESTRO-EVOLUCION.md` + ADR 0003): esta porción entrega **solo el contrato**. No separa la evaluación del "punto 1" (hechos) del Corrector Interno en una llamada aparte (eso es J.3, Etapa 8), no modifica `CorrectorInterno`/`RedactorSintetico`, y no bloquea de verdad la activación de modo Autónomo en el flujo real del panel — eso espera validación empírica en Piloto, ya diferida por ADR 0003 y registrada como deuda `PLUMA-EV-3`.
+
+**Qué se agregó:**
+
+- **`Pluma\Proveedores\LenguajeInterface`** gana `familiaDe(string $modelo): string` — contrato puro, sin red.
+- **`Pluma\Proveedores\ProveedorOpenRouter::familiaDe()`**: OpenRouter ya nombra sus modelos `{proveedor}/{modelo}` (ej. `anthropic/claude-sonnet-5`) — el prefijo es la familia real, no una taxonomía inventada. Los 3 dobles de prueba de `LenguajeInterface` (`ProveedorLenguajeFalso`, `ProveedorLenguajeQueFalla`, `ProveedorLenguajeSecuencial`) y 2 clases anónimas en tests existentes implementan el nuevo método.
+- **`Pluma\Proveedores\EnrutadorModelos::modeloVerificador()`** (nueva constante `OPCION_MODELO_VERIFICADOR`): default = el mismo modelo premium — honesto, es el estado de hoy documentado en vez de escondido.
+- **`Pluma\Proveedores\VerificadorIndependenciaEpistemica`** (nueva, sin dependencias inyectadas, no registrada en `Nucleo` porque nada la invoca todavía desde un flujo real): `verificar()` lanza `IndependenciaEpistemicaException` si el modo es Autónomo y redactor/verificador resuelven a la misma familia — el "test de arquitectura obligatorio" que exige GOVERNANCE §2.8, probado con un test unitario dedicado.
+- **Pantalla de panel** (decisión del propietario): nueva sección "Modelo verificador" — `Pluma\Admin\RestModeloVerificador` (`GET`/`POST /pluma/v1/motor/modelo-verificador`) + `BloqueModeloVerificador.tsx`, con nota explícita de que hoy es informativo y no bloquea nada — cero invención también aplica a lo que se le promete al cliente en el panel.
+
+**Sin cambios de esquema.**
+
+### Evidencia de gates — Porción 3
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 398/398 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 168/168 (2 skipped esperados) |
+| `npx vitest run` | 91/91 |
+| `npx tsc --noEmit` / `npm run build` | limpio |
+| `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
+| Verificación manual end-to-end (wp-env real) | GET devuelve el modelo premium por defecto; POST persiste el modelo distinto; valor vacío → 400; reactivación del plugin sin errores |

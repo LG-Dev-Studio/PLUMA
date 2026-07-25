@@ -487,10 +487,10 @@ final class PantallaPanel {
 	 */
 	private function textosSalaMaquinas(): array {
 		return array(
-			'cargando'      => __( 'Cargando…', 'pluma-engine' ),
-			'errorCarga'    => __( 'No se pudo cargar. Reintenta en unos segundos.', 'pluma-engine' ),
-			'errorAccion'   => __( 'La acción no se pudo completar. Reintenta en unos segundos.', 'pluma-engine' ),
-			'bitacora'      => array(
+			'cargando'          => __( 'Cargando…', 'pluma-engine' ),
+			'errorCarga'        => __( 'No se pudo cargar. Reintenta en unos segundos.', 'pluma-engine' ),
+			'errorAccion'       => __( 'La acción no se pudo completar. Reintenta en unos segundos.', 'pluma-engine' ),
+			'bitacora'          => array(
 				'titulo'     => __( 'Bitácora del motor', 'pluma-engine' ),
 				'vacia'      => __( 'el motor no se ha ejecutado todavía', 'pluma-engine' ),
 				'inicio'     => __( 'Inicio', 'pluma-engine' ),
@@ -500,14 +500,14 @@ final class PantallaPanel {
 				'sinErrores' => __( 'sin errores', 'pluma-engine' ),
 				'enCurso'    => __( 'en curso', 'pluma-engine' ),
 			),
-			'coste'         => array(
+			'coste'             => array(
 				'titulo'        => __( 'Coste', 'pluma-engine' ),
 				'gastoHoy'      => __( 'Gasto de hoy', 'pluma-engine' ),
 				'limiteDiario'  => __( 'Límite diario (USD)', 'pluma-engine' ),
 				'guardarLimite' => __( 'Guardar límite', 'pluma-engine' ),
 				'guardado'      => __( 'Límite actualizado', 'pluma-engine' ),
 			),
-			'apis'          => array(
+			'apis'              => array(
 				'titulo'          => __( 'Estado de las APIs conectadas', 'pluma-engine' ),
 				'openRouter'      => __( 'OpenRouter (proveedor de lenguaje)', 'pluma-engine' ),
 				'googleTrends'    => __( 'Google Trends (Radar)', 'pluma-engine' ),
@@ -516,7 +516,7 @@ final class PantallaPanel {
 				'circuitoAbierto' => __( 'en enfriamiento tras fallos repetidos', 'pluma-engine' ),
 				'circuitoCerrado' => __( 'conectada', 'pluma-engine' ),
 			),
-			'llave'         => array(
+			'llave'             => array(
 				'titulo'          => __( 'Llave de OpenRouter', 'pluma-engine' ),
 				'actual'          => __( 'Llave actual', 'pluma-engine' ),
 				'campoNueva'      => __( 'Nueva llave', 'pluma-engine' ),
@@ -529,7 +529,7 @@ final class PantallaPanel {
 				'quitar'          => __( 'Quitar llave', 'pluma-engine' ),
 				'confirmarQuitar' => __( '¿Quitar la llave? Sin ella, la redacción vuelve al modo mecánico de respaldo.', 'pluma-engine' ),
 			),
-			'searchConsole' => array(
+			'searchConsole'     => array(
 				'titulo'               => __( 'Search Console', 'pluma-engine' ),
 				'cargando'             => __( 'Cargando…', 'pluma-engine' ),
 				'errorCarga'           => __( 'No se pudo cargar Search Console. Reintenta en unos segundos.', 'pluma-engine' ),
@@ -561,7 +561,7 @@ final class PantallaPanel {
 				'tablaPosicion'        => __( 'Posición', 'pluma-engine' ),
 				'sinMetricas'          => __( 'todavía no hay métricas sincronizadas', 'pluma-engine' ),
 			),
-			'transparencia' => array(
+			'transparencia'     => array(
 				'titulo'           => __( 'Transparencia y cumplimiento', 'pluma-engine' ),
 				'explicacion'      => __( 'Cada pieza redactada por IA lleva un aviso de transparencia visible. Elige su formato; el marcado legible por máquina (Reglamento UE de IA, Art. 50) se añade siempre y no es desactivable.', 'pluma-engine' ),
 				'etiquetaFormato'  => __( 'Formato del aviso visible', 'pluma-engine' ),
@@ -573,7 +573,7 @@ final class PantallaPanel {
 				'errorCarga'       => __( 'No se pudo cargar la configuración de transparencia.', 'pluma-engine' ),
 				'errorAccion'      => __( 'No se pudo guardar. Reintenta en unos segundos.', 'pluma-engine' ),
 			),
-			'riesgoLegal'   => array(
+			'riesgoLegal'       => array(
 				'titulo'          => __( 'Perfil de riesgo legal', 'pluma-engine' ),
 				'explicacion'     => __( 'Declara el régimen de responsabilidad de tu jurisdicción real para difamación. En régimen penal, toda pieza con una afirmación negativa sobre una persona u organización identificable exige retención humana y excluye el modo Autónomo, sin excepción — no es un ajuste para relajar protecciones, es un hecho sobre dónde opera tu medio.', 'pluma-engine' ),
 				'etiquetaRegimen' => __( 'Régimen de responsabilidad', 'pluma-engine' ),
@@ -584,7 +584,17 @@ final class PantallaPanel {
 				'errorCarga'      => __( 'No se pudo cargar el perfil de riesgo legal.', 'pluma-engine' ),
 				'errorAccion'     => __( 'No se pudo guardar. Reintenta en unos segundos.', 'pluma-engine' ),
 			),
-			'telemetria'    => array(
+			'modeloVerificador' => array(
+				'titulo'         => __( 'Modelo verificador', 'pluma-engine' ),
+				'explicacion'    => __( 'Declara un modelo distinto al premium para que el Corrector Interno lo use como segunda opinión.', 'pluma-engine' ),
+				'etiquetaModelo' => __( 'Slug del modelo verificador (formato proveedor/modelo)', 'pluma-engine' ),
+				'guardar'        => __( 'Guardar modelo', 'pluma-engine' ),
+				'guardado'       => __( 'Modelo actualizado', 'pluma-engine' ),
+				'notaAlcance'    => __( 'Hoy es informativo: si coincide con el modelo premium, el modo Autónomo no falla por eso todavía. La obligatoriedad dura llega tras validar el requisito con datos reales en modo Piloto.', 'pluma-engine' ),
+				'errorCarga'     => __( 'No se pudo cargar el modelo verificador.', 'pluma-engine' ),
+				'errorAccion'    => __( 'No se pudo guardar. Reintenta en unos segundos.', 'pluma-engine' ),
+			),
+			'telemetria'        => array(
 				'titulo'         => __( 'Telemetría', 'pluma-engine' ),
 				'explicacion'    => __( 'Opcional y anónima: versiones, modo de operación y conteos agregados (nunca contenido de piezas ni llaves). Hoy no se envía a ningún servidor todavía — solo se prepara el dato que se compartiría.', 'pluma-engine' ),
 				'habilitar'      => __( 'Habilitar telemetría', 'pluma-engine' ),
@@ -592,7 +602,7 @@ final class PantallaPanel {
 				'verPayload'     => __( 'Ver qué se compartiría', 'pluma-engine' ),
 				'ocultarPayload' => __( 'Ocultar', 'pluma-engine' ),
 			),
-			'diagnostico'   => array(
+			'diagnostico'       => array(
 				'titulo'      => __( 'Modo diagnóstico', 'pluma-engine' ),
 				'explicacion' => __( 'Genera un reporte técnico (versiones, bitácora reciente, conflictos detectados) para pegar en un ticket de soporte. Nunca incluye contenido de piezas ni llaves.', 'pluma-engine' ),
 				'descargar'   => __( 'Descargar reporte de diagnóstico', 'pluma-engine' ),

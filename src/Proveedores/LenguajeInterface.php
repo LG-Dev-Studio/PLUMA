@@ -16,4 +16,14 @@ interface LenguajeInterface {
 	 *                                    truncada o presupuesto agotado.
 	 */
 	public function completar( PeticionLenguaje $peticion ): RespuestaLenguaje;
+
+	/**
+	 * Familia de modelo (Nivel Tres J.2): "la independencia de proveedor
+	 * comercial no es lo mismo que independencia de familia de modelo — el
+	 * contrato debe distinguir ambas cosas explícitamente". Pura, sin red:
+	 * deriva la familia del slug de modelo ya conocido, para que el test de
+	 * arquitectura de GOVERNANCE §2.8 pueda verificarse en tiempo de
+	 * configuración, no de ejecución.
+	 */
+	public function familiaDe( string $modelo ): string;
 }

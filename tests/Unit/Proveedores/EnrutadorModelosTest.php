@@ -46,6 +46,32 @@ final class EnrutadorModelosTest extends CasoDePruebaUnitario {
 		);
 	}
 
+	/**
+	 * Nivel Tres J.1-J.2: sin configuración del cliente, el verificador
+	 * comparte modelo (y por tanto familia) con el redactor — honesto: el
+	 * estado de hoy, documentado en vez de escondido. Solo el contrato existe
+	 * en esta porción.
+	 */
+	public function test_modelo_verificador_sin_configurar_usa_el_mismo_que_el_premium(): void {
+		Functions\when( 'get_option' )->justReturn( 'anthropic/claude-sonnet-5' );
+
+		self::assertSame( 'anthropic/claude-sonnet-5', ( new EnrutadorModelos() )->modeloVerificador() );
+	}
+
+	public function test_modelo_verificador_respeta_la_configuracion_del_cliente(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $opcion, $defecto = false ) {
+				if ( EnrutadorModelos::OPCION_MODELO_VERIFICADOR === $opcion ) {
+					return 'openai/gpt-5';
+				}
+
+				return $defecto;
+			}
+		);
+
+		self::assertSame( 'openai/gpt-5', ( new EnrutadorModelos() )->modeloVerificador() );
+	}
+
 	public function test_ignora_una_opcion_vacia_y_cae_al_defecto(): void {
 		Functions\when( 'get_option' )->alias(
 			// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- la firma debe calzar con la de get_option(); el doble ignora ambos parámetros a propósito.

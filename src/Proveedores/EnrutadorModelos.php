@@ -14,8 +14,9 @@ namespace Pluma\Proveedores;
  */
 final class EnrutadorModelos {
 
-	public const OPCION_MODELO_ECONOMICO = 'pluma_modelo_economico';
-	public const OPCION_MODELO_PREMIUM   = 'pluma_modelo_premium';
+	public const OPCION_MODELO_ECONOMICO   = 'pluma_modelo_economico';
+	public const OPCION_MODELO_PREMIUM     = 'pluma_modelo_premium';
+	public const OPCION_MODELO_VERIFICADOR = 'pluma_modelo_verificador';
 
 	private const MODELO_ECONOMICO_DEFECTO = 'anthropic/claude-haiku-4.5';
 	private const MODELO_PREMIUM_DEFECTO   = 'anthropic/claude-sonnet-5';
@@ -25,6 +26,21 @@ final class EnrutadorModelos {
 		$defecto = $proposito->esPremium() ? self::MODELO_PREMIUM_DEFECTO : self::MODELO_ECONOMICO_DEFECTO;
 
 		$modelo = get_option( $opcion, $defecto );
+
+		return is_string( $modelo ) && '' !== $modelo ? $modelo : $defecto;
+	}
+
+	/**
+	 * Modelo del verificador de independencia epistémica (Nivel Tres J.1-J.2).
+	 * Default = el mismo modelo premium (honesto: de fábrica, sin
+	 * configuración del cliente, redactor y verificador comparten familia —
+	 * exactamente el estado de hoy, documentado en vez de escondido). Solo el
+	 * contrato existe en esta porción; la obligatoriedad dura de Autónomo
+	 * espera validación empírica en Piloto (ADR 0003).
+	 */
+	public function modeloVerificador(): string {
+		$defecto = $this->modeloPara( PropositoLenguaje::Corregir );
+		$modelo  = get_option( self::OPCION_MODELO_VERIFICADOR, $defecto );
 
 		return is_string( $modelo ) && '' !== $modelo ? $modelo : $defecto;
 	}

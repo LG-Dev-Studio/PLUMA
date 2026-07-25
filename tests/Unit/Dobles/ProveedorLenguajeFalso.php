@@ -26,4 +26,8 @@ final class ProveedorLenguajeFalso implements LenguajeInterface {
 
 		return new RespuestaLenguaje( $this->contenido, 100, 50, 0.001, 'falso', 'modelo-falso', 10, $this->truncada );
 	}
+
+	public function familiaDe( string $modelo ): string {
+		return explode( '/', $modelo, 2 )[0];
+	}
 }

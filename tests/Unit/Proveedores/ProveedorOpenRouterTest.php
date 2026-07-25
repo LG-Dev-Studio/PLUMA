@@ -320,4 +320,17 @@ final class ProveedorOpenRouterTest extends CasoDePruebaUnitario {
 
 		self::assertFalse( $this->proveedor()->probarLlave( 'sk-or-v1-cualquiera' ) );
 	}
+
+	/**
+	 * Nivel Tres J.2: OpenRouter nombra sus modelos `{proveedor}/{modelo}` —
+	 * el prefijo ya es la familia real, no una taxonomía inventada.
+	 */
+	public function test_familia_de_deriva_el_prefijo_del_proveedor_en_el_slug(): void {
+		self::assertSame( 'anthropic', $this->proveedor()->familiaDe( 'anthropic/claude-sonnet-5' ) );
+		self::assertSame( 'openai', $this->proveedor()->familiaDe( 'openai/gpt-5' ) );
+	}
+
+	public function test_familia_de_sin_barra_devuelve_el_slug_completo(): void {
+		self::assertSame( 'modelo-sin-barra', $this->proveedor()->familiaDe( 'modelo-sin-barra' ) );
+	}
 }

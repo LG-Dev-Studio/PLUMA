@@ -22,4 +22,8 @@ final class ProveedorLenguajeQueFalla implements LenguajeInterface {
 	public function completar( PeticionLenguaje $peticion ): RespuestaLenguaje {
 		throw $this->excepcion;
 	}
+
+	public function familiaDe( string $modelo ): string {
+		return explode( '/', $modelo, 2 )[0];
+	}
 }

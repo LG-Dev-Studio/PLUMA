@@ -150,6 +150,18 @@ final class ProveedorOpenRouter implements LenguajeInterface {
 	 * Sala de Máquinas, Cap. 10.2): valida contra la API real de OpenRouter
 	 * SIN generar coste — nunca invoca `completar()` para esto.
 	 */
+	/**
+	 * OpenRouter nombra sus modelos con la convención `{proveedor}/{modelo}`
+	 * (ej. `anthropic/claude-sonnet-5`) — el prefijo ya es la familia de
+	 * entrenamiento real, no una taxonomía inventada (Nivel Tres J.2). Sin
+	 * `/`, el propio slug es la familia (fallback defensivo).
+	 */
+	public function familiaDe( string $modelo ): string {
+		$partes = explode( '/', $modelo, 2 );
+
+		return $partes[0];
+	}
+
 	public function probarLlave( string $llaveEnTextoPlano ): bool {
 		$respuesta = wp_remote_get(
 			self::URL_VERIFICACION_LLAVE,
