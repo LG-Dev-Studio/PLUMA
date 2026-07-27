@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pluma\Redaccion;
 
+use Pluma\Proveedores\PropositoLenguaje;
+
 /**
  * Traduce la Conducta de un periodista (diales, reglas, matriz de tonos) a
  * las `directrices` de estilo que viajan en la `PeticionLenguaje` (Libro
@@ -12,57 +14,71 @@ namespace Pluma\Redaccion;
  *
  * La lógica editorial (`RedactorSintetico`) no conoce la forma interna de la
  * Conducta: solo consume el texto que este compilador produce.
+ *
+ * Nivel Dos A.2: el prompt se ensambla como una {@see PlantillaPrompt}
+ * versionada, separando lo que ningún dial puede tocar (`seccionesFijas`) de
+ * la traducción dial→directriz (`seccionesParametrizadas`).
  */
 final class CompiladorDirectrices {
 
+	private const VERSION_PLANTILLA = 1;
+
 	/**
-	 * @return array{etiqueta: string, bajo: string, alto: string}
+	 * @var array<string, array{etiqueta: string, bajo: array{directriz: string, parrafoAncla: string}, medio: array{directriz: string, parrafoAncla: string}, alto: array{directriz: string, parrafoAncla: string}}>|null
+	 */
+	private static ?array $anclasCongeladas = null;
+
+	/**
+	 * Nivel Dos A.3: anclas de 3 tramos (`[0,33) / [33,67) / [67,100]`) por
+	 * dial continuo — cada tramo con su directriz y un párrafo ancla real
+	 * (ejemplo de prosa en ese registro), congeladas en `references/`.
+	 *
+	 * @return array{etiqueta: string, bajo: array{directriz: string, parrafoAncla: string}, medio: array{directriz: string, parrafoAncla: string}, alto: array{directriz: string, parrafoAncla: string}}
 	 */
 	private function ancla( string $dial ): array {
-		// Efectos "bajo"/"alto" documentados literalmente en el Libro Cap. 5.3.
-		return match ( $dial ) {
-			'agudezaCritica' => array(
-				'etiqueta' => 'Agudeza crítica',
-				'bajo'     => 'relata con neutralidad',
-				'alto'     => 'interroga motivos, señala contradicciones, nombra ganadores y perdedores',
+		if ( null === self::$anclasCongeladas ) {
+			self::$anclasCongeladas = require __DIR__ . '/references/anclas-diales.php';
+		}
+
+		return self::$anclasCongeladas[ $dial ] ?? array(
+			'etiqueta' => $dial,
+			'bajo'     => array(
+				'directriz'    => '',
+				'parrafoAncla' => '',
 			),
-			'humor'          => array(
-				'etiqueta' => 'Humor',
-				'bajo'     => 'tono sobrio',
-				'alto'     => 'ironía recurrente, remates cómicos',
+			'medio'    => array(
+				'directriz'    => '',
+				'parrafoAncla' => '',
 			),
-			'formalidad'     => array(
-				'etiqueta' => 'Formalidad',
-				'bajo'     => 'cercano, coloquial',
-				'alto'     => 'registro de columna dominical',
+			'alto'     => array(
+				'directriz'    => '',
+				'parrafoAncla' => '',
 			),
-			'vehemencia'     => array(
-				'etiqueta' => 'Vehemencia',
-				'bajo'     => 'matiza, concede',
-				'alto'     => 'afirma, desafía al lector',
-			),
-			'empatia'        => array(
-				'etiqueta' => 'Empatía',
-				'bajo'     => 'distante',
-				'alto'     => 'centra la pieza en el impacto humano',
-			),
-			'densidadDatos'  => array(
-				'etiqueta' => 'Densidad de datos',
-				'bajo'     => 'narrativo',
-				'alto'     => 'cada afirmación lleva su número',
-			),
-			default          => array(
-				'etiqueta' => $dial,
-				'bajo'     => '',
-				'alto'     => '',
-			),
+		);
+	}
+
+	/**
+	 * @return 'bajo'|'medio'|'alto'
+	 */
+	private function tramoDe( int $valor ): string {
+		return match ( true ) {
+			$valor < 33 => 'bajo',
+			$valor < 67 => 'medio',
+			default     => 'alto',
 		};
 	}
 
 	private function lineaDial( string $dial, int $valor ): string {
 		$ancla = $this->ancla( $dial );
+		$tramo = $ancla[ $this->tramoDe( $valor ) ];
 
-		return sprintf( '%s: %d/100 (0 = %s; 100 = %s).', $ancla['etiqueta'], $valor, $ancla['bajo'], $ancla['alto'] );
+		return sprintf(
+			"%s: %d/100. %s.\nEjemplo de registro (calibración de tono, no copiar literalmente): \"%s\"",
+			$ancla['etiqueta'],
+			$valor,
+			ucfirst( $tramo['directriz'] ),
+			$tramo['parrafoAncla']
+		);
 	}
 
 	public function compilar(
@@ -71,50 +87,79 @@ final class CompiladorDirectrices {
 		Tono $tonoApoyo,
 		NivelSatiraPermitida $nivelSatiraPermitida
 	): string {
+		return $this->compilarPlantilla( $periodista, $tonoDominante, $tonoApoyo, $nivelSatiraPermitida )->ensamblar();
+	}
+
+	public function compilarPlantilla(
+		Periodista $periodista,
+		Tono $tonoDominante,
+		Tono $tonoApoyo,
+		NivelSatiraPermitida $nivelSatiraPermitida
+	): PlantillaPrompt {
 		$conducta = $periodista->conductaActual;
 		$diales   = $conducta->diales;
 		$reglas   = $conducta->reglas;
 
-		$bloques   = array();
-		$bloques[] = sprintf( 'Eres %s, %s de la redacción. %s', $periodista->nombre, $periodista->rol->value, $periodista->biografia );
-		$bloques[] = 'Línea editorial (filtro de toda tesis que defiendas): ' . $reglas->lineaEditorial;
-
-		$bloques[] = implode(
-			"\n",
-			array(
-				'Diales de temperamento:',
-				$this->lineaDial( 'agudezaCritica', $diales->agudezaCritica ),
-				$this->lineaDial( 'humor', $diales->humor ),
-				$this->lineaDial( 'formalidad', $diales->formalidad ),
-				$this->lineaDial( 'vehemencia', $diales->vehemencia ),
-				$this->lineaDial( 'empatia', $diales->empatia ),
-				$this->lineaDial( 'densidadDatos', $diales->densidadDatos ),
-			)
+		$seccionesFijas = array(
+			sprintf( 'Eres %s, %s de la redacción. %s', $periodista->nombre, $periodista->rol->value, $periodista->biografia ),
+			'Línea editorial (filtro de toda tesis que defiendas): ' . $reglas->lineaEditorial,
+			'REGLA DE ORO CONTRA LA ALUCINACIÓN (invariante de sistema, ningún dial la modifica): no puedes afirmar nada que no exista en el expediente adjunto.',
+			'Vocabulario y frases PROHIBIDAS (nunca las uses, ni variaciones cercanas): '
+				. implode( ', ', VocabularioProhibidoGlobal::combinarCon( $reglas->vocabularioProhibido ) ),
 		);
 
-		$bloques[] = $this->directrizSatira( $diales->satira, $nivelSatiraPermitida );
-		$bloques[] = sprintf( 'Tono dominante de esta pieza: %s. Tono de apoyo: %s.', $tonoDominante->value, $tonoApoyo->value );
-		$bloques[] = sprintf( 'Extensión objetivo: aproximadamente %d palabras.', $diales->longitudPalabrasObjetivo() );
+		$seccionesParametrizadas = array(
+			implode(
+				"\n",
+				array(
+					'Diales de temperamento:',
+					$this->lineaDial( 'agudezaCritica', $diales->agudezaCritica ),
+					$this->lineaDial( 'humor', $diales->humor ),
+					$this->lineaDial( 'formalidad', $diales->formalidad ),
+					$this->lineaDial( 'vehemencia', $diales->vehemencia ),
+					$this->lineaDial( 'empatia', $diales->empatia ),
+					$this->lineaDial( 'densidadDatos', $diales->densidadDatos ),
+				)
+			),
+		);
+
+		$seccionesParametrizadas = array_merge(
+			$seccionesParametrizadas,
+			MatrizCombinacionDiales::directrices( $diales )
+		);
+
+		$directrizSatira = $this->directrizSatira( $diales->satira, $nivelSatiraPermitida );
+
+		if ( NivelSatiraPermitida::Bloqueada === $nivelSatiraPermitida ) {
+			$seccionesFijas[] = $directrizSatira;
+		} else {
+			$seccionesParametrizadas[] = $directrizSatira;
+		}
+
+		$seccionesParametrizadas[] = sprintf( 'Tono dominante de esta pieza: %s. Tono de apoyo: %s.', $tonoDominante->value, $tonoApoyo->value );
+		$seccionesParametrizadas[] = sprintf( 'Extensión objetivo: aproximadamente %d palabras.', $diales->longitudPalabrasObjetivo() );
 
 		if ( array() !== $reglas->muletillas ) {
-			$bloques[] = 'Rasgos de voz reconocibles (úsalos con moderación — como mucho uno por pieza, nunca todos juntos, jamás de forma paródica): '
+			$seccionesParametrizadas[] = 'Rasgos de voz reconocibles (úsalos con moderación — como mucho uno por pieza, nunca todos juntos, jamás de forma paródica): '
 				. implode( '; ', $reglas->muletillas );
 		}
 
 		if ( array() !== $reglas->lineasRojas ) {
-			$bloques[] = 'Líneas rojas personales — jamás bromees ni las cruces: ' . implode( '; ', $reglas->lineasRojas );
+			$seccionesParametrizadas[] = 'Líneas rojas personales — jamás bromees ni las cruces: ' . implode( '; ', $reglas->lineasRojas );
 		}
 
-		$bloques[] = sprintf(
+		$seccionesParametrizadas[] = sprintf(
 			'Te diriges al lector %s. Estilo de pregunta final: "%s".',
 			TratamientoLector::Tu === $reglas->tratamientoLector ? 'de tú' : 'de usted',
 			$reglas->estiloPreguntaFinal
 		);
 
-		$bloques[] = 'Vocabulario y frases PROHIBIDAS (nunca las uses, ni variaciones cercanas): '
-			. implode( ', ', VocabularioProhibidoGlobal::combinarCon( $reglas->vocabularioProhibido ) );
-
-		return implode( "\n\n", $bloques );
+		return new PlantillaPrompt(
+			PropositoLenguaje::Redactar,
+			self::VERSION_PLANTILLA,
+			$seccionesFijas,
+			$seccionesParametrizadas
+		);
 	}
 
 	private function directrizSatira( int $dialSatira, NivelSatiraPermitida $nivelPermitido ): string {

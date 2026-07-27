@@ -1,0 +1,14 @@
+{
+    "data": [
+        {
+            "embedding": [0.012, -0.034, 0.056, 0.078],
+            "index": 0
+        }
+    ],
+    "model": "openai/text-embedding-3-small",
+    "usage": {
+        "prompt_tokens": 12,
+        "total_tokens": 12,
+        "cost": 0.0000024
+    }
+}

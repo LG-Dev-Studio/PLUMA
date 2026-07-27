@@ -333,4 +333,60 @@ final class ProveedorOpenRouterTest extends CasoDePruebaUnitario {
 	public function test_familia_de_sin_barra_devuelve_el_slug_completo(): void {
 		self::assertSame( 'modelo-sin-barra', $this->proveedor()->familiaDe( 'modelo-sin-barra' ) );
 	}
+
+	/**
+	 * Nivel Dos A.5 + Nivel Tres J.3: `EmbeddingsInterface` sobre la misma
+	 * cuenta de OpenRouter — fixture real (anonimizada) de
+	 * `POST https://openrouter.ai/api/v1/embeddings`.
+	 */
+	public function test_embed_devuelve_el_vector_a_partir_de_la_fixture_real(): void {
+		$this->mockearOpciones();
+
+		Functions\when( 'home_url' )->justReturn( 'https://cliente-de-prueba.test' );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- lectura de un fixture local del repo, no una URL remota.
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( file_get_contents( __DIR__ . '/../../Fixtures/openrouter-embeddings-respuesta-2026-07-25.json' ) );
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$vector = $this->proveedor()->embed( 'un párrafo cualquiera' );
+
+		self::assertSame( array( 0.012, -0.034, 0.056, 0.078 ), $vector );
+	}
+
+	public function test_embed_lanza_excepcion_si_no_hay_presupuesto(): void {
+		$this->mockearOpciones(
+			array(
+				PresupuestoLenguaje::OPCION_GASTO => array(
+					'dia'   => ( new RelojFijo() )->ahora()->format( 'Y-m-d' ),
+					'gasto' => 999.0,
+				),
+			)
+		);
+
+		$this->expectException( ProveedorLenguajeException::class );
+
+		$this->proveedor()->embed( 'texto' );
+	}
+
+	public function test_embed_lanza_excepcion_si_openrouter_devuelve_formato_inesperado(): void {
+		$this->mockearOpciones();
+
+		Functions\when( 'home_url' )->justReturn( 'https://cliente-de-prueba.test' );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '{"data": []}' );
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$this->expectException( ProveedorLenguajeException::class );
+
+		$this->proveedor()->embed( 'texto' );
+	}
 }

@@ -61,6 +61,7 @@ use Pluma\Pipeline\LectorConfiguracionCadencia;
 use Pluma\Pipeline\Orquestador;
 use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Pipeline\Transicionador;
+use Pluma\Proveedores\EmbeddingsInterface;
 use Pluma\Proveedores\EnrutadorModelos;
 use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
@@ -270,6 +271,16 @@ final class Nucleo {
 		// métodos propios de OpenRouter, no del contrato `LenguajeInterface`.
 		$this->contenedor->registrar(
 			ProveedorOpenRouter::class,
+			fn ( Contenedor $c ): ProveedorOpenRouter => new ProveedorOpenRouter(
+				$c->obtener( EnrutadorModelos::class ),
+				$c->obtener( PresupuestoLenguaje::class ),
+				$c->obtener( RelojInterface::class )
+			)
+		);
+		// EmbeddingsInterface (Nivel Dos A.5 + Nivel Tres J.3): misma cuenta de
+		// OpenRouter, mismo circuito, otro endpoint — ver `ProveedorOpenRouter`.
+		$this->contenedor->registrar(
+			EmbeddingsInterface::class,
 			fn ( Contenedor $c ): ProveedorOpenRouter => new ProveedorOpenRouter(
 				$c->obtener( EnrutadorModelos::class ),
 				$c->obtener( PresupuestoLenguaje::class ),
