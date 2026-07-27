@@ -157,6 +157,14 @@
 | `composer test:integration` (wp-env real) | 168/168 (2 skipped esperados) |
 | `npx vitest run` / `tsc` / `build` / Playwright | sin cambios de panel — no aplica a esta porción |
 
-## Porciones 5-10
+## Porción 5 — Réplica dirigida (M.2 Nivel 2-3) — DIFERIDA A VERSIÓN POSTERIOR AL LANZAMIENTO
+
+**Decisión explícita del propietario (`ADR 0004`, 2026-07-27)**: Nivel 2 (búsqueda dirigida) depende literalmente del mismo mecanismo de búsqueda web que `PLUMA-E8-1` (B.2, Porción 2) ya dejó diferido — PLUMA no tiene hoy ningún proveedor de búsqueda web. Nivel 3 (contacto directo automatizado) tiene dependencias propias adicionales (canal de contacto verificado, cola de aprobación humana, ventana de espera temporizada en el grafo de estados) que tampoco existen. El propietario decidió diferir la Porción 5 completa a una versión posterior al lanzamiento, no solo bloquearla técnicamente.
+
+El **Nivel 1** (verificación de postura ya existente en el expediente) ya está en producción desde la Etapa 7, Porción 2 (M.1+N.1) — no se ve afectado por este diferimiento.
+
+Documentación completa de la funcionalidad diferida — qué es, por qué importa, diseño exacto para cuando se retome — en `docs/funcionalidad-replica-dirigida-m2.md`. Deuda registrada como `PLUMA-E8-6`.
+
+## Porciones 6-10
 
 Pendientes. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); cada una abre su propio Mission Lock al comenzar.
