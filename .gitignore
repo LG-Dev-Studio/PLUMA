@@ -30,6 +30,7 @@
 .env
 .env.local
 *.log
+levantar-servidor.bat
 
 # Sistema operativo / editor
 .DS_Store

@@ -64,6 +64,39 @@
 
 **Cierra la Porción 1 completa de la Etapa 8 (A.2-A.6 + J.3).**
 
-## Porciones 2-10
+## Porción 2 — Investigador máquina (Nivel Dos B.1-B.4 + Nivel Tres O.2 + L.1-L.2)
+
+**Decisiones de propietario tomadas al abrir esta porción** (Mission Lock): tres piezas del texto fuente dependen de infraestructura que no existe hoy — se decidió, en los tres casos, implementar lo no bloqueado y registrar el resto como deuda explícita en vez de inventar una solución o expandir el alcance sin límite:
+
+1. **B.2 punto 2** (buscar una tercera fuente independiente para contradicciones de ocurrencia) requiere un proveedor de búsqueda web — PLUMA no tiene ninguno hoy (solo Google Trends y OpenRouter). Diferido, `PLUMA-E8-1`.
+2. **B.3** (`decaimiento_temporal`) depende de la clasificación de vida útil de la tendencia (relámpago/ola/marea) — no existe en ningún lugar del código (`PLUMA-E1-1`). Se implementó el resto de la fórmula; el decaimiento queda fijo en `1.0`, `PLUMA-E8-2`.
+
+**Qué se agregó:**
+
+- **B.1+B.2 — Algoritmo de Resolución de Disputas**: `Pluma\Investigacion\TipoContradiccion` (`Cifra`/`Atribucion`/`Ocurrencia`) + `Pluma\Investigacion\ResolutorDisputas` — una llamada `PropositoLenguaje::Clasificar` sobre todos los hechos del expediente identifica pares contradictorios y su tipo. `Cifra`/`Atribucion` no mutan nada (`InvestigadorMecanico` ya nunca fusiona hechos distintos, así que ambas versiones ya conviven separadas). `Ocurrencia` marca ambos hechos `NivelVerificacion::Disputado` — el enum ya existía desde Etapa 1 pero **ningún código lo asignaba nunca** hasta ahora.
+- **B.3 — Jerarquía de fuentes con decaimiento**: `Pluma\Investigacion\NivelFuente` (A=1.0/B=0.6/C=0.15) + `ClasificadorNivelFuente` (opciones `pluma_fuentes_nivel_a`/`pluma_fuentes_nivel_b`, listas editables por el cliente, todo lo no listado es C) + `CalculadoraPesoEfectivo` (`nivel_fuente_base × decaimiento_temporal(=1.0) × factor_independencia`). `factor_independencia` — detección de cadena de citación — vía solapamiento de n-gramas de 8 palabras entre extractos de fuentes distintas (mismo principio que `VerificadorNGramas` de `Redaccion`, deliberadamente no compartido entre capas). Clase construida y testeada, **no registrada todavía en `Nucleo.php`** porque ningún flujo real la invoca — mismo tratamiento que `VerificadorIndependenciaEpistemica` de la Etapa 7.
+- **B.4+O.2 — Detección de hueco con relevancia causal**: `Pluma\Investigacion\DimensionEncuadre` (económica/humana/política/técnica/histórica/legal) + `Pluma\Investigacion\DetectorHuecos` — una llamada de clasificación evalúa las 6 dimensiones contra los hechos del expediente en tres preguntas (cubierta / datos disponibles / relevancia causal con los actores concretos de la tendencia); solo las dimensiones que fallan la primera y pasan las otras dos entran a la nueva propiedad `Expediente::$huecosDetectados`.
+- **L.1 — Verificación de procedencia de la declaración**: `Pluma\Investigacion\EstadoProcedenciaDeclaracion` (`NoAplica`/`VerificadaCanalOficial`/`NoVerificada`) + `Pluma\Investigacion\VerificadorProcedenciaDeclaracion` — heurística determinista (comillas o verbo de atribución + lista configurable `pluma_canales_oficiales`), sin proveedor de lenguaje. Nueva propiedad `HechoFuente::$procedenciaDeclaracion`, poblada por `InvestigadorMecanico` para cada artículo (nueva dependencia en su constructor).
+- **L.2 — Corroboración audiovisual (solo modelo de datos)**: `Pluma\Investigacion\EstadoCorroboracionAudiovisual` + nueva propiedad `HechoFuente::$corroboracionAudiovisual`, default `NoAplica`. La heurística real queda bloqueada: el Sensor/Radar no clasifica si una tendencia origen es audiovisual — sin esa señal, `InvestigadorMecanico` no puede decidir cuándo aplicar el chequeo. Registrado como `PLUMA-E8-3`, actualiza `PLUMA-EV-4`.
+- **Wiring**: `Orquestador::procesarInvestigacion()` encadena `ResolutorDisputas::resolver()` y `DetectorHuecos::detectar()` sobre el expediente que ya construyó `InvestigadorMecanico`, antes de persistirlo — enriquecen, no reemplazan. Cambios de constructor en `InvestigadorMecanico` (nueva dependencia `VerificadorProcedenciaDeclaracion`) y `Orquestador` (nuevas dependencias `ResolutorDisputas`/`DetectorHuecos`) reparados en todos los call sites (`Nucleo.php` + 4 archivos de test).
+- **Compatibilidad**: `HechoFuente` y `Expediente` ganan sus campos nuevos como parámetros opcionales con default (`NoAplica`/lista vacía) — con 23 y 24 call sites de `new HechoFuente(...)`/`new Expediente(...)` respectivamente en la base de tests, una reparación exhaustiva habría sido pura fricción sin valor; los defaults son semánticamente correctos (la mayoría de hechos no son declaraciones atribuidas ni de origen audiovisual, la mayoría de expedientes no tienen huecos). `desdeArray()` de ambos tolera JSON persistido antes de esta porción sin las claves nuevas.
+- **Gap descubierto, no de esta porción**: durante el Mission Lock se confirmó que ningún lugar del código asigna nunca `NivelVerificacion::Verificado` — la triangulación real "2+ fuentes independientes" del Libro Cap. 4.3 nunca se implementó desde la Etapa 1. B.1-B.4/L.1-L.2 asumen esa base construida y solo la refinan; construirla requiere comparación semántica entre hechos (embeddings, ya disponibles desde la Porción 1) y está fuera del alcance literal de esta porción. Registrado como `PLUMA-E8-4`.
+
+**Sin cambios de esquema** — `NivelVerificacion::Disputado` y las nuevas propiedades de `HechoFuente`/`Expediente` viven en el JSON del expediente ya persistido, ninguna tabla ni columna nueva.
+
+### Evidencia de gates — Porción 2
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 478/478 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 168/168 (2 skipped esperados) |
+| `npx vitest run` | 91/91 (sin cambios — porción 100% backend) |
+| `npx tsc --noEmit` | limpio |
+| `npm run build` / Playwright | sin cambios de panel — no aplica a esta porción |
+
+## Porciones 3-10
 
 Pendientes. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); cada una abre su propio Mission Lock al comenzar.

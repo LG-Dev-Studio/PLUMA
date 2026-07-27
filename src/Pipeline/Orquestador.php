@@ -15,7 +15,9 @@ use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Datos\RepositorioRespuestasComentariosInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
+use Pluma\Investigacion\DetectorHuecos;
 use Pluma\Investigacion\InvestigadorInterface;
+use Pluma\Investigacion\ResolutorDisputas;
 use Pluma\Kernel\RelojInterface;
 use Pluma\Proveedores\ProveedorTendenciasException;
 use Pluma\Publicacion\ComentarioWordPress;
@@ -92,6 +94,8 @@ final class Orquestador {
 		private readonly RepositorioRespuestasComentariosInterface $respuestasComentarios,
 		private readonly RepositorioPeriodistasInterface $periodistas,
 		private readonly RelojInterface $reloj,
+		private readonly ResolutorDisputas $resolutorDisputas,
+		private readonly DetectorHuecos $detectorHuecos,
 	) {
 	}
 
@@ -261,6 +265,11 @@ final class Orquestador {
 				$datosTendencia['termino'],
 				$datosTendencia['articulosRelacionados']
 			);
+
+			// Nivel Dos B.1+B.2 (resolución de disputas) + B.4/O.2 (detección de hueco):
+			// enriquecen el expediente ya construido, no lo reemplazan.
+			$expediente = $this->resolutorDisputas->resolver( $expediente );
+			$expediente = $this->detectorHuecos->detectar( $expediente );
 
 			$this->piezas->actualizarExpediente( $pieza->id, $expediente, $this->reloj->ahora() );
 			$this->transicionador->transitar( $pieza->id, EstadoPieza::Investigada, 'expediente construido' );

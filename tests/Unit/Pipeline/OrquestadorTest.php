@@ -29,10 +29,13 @@ use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Datos\RepositorioRespuestasComentariosInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabularioInterface;
+use Pluma\Investigacion\DetectorHuecos;
+use Pluma\Investigacion\DimensionEncuadre;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\InvestigadorInterface;
 use Pluma\Investigacion\NivelVerificacion;
+use Pluma\Investigacion\ResolutorDisputas;
 use Pluma\Pipeline\EstadoColaPublicacion;
 use Pluma\Pipeline\EstadoPieza;
 use Pluma\Pipeline\LectorConfiguracionCadencia;
@@ -330,7 +333,9 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			$overrides['memoriaEditorial'] ?? $this->memoriaEditorialPermisiva(),
 			$overrides['respuestasComentarios'] ?? $this->respuestasComentariosPermisivo(),
 			$overrides['periodistas'] ?? $this->periodistasPermisivo(),
-			new RelojFijo()
+			new RelojFijo(),
+			$overrides['resolutorDisputas'] ?? new ResolutorDisputas( Mockery::mock( LenguajeInterface::class ) ),
+			$overrides['detectorHuecos'] ?? new DetectorHuecos( Mockery::mock( LenguajeInterface::class ) )
 		);
 	}
 
@@ -474,6 +479,82 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 				'tendencias'     => $tendencias,
 				'transicionador' => new Transicionador( $piezas, $auditoria, new RelojFijo() ),
 				'investigador'   => $investigador,
+			)
+		)->ejecutarTick();
+
+		self::assertSame( 1, $resultado['lotesProcesados'] );
+	}
+
+	/**
+	 * Nivel Dos B.1+B.2 + B.4/O.2: `procesarInvestigacion` enriquece el
+	 * expediente que devuelve el Investigador con la resolución de disputas
+	 * y la detección de huecos ANTES de persistirlo — no lo reemplaza.
+	 */
+	public function test_el_expediente_persistido_incluye_la_resolucion_de_disputas_y_los_huecos_detectados(): void {
+		$piezaDetectada = $this->pieza( 7, EstadoPieza::Detectada );
+
+		$hechoUno = new HechoFuente( 'hecho uno', 'https://example.com/1', new DateTimeImmutable( '2026-07-22T12:00:00+00:00' ), NivelVerificacion::Atribuido );
+		$hechoDos = new HechoFuente( 'hecho dos', 'https://example.com/2', new DateTimeImmutable( '2026-07-22T12:00:00+00:00' ), NivelVerificacion::Atribuido );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
+		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Detectada, Mockery::any() )->andReturn( array( $piezaDetectada ) );
+		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
+		$piezas->expects( 'obtenerPorId' )->with( 7 )->twice()->andReturn(
+			$piezaDetectada,
+			$this->pieza( 7, EstadoPieza::EnInvestigacion )
+		);
+		$piezas->expects( 'actualizarEstado' )->with( 7, EstadoPieza::Detectada, EstadoPieza::EnInvestigacion, Mockery::any() )->andReturn( true );
+		$piezas->expects( 'actualizarEstado' )->with( 7, EstadoPieza::EnInvestigacion, EstadoPieza::Investigada, Mockery::any() )->andReturn( true );
+		$piezas->expects( 'actualizarExpediente' )
+			->once()
+			->with(
+				7,
+				Mockery::on(
+					static function ( Expediente $expediente ): bool {
+						return NivelVerificacion::Disputado === $expediente->hechos[0]->nivel
+							&& NivelVerificacion::Disputado === $expediente->hechos[1]->nivel
+							&& array( DimensionEncuadre::Legal ) === $expediente->huecosDetectados;
+					}
+				),
+				Mockery::any()
+			)
+			->andReturn( true );
+
+		$auditoria = Mockery::mock( RepositorioAuditoriaInterface::class );
+		$auditoria->allows( 'registrar' );
+
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$tendencias = Mockery::mock( RepositorioTendenciasInterface::class );
+		$tendencias->expects( 'obtenerPorId' )->with( 100 )->andReturn(
+			array(
+				'termino'               => 'una tendencia',
+				'articulosRelacionados' => array(),
+			)
+		);
+
+		$investigador = Mockery::mock( InvestigadorInterface::class );
+		$investigador->expects( 'investigar' )->with( 'una tendencia', array() )->andReturn( new Expediente( 'una tendencia', array( $hechoUno, $hechoDos ) ) );
+
+		$resolutorDisputas = new ResolutorDisputas( new ProveedorLenguajeFalso( '{"contradicciones": [{"indiceA": 0, "indiceB": 1, "tipo": "ocurrencia"}]}' ) );
+
+		$respuestaHuecos = '{"economica": {"cubierta": true, "datosDisponibles": true, "relevanciaCausal": true}, '
+			. '"humana": {"cubierta": true, "datosDisponibles": true, "relevanciaCausal": true}, '
+			. '"politica": {"cubierta": true, "datosDisponibles": true, "relevanciaCausal": true}, '
+			. '"tecnica": {"cubierta": true, "datosDisponibles": true, "relevanciaCausal": true}, '
+			. '"historica": {"cubierta": true, "datosDisponibles": true, "relevanciaCausal": true}, '
+			. '"legal": {"cubierta": false, "datosDisponibles": true, "relevanciaCausal": true}}';
+		$detectorHuecos  = new DetectorHuecos( new ProveedorLenguajeFalso( $respuestaHuecos ) );
+
+		$resultado = $this->construir(
+			array(
+				'piezas'            => $piezas,
+				'tendencias'        => $tendencias,
+				'transicionador'    => new Transicionador( $piezas, $auditoria, new RelojFijo() ),
+				'investigador'      => $investigador,
+				'resolutorDisputas' => $resolutorDisputas,
+				'detectorHuecos'    => $detectorHuecos,
 			)
 		)->ejecutarTick();
 

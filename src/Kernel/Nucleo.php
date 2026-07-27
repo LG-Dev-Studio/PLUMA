@@ -52,8 +52,11 @@ use Pluma\Datos\RepositorioTendencias;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabulario;
 use Pluma\Datos\RepositorioVocabularioInterface;
+use Pluma\Investigacion\DetectorHuecos;
 use Pluma\Investigacion\InvestigadorInterface;
 use Pluma\Investigacion\InvestigadorMecanico;
+use Pluma\Investigacion\ResolutorDisputas;
+use Pluma\Investigacion\VerificadorProcedenciaDeclaracion;
 use Pluma\Pipeline\GestorRespuestasComentarios;
 use Pluma\Pipeline\GestorSalaRevision;
 use Pluma\Pipeline\GestorSalaTendencias;
@@ -249,9 +252,21 @@ final class Nucleo {
 			ProveedorSearchConsoleInterface::class,
 			fn ( Contenedor $c ): ProveedorSearchConsole => new ProveedorSearchConsole( $c->obtener( RelojInterface::class ) )
 		);
+		$this->contenedor->registrar( VerificadorProcedenciaDeclaracion::class, static fn (): VerificadorProcedenciaDeclaracion => new VerificadorProcedenciaDeclaracion() );
+		$this->contenedor->registrar(
+			ResolutorDisputas::class,
+			fn ( Contenedor $c ): ResolutorDisputas => new ResolutorDisputas( $c->obtener( LenguajeInterface::class ) )
+		);
+		$this->contenedor->registrar(
+			DetectorHuecos::class,
+			fn ( Contenedor $c ): DetectorHuecos => new DetectorHuecos( $c->obtener( LenguajeInterface::class ) )
+		);
 		$this->contenedor->registrar(
 			InvestigadorInterface::class,
-			fn ( Contenedor $c ): InvestigadorMecanico => new InvestigadorMecanico( $c->obtener( RelojInterface::class ) )
+			fn ( Contenedor $c ): InvestigadorMecanico => new InvestigadorMecanico(
+				$c->obtener( RelojInterface::class ),
+				$c->obtener( VerificadorProcedenciaDeclaracion::class )
+			)
 		);
 		$this->contenedor->registrar( CreadorBorradorInterface::class, static fn (): CreadorBorrador => new CreadorBorrador() );
 
@@ -515,7 +530,9 @@ final class Nucleo {
 				$c->obtener( RepositorioMemoriaEditorialInterface::class ),
 				$c->obtener( RepositorioRespuestasComentariosInterface::class ),
 				$c->obtener( RepositorioPeriodistasInterface::class ),
-				$c->obtener( RelojInterface::class )
+				$c->obtener( RelojInterface::class ),
+				$c->obtener( ResolutorDisputas::class ),
+				$c->obtener( DetectorHuecos::class )
 			)
 		);
 

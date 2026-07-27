@@ -23,7 +23,9 @@ use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Datos\RepositorioRespuestasComentariosInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabularioInterface;
+use Pluma\Investigacion\DetectorHuecos;
 use Pluma\Investigacion\InvestigadorInterface;
+use Pluma\Investigacion\ResolutorDisputas;
 use Pluma\Pipeline\LectorConfiguracionCadencia;
 use Pluma\Pipeline\Orquestador;
 use Pluma\Pipeline\ProgramadorCadencia;
@@ -146,7 +148,9 @@ final class EscasezHonestaInvarianteTest extends CasoDePruebaUnitario {
 			Mockery::mock( RepositorioMemoriaEditorialInterface::class ),
 			Mockery::mock( RepositorioRespuestasComentariosInterface::class ),
 			Mockery::mock( RepositorioPeriodistasInterface::class ),
-			new RelojFijo()
+			new RelojFijo(),
+			new ResolutorDisputas( Mockery::mock( LenguajeInterface::class ) ),
+			new DetectorHuecos( Mockery::mock( LenguajeInterface::class ) )
 		);
 
 		$resultado = $orquestador->ejecutarTick();

@@ -12,10 +12,16 @@ use Pluma\Kernel\RelojInterface;
  * hecho es el título real de un artículo real, con su URL — cero texto
  * inventado. Nivel `Atribuido`: es la curaduría de una sola fuente
  * (Google), no una triangulación independiente entre 2+ medios (Cap. 4.2).
+ *
+ * Nivel Tres L.1: cada hecho pasa por el Protocolo de Verificación de
+ * Procedencia de la Declaración (Fase 2.5) antes de entrar al expediente.
  */
 final class InvestigadorMecanico implements InvestigadorInterface {
 
-	public function __construct( private readonly RelojInterface $reloj ) {
+	public function __construct(
+		private readonly RelojInterface $reloj,
+		private readonly VerificadorProcedenciaDeclaracion $verificadorProcedencia,
+	) {
 	}
 
 	public function investigar( string $termino, array $articulosRelacionados ): Expediente {
@@ -26,7 +32,8 @@ final class InvestigadorMecanico implements InvestigadorInterface {
 				$articulo['titulo'],
 				$articulo['url'],
 				$ahora,
-				NivelVerificacion::Atribuido
+				NivelVerificacion::Atribuido,
+				$this->verificadorProcedencia->detectar( $articulo['titulo'], $articulo['url'] )
 			),
 			$articulosRelacionados
 		);
