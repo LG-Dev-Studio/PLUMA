@@ -44,12 +44,19 @@ enum PropositoLenguaje: string {
 	 * periodista, no una clasificación interna.
 	 */
 	case RespuestaComentario = 'respuesta_comentario';
+	/**
+	 * Fase 3.5 del Algoritmo de Decisión Editorial (Nivel Tres O.1): pasada
+	 * adversarial acotada — "usando exclusivamente el expediente, construye
+	 * el caso más fuerte posible en contra de esta tesis exacta". Mecanismo
+	 * deliberadamente barato: económico, no premium.
+	 */
+	case Falsear = 'falsear';
 
 	public function esPremium(): bool {
 		// phpcs:ignore PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext -- falso positivo: $this en un método de enum (PHP 8.1) es válido; el sniff aún no reconoce enums.
 		return match ( $this ) {
 			self::Redactar, self::Corregir, self::BloqueEditor, self::RespuestaComentario => true,
-			self::Clasificar, self::Angulos, self::Titulares, self::VistaPrevia, self::CompararHistorias, self::AnalizarAudiencia => false,
+			self::Clasificar, self::Angulos, self::Titulares, self::VistaPrevia, self::CompararHistorias, self::AnalizarAudiencia, self::Falsear => false,
 		};
 	}
 
@@ -62,7 +69,7 @@ enum PropositoLenguaje: string {
 		// phpcs:ignore PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext -- falso positivo: $this en un método de enum (PHP 8.1) es válido; el sniff aún no reconoce enums.
 		return match ( $this ) {
 			self::Clasificar, self::CompararHistorias, self::AnalizarAudiencia => 0.0,
-			self::Corregir => 0.2,
+			self::Corregir, self::Falsear => 0.2,
 			self::Angulos, self::Titulares => 0.8,
 			self::Redactar, self::BloqueEditor, self::VistaPrevia, self::RespuestaComentario => 0.7,
 		};

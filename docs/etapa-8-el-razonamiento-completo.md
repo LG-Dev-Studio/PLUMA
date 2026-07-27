@@ -126,6 +126,37 @@
 | `npm run build` | build de producción real (`vite build`), sin errores |
 | `npx playwright test tests/e2e/salud.spec.ts` | 2/2 — panel real cargado contra wp-env con los cambios de `PantallaPanel.php` presentes |
 
-## Porciones 4-10
+## Porción 4 — Prueba de Falseabilidad (Nivel Tres O.1)
+
+**Diagnóstico del texto fuente**: el Paso 3 del Algoritmo de Decisión Editorial selecciona la tesis ganadora por puntuación y pasa directamente al Paso 4. El Libro exige "contraargumento reconocido y respondido" dentro del esqueleto de redacción, pero eso lo escribe el mismo periodista que ya defiende la tesis — con el incentivo de defenderla bien, no de encontrarle el fallo real. O.1 añade una Fase 3.5: una pasada adversarial acotada, con instrucción explícita de construir el caso más fuerte posible EN CONTRA de la tesis exacta, usando solo el expediente.
+
+**Qué se agregó:**
+
+- **`Pluma\Proveedores\PropositoLenguaje::Falsear`** (nuevo caso del enum): económico, temperatura 0.2 — mismo tratamiento que `Corregir` (evalúa, no crea).
+- **`Pluma\Redaccion\VerificadorFalseabilidad`**: una llamada `PropositoLenguaje::Falsear` con directrices explícitamente adversariales ("eres un fiscal, no un abogado defensor"); devuelve `Pluma\Redaccion\ResultadoFalseabilidad` (`casoEnContra: string`, `fuerzaSustento: float` 0-100, misma escala que `CandidatoTesis::$puntuacionSustento` para que sean comparables). Umbral de retorno configurable (`umbralRegreso()`, opción `pluma_umbral_regreso_falseabilidad`, default 75/100).
+- **`DecisionEditorial::decidir()`** orquesta la Fase 3.5 en un bucle entre el Paso 3 y el Paso 4:
+  1. Si `fuerzaSustento >= umbralRetorno`: la tesis se descarta del array de candidatos y `SelectorAngulo::elegirGanadora()` reevalúa entre los restantes — el bucle repite la Prueba de Falseabilidad sobre el nuevo ganador. Si no queda ningún candidato, `DecisionEditorialException` (nunca "la menos derrotada").
+  2. Si `fuerzaSustento >= puntuacionSustento` de la tesis (comparable, sin llegar al umbral) pero no la derrota: `tensionFalseabilidad` se registra y se pasa a `GeneradorEsqueleto::generar()` como nuevo parámetro opcional trailing.
+  3. Si es menor: sin efecto, flujo normal.
+- **`Pluma\Redaccion\FichaDecisionEditorial`** gana el campo opcional `tensionFalseabilidad` (trailing, con default `null` — compatible con JSON ya persistido).
+- **`GeneradorEsqueleto::generar()`** gana un parámetro opcional trailing `?string $casoEnContraARespetar` — cuando está presente, añade una directriz explícita: el `contraargumentoReconocido` DEBE incorporar ese caso específico con el mismo peso argumental que la tesis, no como concesión menor.
+- **Compatibilidad**: `DecisionEditorial` gana una nueva dependencia (`VerificadorFalseabilidad`) — 3 call sites de test reparados, más 2 secuencias de `ProveedorLenguajeSecuencial` que necesitaron una respuesta nueva insertada en el orden correcto (la Fase 3.5 consume una llamada del proveedor entre "candidatos" y "esqueleto").
+
+**Fila registrada en `docs/puntuaciones.md` §5 antes de implementar** (GOVERNANCE §1.6: "ninguna puntuación nueva se acepta en el código sin su fila en este registro") — clasificada como "umbral de retorno", consistente con la clasificación que N4-I.2 ya le dio a esta pieza.
+
+**Sin cambios de esquema, sin endpoints REST, sin cambios de panel** — 100% backend interno a `Redaccion`/`Proveedores`.
+
+### Evidencia de gates — Porción 4
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 502/502 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 168/168 (2 skipped esperados) |
+| `npx vitest run` / `tsc` / `build` / Playwright | sin cambios de panel — no aplica a esta porción |
+
+## Porciones 5-10
 
 Pendientes. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); cada una abre su propio Mission Lock al comenzar.

@@ -107,6 +107,7 @@ use Pluma\Redaccion\RedactorSintetico;
 use Pluma\Redaccion\SegmentadorUnidadesFactuales;
 use Pluma\Redaccion\SelectorAngulo;
 use Pluma\Redaccion\VerificadorComentarioSustantivo;
+use Pluma\Redaccion\VerificadorFalseabilidad;
 use Pluma\Redaccion\VerificadorNGramas;
 use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
@@ -333,6 +334,10 @@ final class Nucleo {
 			fn ( Contenedor $c ): GeneradorEsqueleto => new GeneradorEsqueleto( $c->obtener( LenguajeInterface::class ) )
 		);
 		$this->contenedor->registrar(
+			VerificadorFalseabilidad::class,
+			fn ( Contenedor $c ): VerificadorFalseabilidad => new VerificadorFalseabilidad( $c->obtener( LenguajeInterface::class ) )
+		);
+		$this->contenedor->registrar(
 			DecisionEditorial::class,
 			fn ( Contenedor $c ): DecisionEditorial => new DecisionEditorial(
 				$c->obtener( ClasificadorNoticia::class ),
@@ -342,7 +347,8 @@ final class Nucleo {
 				$c->obtener( RepositorioPeriodistasInterface::class ),
 				$c->obtener( RepositorioMemoriaEditorialInterface::class ),
 				$c->obtener( RepositorioPiezasInterface::class ),
-				$c->obtener( RelojInterface::class )
+				$c->obtener( RelojInterface::class ),
+				$c->obtener( VerificadorFalseabilidad::class )
 			)
 		);
 

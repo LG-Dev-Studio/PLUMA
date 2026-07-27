@@ -56,8 +56,17 @@ Estado en código: **RETROFITADA — Etapa 7 (K.1), 2026-07-25.** `SelectorAngul
 
 Estado en código: **RETROFITADA — Etapa 7 (K.2), 2026-07-25.** `CompuertaCalidad::evaluar()` ya no suma los puntos de sustento/estructura al total: ambos son puertas binarias (`elegible = sustentoAprobado && estructuraCompleta`); si `!elegible`, `puntuacionTotal = 0` sin excepción. Solo tras superar ambos pisos se pondera proporción/legibilidad/voz.
 
+## 5. Prueba de Falseabilidad (fuerza del caso en contra)
+*Origen: Nivel Tres O.1 · vive en `Pluma\Redaccion\VerificadorFalseabilidad`, orquestada en `Pluma\Redaccion\DecisionEditorial` (Fase 3.5, entre Paso 3 y Paso 4).*
+
+| Factor | ¿Piso o contribuyente? | Umbral / qué pasa debajo | ¿Piso de fábrica? |
+|---|---|---|---|
+| Fuerza del caso en contra (sustento verificable en el expediente, no elocuencia) | **Umbral de retorno** (N4-I.2 ya lo clasifica así) | `fuerzaSustento >= umbral_regreso_falseabilidad` → la Pieza vuelve al Paso 3 a reevaluar entre los candidatos restantes (se descarta el defendido, no toda la tesis se pierde). `fuerzaSustento >= puntuacionSustento` de la tesis ganadora (comparable, sin llegar al umbral de retorno) → no se descarta, pero la Ficha registra la tensión explícitamente y el esqueleto (Paso 4) debe incorporar el caso en contra con el mismo peso argumental que la tesis, no como párrafo de cortesía. Por debajo de ambos umbrales: sin efecto. | Default de fábrica configurable; revisión a 90 días |
+
+Estado en código: **RETROFITADA — Etapa 8 (Porción 4), 2026-07-27.** `Pluma\Redaccion\VerificadorFalseabilidad::evaluar()` construye el caso en contra vía `PropositoLenguaje::Falsear`; `DecisionEditorial::decidir()` orquesta la Fase 3.5 entre el Paso 3 y el Paso 4: descarta y reevalúa si `fuerzaSustento >= umbral_regreso_falseabilidad` (opción `pluma_umbral_regreso_falseabilidad`, default 75/100), registra la tensión en `FichaDecisionEditorial::$tensionFalseabilidad` si es comparable, y `GeneradorEsqueleto` la incorpora con igual peso argumental cuando corresponde.
+
 ---
 
 ## Puntuaciones futuras (declarar aquí ANTES de implementar)
 
-Toda puntuación nueva —candidato a pieza de refuerzo del bucle SEO, valor marginal por pieza (Nivel Tres R), fuerza del contraargumento (Nivel Tres O.1), entropía estructural (Nivel Tres P.1), clasificador de comentarios (Nivel Cuatro X.1), ganador de A/B de titular (Nivel Cuatro Y.2)— añade su fila antes de escribir la función. Referencia de naturaleza de umbral: N4-I.2 ya clasificó las de N3 (contraargumento = umbral de retorno; entropía = umbral de alerta; tasa de detección del editor = alerta agregada; similitud de trazabilidad = umbral de priorización).
+Toda puntuación nueva —candidato a pieza de refuerzo del bucle SEO, valor marginal por pieza (Nivel Tres R), entropía estructural (Nivel Tres P.1), clasificador de comentarios (Nivel Cuatro X.1), ganador de A/B de titular (Nivel Cuatro Y.2)— añade su fila antes de escribir la función. Referencia de naturaleza de umbral: N4-I.2 ya clasificó las de N3 (contraargumento = umbral de retorno, ya registrado en §5; entropía = umbral de alerta; tasa de detección del editor = alerta agregada; similitud de trazabilidad = umbral de priorización).

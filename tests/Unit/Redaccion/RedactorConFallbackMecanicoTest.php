@@ -44,6 +44,7 @@ use Pluma\Redaccion\SelectorAngulo;
 use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\TratamientoLector;
+use Pluma\Redaccion\VerificadorFalseabilidad;
 use Pluma\Redaccion\VerificadorNGramas;
 use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
@@ -119,6 +120,7 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 			array(
 				'{"tema": "economia", "gravedad": 30, "polaridad": "x", "novedad": "primicia", "potencialConversacional": 50, "tipoNoticia": "dato_economico"}',
 				'{"candidatos": [{"tesis": "tesis elegida", "puntuacionOriginalidad": 80, "puntuacionCompatibilidadLinea": 80, "puntuacionSustento": 80, "puntuacionConversacional": 80}]}',
+				'{"casoEnContra": "el caso en contra es débil", "fuerzaSustento": 10}',
 				'{"gancho": "g", "hechosEsencialesConAtribucion": "h", "movimientosArgumentales": ["m1", "m2"], "contraargumentoReconocido": "c", "remate": "r"}',
 				'{"titulo": "Un titular", "cuerpo": "Cuerpo redactado por el periodista sintético."}',
 				'{"hechos": {"aprobado": true, "detalle": "ok"}, "proporcion_interpretativa": {"aprobado": true, "detalle": "ok"}, "titular_honesto": {"aprobado": true, "detalle": "ok"}, "matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}',
@@ -149,7 +151,8 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 				$repoPeriodistas,
 				$repoMemoria,
 				$repoPiezas,
-				new RelojFijo()
+				new RelojFijo(),
+				new VerificadorFalseabilidad( $proveedor )
 			),
 			new RedactorSintetico(
 				$proveedor,
@@ -250,7 +253,8 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 				$repoPeriodistas,
 				$repoMemoria,
 				$repoPiezas,
-				new RelojFijo()
+				new RelojFijo(),
+				new VerificadorFalseabilidad( $proveedor )
 			),
 			new RedactorSintetico(
 				$proveedor,
@@ -314,7 +318,8 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 				$repoPeriodistas,
 				$repoMemoria,
 				$repoPiezas,
-				new RelojFijo()
+				new RelojFijo(),
+				new VerificadorFalseabilidad( $proveedor )
 			),
 			new RedactorSintetico(
 				$proveedor,

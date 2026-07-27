@@ -97,4 +97,39 @@ final class GeneradorEsqueletoTest extends CasoDePruebaUnitario {
 		self::assertNotNull( $proveedor->ultimaPeticion );
 		self::assertStringContainsString( 'tesis elegida', $proveedor->ultimaPeticion->material );
 	}
+
+	/**
+	 * Nivel Tres O.1: cuando la Prueba de Falseabilidad encontró un caso en
+	 * contra comparable, las directrices deben instruir que el
+	 * "contraargumentoReconocido" lo incorpore con el mismo peso, no una
+	 * concesión menor.
+	 */
+	public function test_incluye_el_caso_en_contra_de_falseabilidad_cuando_se_proporciona(): void {
+		$proveedor = new ProveedorLenguajeFalso(
+			'{"gancho": "g", "hechosEsencialesConAtribucion": "h", "movimientosArgumentales": ["m1", "m2"], "contraargumentoReconocido": "c", "remate": "r"}'
+		);
+
+		( new GeneradorEsqueleto( $proveedor ) )->generar(
+			$this->expediente(),
+			$this->tesis(),
+			Tono::Analitico,
+			Tono::Persuasivo,
+			'los datos muestran lo contrario'
+		);
+
+		self::assertNotNull( $proveedor->ultimaPeticion );
+		self::assertStringContainsString( 'los datos muestran lo contrario', $proveedor->ultimaPeticion->directrices );
+		self::assertStringContainsString( 'mismo peso argumental', $proveedor->ultimaPeticion->directrices );
+	}
+
+	public function test_no_incluye_advertencia_de_falseabilidad_cuando_no_se_proporciona(): void {
+		$proveedor = new ProveedorLenguajeFalso(
+			'{"gancho": "g", "hechosEsencialesConAtribucion": "h", "movimientosArgumentales": ["m1", "m2"], "contraargumentoReconocido": "c", "remate": "r"}'
+		);
+
+		( new GeneradorEsqueleto( $proveedor ) )->generar( $this->expediente(), $this->tesis(), Tono::Analitico, Tono::Persuasivo );
+
+		self::assertNotNull( $proveedor->ultimaPeticion );
+		self::assertStringNotContainsString( 'tensión de falseabilidad', $proveedor->ultimaPeticion->directrices );
+	}
 }

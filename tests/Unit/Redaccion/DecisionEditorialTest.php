@@ -33,6 +33,7 @@ use Pluma\Redaccion\SelectorAngulo;
 use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\TratamientoLector;
+use Pluma\Redaccion\VerificadorFalseabilidad;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
 use Pluma\Tests\Unit\Dobles\AzarFijo;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeSecuencial;
@@ -98,7 +99,8 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 			$repoPeriodistas,
 			$repoMemoria,
 			$repoPiezas,
-			new RelojFijo()
+			new RelojFijo(),
+			new VerificadorFalseabilidad( $proveedor )
 		);
 	}
 
@@ -107,6 +109,7 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 			array(
 				'{"tema": "economia", "gravedad": 30, "polaridad": "gobierno vs oposición", "novedad": "primicia", "potencialConversacional": 70, "tipoNoticia": "dato_economico"}',
 				'{"candidatos": [{"tesis": "la cifra oficial esconde el dato real", "puntuacionOriginalidad": 80, "puntuacionCompatibilidadLinea": 80, "puntuacionSustento": 90, "puntuacionConversacional": 70}]}',
+				'{"casoEnContra": "el caso en contra es débil", "fuerzaSustento": 10}',
 				'{"gancho": "gancho", "hechosEsencialesConAtribucion": "hechos", "movimientosArgumentales": ["m1", "m2"], "contraargumentoReconocido": "contra", "remate": "remate"}',
 			)
 		);
@@ -133,6 +136,7 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 			array(
 				'{"tema": "economia", "gravedad": 30, "polaridad": "gobierno vs oposición", "novedad": "primicia", "potencialConversacional": 70, "tipoNoticia": "dato_economico"}',
 				'{"candidatos": [{"tesis": "la cifra oficial esconde el dato real", "puntuacionOriginalidad": 80, "puntuacionCompatibilidadLinea": 80, "puntuacionSustento": 90, "puntuacionConversacional": 70}]}',
+				'{"casoEnContra": "el caso en contra es débil", "fuerzaSustento": 10}',
 				'{"gancho": "gancho", "hechosEsencialesConAtribucion": "hechos", "movimientosArgumentales": ["m1", "m2"], "contraargumentoReconocido": "contra", "remate": "remate"}',
 			)
 		);
@@ -183,12 +187,80 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 			$repoPeriodistas,
 			$repoMemoria,
 			$repoPiezas,
-			new RelojFijo()
+			new RelojFijo(),
+			new VerificadorFalseabilidad( $proveedor )
 		);
 
 		$resultado = $decision->decidir( $this->expediente(), 99 );
 
 		self::assertSame( $original->id, $resultado['periodista']->id );
+	}
+
+	/**
+	 * Nivel Tres O.1, Fase 3.5: si el caso en contra de la tesis ganadora
+	 * supera el umbral de retorno, esa tesis se descarta y se reevalúa entre
+	 * los candidatos restantes — no se pierde toda la decisión, ni se
+	 * publica la tesis ya derrotada.
+	 */
+	public function test_una_tesis_derrotada_por_falseabilidad_se_descarta_y_se_reevalua(): void {
+		$proveedor = new ProveedorLenguajeSecuencial(
+			array(
+				'{"tema": "economia", "gravedad": 30, "polaridad": "x", "novedad": "primicia", "potencialConversacional": 50, "tipoNoticia": "dato_economico"}',
+				'{"candidatos": ['
+					. '{"tesis": "tesis A, la mejor puntuada", "puntuacionOriginalidad": 90, "puntuacionCompatibilidadLinea": 90, "puntuacionSustento": 90, "puntuacionConversacional": 90}, '
+					. '{"tesis": "tesis B, la segunda", "puntuacionOriginalidad": 50, "puntuacionCompatibilidadLinea": 50, "puntuacionSustento": 50, "puntuacionConversacional": 50}'
+					. ']}',
+				'{"casoEnContra": "el expediente contradice directamente la tesis A", "fuerzaSustento": 90}',
+				'{"casoEnContra": "caso débil contra la tesis B", "fuerzaSustento": 5}',
+				'{"gancho": "g", "hechosEsencialesConAtribucion": "h", "movimientosArgumentales": ["m1", "m2"], "contraargumentoReconocido": "c", "remate": "r"}',
+			)
+		);
+
+		$resultado = $this->construirDecision( $proveedor, $this->periodista() )->decidir( $this->expediente() );
+
+		self::assertSame( 'tesis B, la segunda', $resultado['ficha']->tesisElegida()->tesis );
+		self::assertNull( $resultado['ficha']->tensionFalseabilidad );
+	}
+
+	/**
+	 * Nivel Tres O.1, Fase 3.5: si el caso en contra es comparable a la
+	 * tesis ganadora (misma fuerza o más, sin llegar al umbral de retorno),
+	 * la tesis NO se descarta, pero la Ficha registra la tensión y el
+	 * esqueleto debe incorporar el caso en contra.
+	 */
+	public function test_un_caso_en_contra_comparable_registra_la_tension_sin_descartar_la_tesis(): void {
+		$proveedor = new ProveedorLenguajeSecuencial(
+			array(
+				'{"tema": "economia", "gravedad": 30, "polaridad": "x", "novedad": "primicia", "potencialConversacional": 50, "tipoNoticia": "dato_economico"}',
+				'{"candidatos": [{"tesis": "tesis con sustento moderado", "puntuacionOriginalidad": 80, "puntuacionCompatibilidadLinea": 80, "puntuacionSustento": 45, "puntuacionConversacional": 80}]}',
+				'{"casoEnContra": "un caso comparable, no dominante", "fuerzaSustento": 50}',
+				'{"gancho": "g", "hechosEsencialesConAtribucion": "h", "movimientosArgumentales": ["m1", "m2"], "contraargumentoReconocido": "c", "remate": "r"}',
+			)
+		);
+
+		$resultado = $this->construirDecision( $proveedor, $this->periodista() )->decidir( $this->expediente() );
+
+		self::assertSame( 'tesis con sustento moderado', $resultado['ficha']->tesisElegida()->tesis );
+		self::assertSame( 'un caso comparable, no dominante', $resultado['ficha']->tensionFalseabilidad );
+	}
+
+	/**
+	 * Nivel Tres O.1: si TODOS los candidatos son derrotados por la Prueba
+	 * de Falseabilidad, no queda ninguna tesis que defender — la Pieza no
+	 * se fuerza a publicar la menos derrotada.
+	 */
+	public function test_todos_los_candidatos_derrotados_lanza_excepcion(): void {
+		$proveedor = new ProveedorLenguajeSecuencial(
+			array(
+				'{"tema": "economia", "gravedad": 30, "polaridad": "x", "novedad": "primicia", "potencialConversacional": 50, "tipoNoticia": "dato_economico"}',
+				'{"candidatos": [{"tesis": "única tesis", "puntuacionOriginalidad": 80, "puntuacionCompatibilidadLinea": 80, "puntuacionSustento": 80, "puntuacionConversacional": 80}]}',
+				'{"casoEnContra": "el expediente la contradice de forma directa", "fuerzaSustento": 90}',
+			)
+		);
+
+		$this->expectException( DecisionEditorialException::class );
+
+		$this->construirDecision( $proveedor, $this->periodista() )->decidir( $this->expediente() );
 	}
 
 	public function test_lanza_excepcion_si_no_hay_periodistas_activos(): void {
@@ -210,7 +282,8 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 			$repoPeriodistas,
 			$repoMemoria,
 			$repoPiezas,
-			new RelojFijo()
+			new RelojFijo(),
+			new VerificadorFalseabilidad( $proveedor )
 		);
 
 		$this->expectException( DecisionEditorialException::class );

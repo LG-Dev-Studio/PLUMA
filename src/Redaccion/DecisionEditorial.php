@@ -28,6 +28,7 @@ final class DecisionEditorial {
 		private readonly RepositorioMemoriaEditorialInterface $repoMemoria,
 		private readonly RepositorioPiezasInterface $repoPiezas,
 		private readonly RelojInterface $reloj,
+		private readonly VerificadorFalseabilidad $verificadorFalseabilidad,
 	) {
 	}
 
@@ -77,13 +78,47 @@ final class DecisionEditorial {
 
 		$candidatos         = $this->selectorAngulo->generarCandidatos( $periodista, $expediente, $clasificacion, $posturasPrevias );
 		$indiceTesisElegida = $this->selectorAngulo->elegirGanadora( $candidatos );
-		$tesisElegida       = $candidatos[ $indiceTesisElegida ];
+
+		// Nivel Tres O.1, Fase 3.5 — Prueba de Falseabilidad: entre la
+		// selección de ángulo (Paso 3) y la arquitectura de la pieza (Paso 4),
+		// un intento genuino de derrotar la tesis ganadora usando solo el
+		// expediente. Si el caso en contra domina claramente, la tesis se
+		// descarta y se reevalúa entre los candidatos restantes — nunca se
+		// sobre-corrige descartando toda la decisión.
+		$tensionFalseabilidad = null;
+		$umbralRetorno        = $this->verificadorFalseabilidad->umbralRegreso();
+
+		while ( true ) {
+			$tesisElegida       = $candidatos[ $indiceTesisElegida ];
+			$resultadoFalseable = $this->verificadorFalseabilidad->evaluar( $expediente, $tesisElegida );
+
+			if ( $resultadoFalseable->fuerzaSustento >= $umbralRetorno ) {
+				unset( $candidatos[ $indiceTesisElegida ] );
+				$candidatos = array_values( $candidatos );
+
+				if ( array() === $candidatos ) {
+					throw new DecisionEditorialException(
+						'Todos los candidatos de tesis fueron derrotados por la Prueba de Falseabilidad (Nivel Tres O.1).'
+					);
+				}
+
+				$indiceTesisElegida = $this->selectorAngulo->elegirGanadora( $candidatos );
+
+				continue;
+			}
+
+			if ( $resultadoFalseable->fuerzaSustento >= $tesisElegida->puntuacionSustento ) {
+				$tensionFalseabilidad = $resultadoFalseable->casoEnContra;
+			}
+
+			break;
+		}
 
 		$filaMatriz    = $periodista->conductaActual->matrizTonos->paraTipo( $clasificacion->tipoNoticia );
 		$tonoDominante = $filaMatriz->tonoDominante;
 		$tonoApoyo     = $filaMatriz->tonoApoyo;
 
-		$esqueleto = $this->generadorEsqueleto->generar( $expediente, $tesisElegida, $tonoDominante, $tonoApoyo );
+		$esqueleto = $this->generadorEsqueleto->generar( $expediente, $tesisElegida, $tonoDominante, $tonoApoyo, $tensionFalseabilidad );
 
 		$ficha = new FichaDecisionEditorial(
 			$periodista->id,
@@ -94,7 +129,8 @@ final class DecisionEditorial {
 			$tonoDominante,
 			$tonoApoyo,
 			$esqueleto,
-			$this->reloj->ahora()
+			$this->reloj->ahora(),
+			$tensionFalseabilidad
 		);
 
 		return array(
