@@ -19,7 +19,7 @@ Un factor de elegibilidad (piso) nunca se promedia con factores de prioridad —
 | Vida útil | Contribuyente (0.20) | — | — |
 | Afinidad normalizada (residual) | Contribuyente (0.15) | — | — |
 
-Estado en código: **PENDIENTE DE RETROFIT** — Etapa 8 (C.1). Deuda relacionada: `PLUMA-E1-1` (hueco competitivo y vida útil no integrados).
+Estado en código: **RETROFITADA (parcial) — Etapa 8 (C.1), 2026-07-27.** `PuntuacionOportunidad::calcular()` ya aplica la puerta de afinidad (`elegible`) y reponderó velocidad (0.40)/afinidad residual (0.15). Techo honesto de la puntuación: **55/100**, no 100, mientras hueco competitivo (0.25) y vida útil (0.20) sigan sin construir (`PLUMA-E1-1`).
 
 ## 2. Asignación de Periodista
 *Origen: Libro 5.5 Paso 2 · corrección: Nivel Dos C.2–C.3 · vive en `Pluma\Redaccion\AsignadorPeriodista`.*
@@ -29,7 +29,7 @@ Estado en código: **PENDIENTE DE RETROFIT** — Etapa 8 (C.1). Deuda relacionad
 | Dominio del vertical | **Piso** | Si ningún periodista supera `umbral_dominio_minimo` → estado `SIN_PERIODISTA_IDONEO` (no se asigna "al menos malo") | Default de fábrica configurable |
 | Afinidad / carga / historial | Contribuyentes + reglas de desempate | Desempate: carga → historial con la historia → `AzarInterface` con semilla | — |
 
-Estado en código: **PENDIENTE DE RETROFIT** — Etapa 8 (C.2–C.3). Hoy el `AsignadorPeriodista` usa heurístico léxico sin piso (deuda `PLUMA-E2-2`).
+Estado en código: **RETROFITADA — Etapa 8 (C.2–C.3), 2026-07-27.** `AsignadorPeriodista` ya aplica el piso de dominio (`umbral_dominio_minimo_periodista`, default 40/100 → lanza `NingunPeriodistaIdoneoException` si nadie lo supera) y la cascada de desempate completa: margen de casi-empate configurable → balance de carga → historial con la historia específica (`pieza_original_id`) → `AzarInterface` con semilla, nunca "el primero del array". El heurístico léxico de afinidad (deuda `PLUMA-E2-2`) sigue sin cambios — C.2/C.3 no piden reponderar esos cuatro factores.
 
 ## 3. Selección de Ángulo (tesis)
 *Origen: Libro 5.5 Paso 3 · corrección: Nivel Tres K.1 · vive en `Pluma\Redaccion\SelectorAngulo`.*

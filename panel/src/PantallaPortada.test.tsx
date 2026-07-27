@@ -43,14 +43,17 @@ function textosDeEjemplo(): TextosPortada {
                 retenida: 'Retenida',
                 descartada: 'Descartada',
                 fallida: 'Fallida',
+                sin_periodista_idoneo: 'Sin periodista idóneo',
             },
         },
         alertas: {
             titulo: 'Alertas',
             retenidas: 'Retenidas esperando decisión',
             fallidas: 'Fallidas',
+            sinPeriodistaIdoneo: 'Sin periodista idóneo',
             sinRetenidas: 'ninguna pieza retenida',
             sinFallidas: 'ninguna pieza fallida',
+            sinPeriodistaIdoneoVacio: 'ninguna pieza sin periodista idóneo',
         },
         tendencias: { titulo: 'Tendencias calientes ahora', vacio: 'todavía no se ha detectado ninguna tendencia' },
         borradoresRespuestaPendientes: 'Borradores de respuesta esperando aprobación',
@@ -76,8 +79,9 @@ function portadaDeEjemplo(sobrescribir: Partial<DatosPortada> = {}): DatosPortad
             retenida: 0,
             descartada: 0,
             fallida: 0,
+            sin_periodista_idoneo: 0,
         },
-        alertas: { retenidas: [], fallidas: [] },
+        alertas: { retenidas: [], fallidas: [], sinPeriodistaIdoneo: [] },
         tendenciasCalientes: [],
         borradoresRespuestaPendientes: 0,
         ...sobrescribir,
@@ -122,6 +126,7 @@ describe('PantallaPortada', () => {
             alertas: {
                 retenidas: [{ id: 42, tendenciaId: 1, actualizadaEn: '2026-07-23T08:00:00+00:00', motivos: ['riesgo de difamación'] }],
                 fallidas: [],
+                sinPeriodistaIdoneo: [],
             },
         });
 
@@ -129,6 +134,20 @@ describe('PantallaPortada', () => {
 
         expect(screen.getByText(/#42 — riesgo de difamación/)).toBeInTheDocument();
         expect(screen.getByText('ninguna pieza fallida')).toBeInTheDocument();
+    });
+
+    it('lista las piezas sin periodista idóneo con su motivo', () => {
+        const datos = portadaDeEjemplo({
+            alertas: {
+                retenidas: [],
+                fallidas: [],
+                sinPeriodistaIdoneo: [{ id: 7, tendenciaId: 3, actualizadaEn: '2026-07-27T08:00:00+00:00', motivos: ['ningún periodista supera el umbral de dominio'] }],
+            },
+        });
+
+        render(<PantallaPortada datos={datos} error={null} textos={textosDeEjemplo()} />);
+
+        expect(screen.getByText(/#7 — ningún periodista supera el umbral de dominio/)).toBeInTheDocument();
     });
 
     it('muestra las tendencias calientes ordenadas tal como llegan', () => {

@@ -35,9 +35,10 @@ final class DecisionEditorial {
 	 * @return array{periodista: Periodista, ficha: FichaDecisionEditorial}
 	 *
 	 * @throws DecisionEditorialException si no hay periodistas activos o ningún candidato de tesis supera el umbral de sustento.
+	 * @throws NingunPeriodistaIdoneoException si ningún periodista activo supera el umbral de dominio mínimo (Nivel Dos C.3).
 	 * @throws \Pluma\Proveedores\ProveedorLenguajeException
 	 */
-	public function decidir( Expediente $expediente ): array {
+	public function decidir( Expediente $expediente, ?int $piezaOriginalId = null ): array {
 		$clasificacion = $this->clasificador->clasificar( $expediente );
 
 		$activos = $this->repoPeriodistas->obtenerActivos();
@@ -56,7 +57,20 @@ final class DecisionEditorial {
 			$tieneHistorialPorPeriodista[ $periodista->id ] = $this->repoMemoria->existeCoberturaDelTema( $periodista->id, $clasificacion->tema );
 		}
 
-		$periodista = $this->asignador->asignar( $activos, $clasificacion, $piezasHoyPorPeriodista, $tieneHistorialPorPeriodista );
+		// Nivel Dos C.2 punto 2: "quien empezó esta historia, la sigue" — solo
+		// si ese periodista sigue activo entre los candidatos actuales.
+		$periodistaIdDeHistoriaEspecifica = null;
+
+		if ( null !== $piezaOriginalId ) {
+			$piezaOriginal = $this->repoPiezas->obtenerPorId( $piezaOriginalId );
+
+			if ( null !== $piezaOriginal && null !== $piezaOriginal->periodistaId
+				&& in_array( $piezaOriginal->periodistaId, array_map( static fn ( Periodista $p ): int => $p->id, $activos ), true ) ) {
+				$periodistaIdDeHistoriaEspecifica = $piezaOriginal->periodistaId;
+			}
+		}
+
+		$periodista = $this->asignador->asignar( $activos, $clasificacion, $piezasHoyPorPeriodista, $tieneHistorialPorPeriodista, $periodistaIdDeHistoriaEspecifica );
 
 		// pl-periodistas §3 "memoria antes de tesis": se consulta ANTES de seleccionar ángulo.
 		$posturasPrevias = $this->repoMemoria->obtenerPosturasPorTema( $periodista->id, $clasificacion->tema );

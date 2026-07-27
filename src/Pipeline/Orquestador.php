@@ -291,6 +291,18 @@ final class Orquestador {
 
 			$resultado = $this->redactor->redactar( $transitada );
 
+			if ( $resultado->sinPeriodistaIdoneo ) {
+				// Nivel Dos C.3: ningún periodista del banco supera el umbral de
+				// dominio mínimo — salida honesta, nunca asignar "al menos malo".
+				$this->transicionador->transitar(
+					$pieza->id,
+					EstadoPieza::SinPeriodistaIdoneo,
+					$resultado->motivoSinPeriodistaIdoneo ?? 'Ningún periodista del banco supera el umbral de dominio mínimo para este vertical.'
+				);
+
+				return;
+			}
+
 			if ( $resultado->retenida ) {
 				// El Corrector Interno no aprobó tras el máximo de ciclos (Libro
 				// Cap. 5.6): revisión humana, no un fallo del sistema.

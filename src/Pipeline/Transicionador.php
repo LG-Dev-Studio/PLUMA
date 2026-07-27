@@ -20,20 +20,20 @@ final class Transicionador {
 	 * @var array<string, list<string>>
 	 */
 	private const GRAFO = array(
-		'detectada'        => array( 'en_investigacion', 'descartada', 'fallida' ),
-		'en_investigacion' => array( 'investigada', 'retenida', 'descartada', 'fallida' ),
-		'investigada'      => array( 'en_redaccion', 'retenida', 'descartada', 'fallida' ),
-		'en_redaccion'     => array( 'redactada', 'retenida', 'descartada', 'fallida' ),
-		'redactada'        => array( 'optimizada', 'retenida', 'descartada', 'fallida' ),
-		'optimizada'       => array( 'en_revision', 'retenida', 'descartada', 'fallida' ),
-		'en_revision'      => array( 'aprobada', 'retenida', 'descartada' ),
-		'aprobada'         => array( 'programada', 'retenida', 'descartada' ),
-		'programada'       => array( 'publicada', 'retenida', 'descartada', 'fallida' ),
+		'detectada'             => array( 'en_investigacion', 'descartada', 'fallida' ),
+		'en_investigacion'      => array( 'investigada', 'retenida', 'descartada', 'fallida' ),
+		'investigada'           => array( 'en_redaccion', 'retenida', 'descartada', 'fallida' ),
+		'en_redaccion'          => array( 'redactada', 'retenida', 'descartada', 'fallida', 'sin_periodista_idoneo' ),
+		'redactada'             => array( 'optimizada', 'retenida', 'descartada', 'fallida' ),
+		'optimizada'            => array( 'en_revision', 'retenida', 'descartada', 'fallida' ),
+		'en_revision'           => array( 'aprobada', 'retenida', 'descartada' ),
+		'aprobada'              => array( 'programada', 'retenida', 'descartada' ),
+		'programada'            => array( 'publicada', 'retenida', 'descartada', 'fallida' ),
 		// FALLIDA/RETENIDA se reanudan al estado previo: el motivo de la
 		// transición documenta a cuál. Se admite cualquier destino no
 		// terminal para que la reanudación no dependa de recordar aquí
 		// cada arista de recuperación posible.
-		'fallida'          => array(
+		'fallida'               => array(
 			'detectada',
 			'en_investigacion',
 			'investigada',
@@ -55,7 +55,11 @@ final class Transicionador {
 		// retención (Cap. 8.2: "RETENIDA para humano" — el humano ES la
 		// autoridad final de ese caso, no un atajo automático alrededor de
 		// las Compuertas).
-		'retenida'         => array( 'optimizada', 'aprobada', 'descartada' ),
+		'retenida'              => array( 'optimizada', 'aprobada', 'descartada' ),
+		// Nivel Dos C.3: ningún periodista del banco superó el umbral de
+		// dominio mínimo — reanudable a EN_REDACCION tras ajuste del banco
+		// por el editor, o descartable si la tendencia caduca mientras espera.
+		'sin_periodista_idoneo' => array( 'en_redaccion', 'descartada' ),
 	);
 
 	public function __construct(

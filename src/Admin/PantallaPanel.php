@@ -200,11 +200,13 @@ final class PantallaPanel {
 				'estados' => $this->etiquetasEstados(),
 			),
 			'alertas'                       => array(
-				'titulo'       => __( 'Alertas', 'pluma-engine' ),
-				'retenidas'    => __( 'Retenidas esperando decisión', 'pluma-engine' ),
-				'fallidas'     => __( 'Fallidas', 'pluma-engine' ),
-				'sinRetenidas' => __( 'ninguna pieza retenida', 'pluma-engine' ),
-				'sinFallidas'  => __( 'ninguna pieza fallida', 'pluma-engine' ),
+				'titulo'                   => __( 'Alertas', 'pluma-engine' ),
+				'retenidas'                => __( 'Retenidas esperando decisión', 'pluma-engine' ),
+				'fallidas'                 => __( 'Fallidas', 'pluma-engine' ),
+				'sinPeriodistaIdoneo'      => __( 'Sin periodista idóneo', 'pluma-engine' ),
+				'sinRetenidas'             => __( 'ninguna pieza retenida', 'pluma-engine' ),
+				'sinFallidas'              => __( 'ninguna pieza fallida', 'pluma-engine' ),
+				'sinPeriodistaIdoneoVacio' => __( 'ninguna pieza sin periodista idóneo', 'pluma-engine' ),
 			),
 			'tendencias'                    => array(
 				'titulo' => __( 'Tendencias calientes ahora', 'pluma-engine' ),
@@ -707,19 +709,20 @@ final class PantallaPanel {
 	 */
 	private function etiquetasEstados(): array {
 		return array(
-			EstadoPieza::Detectada->value       => __( 'Detectada', 'pluma-engine' ),
-			EstadoPieza::EnInvestigacion->value => __( 'En investigación', 'pluma-engine' ),
-			EstadoPieza::Investigada->value     => __( 'Investigada', 'pluma-engine' ),
-			EstadoPieza::EnRedaccion->value     => __( 'En redacción', 'pluma-engine' ),
-			EstadoPieza::Redactada->value       => __( 'Redactada', 'pluma-engine' ),
-			EstadoPieza::Optimizada->value      => __( 'Optimizada', 'pluma-engine' ),
-			EstadoPieza::EnRevision->value      => __( 'En revisión', 'pluma-engine' ),
-			EstadoPieza::Aprobada->value        => __( 'Aprobada', 'pluma-engine' ),
-			EstadoPieza::Programada->value      => __( 'Programada', 'pluma-engine' ),
-			EstadoPieza::Publicada->value       => __( 'Publicada', 'pluma-engine' ),
-			EstadoPieza::Retenida->value        => __( 'Retenida', 'pluma-engine' ),
-			EstadoPieza::Descartada->value      => __( 'Descartada', 'pluma-engine' ),
-			EstadoPieza::Fallida->value         => __( 'Fallida', 'pluma-engine' ),
+			EstadoPieza::Detectada->value           => __( 'Detectada', 'pluma-engine' ),
+			EstadoPieza::EnInvestigacion->value     => __( 'En investigación', 'pluma-engine' ),
+			EstadoPieza::Investigada->value         => __( 'Investigada', 'pluma-engine' ),
+			EstadoPieza::EnRedaccion->value         => __( 'En redacción', 'pluma-engine' ),
+			EstadoPieza::Redactada->value           => __( 'Redactada', 'pluma-engine' ),
+			EstadoPieza::Optimizada->value          => __( 'Optimizada', 'pluma-engine' ),
+			EstadoPieza::EnRevision->value          => __( 'En revisión', 'pluma-engine' ),
+			EstadoPieza::Aprobada->value            => __( 'Aprobada', 'pluma-engine' ),
+			EstadoPieza::Programada->value          => __( 'Programada', 'pluma-engine' ),
+			EstadoPieza::Publicada->value           => __( 'Publicada', 'pluma-engine' ),
+			EstadoPieza::Retenida->value            => __( 'Retenida', 'pluma-engine' ),
+			EstadoPieza::Descartada->value          => __( 'Descartada', 'pluma-engine' ),
+			EstadoPieza::Fallida->value             => __( 'Fallida', 'pluma-engine' ),
+			EstadoPieza::SinPeriodistaIdoneo->value => __( 'Sin periodista idóneo', 'pluma-engine' ),
 		);
 	}
 }

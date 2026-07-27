@@ -20,6 +20,9 @@ use Pluma\Proveedores\TendenciaCruda;
  * pantalla propia — opción vacía por defecto). Sin verticales configurados,
  * nada se descarta por afinidad (100); con verticales, coincidencia simple
  * de subcadena (heurística v1, se refina con NLP en una etapa posterior).
+ * Desde Nivel Dos C.1, esta afinidad ya actúa como puerta binaria dentro de
+ * `PuntuacionOportunidad::calcular()` — sin verticales configurados, la
+ * puerta nunca se cierra (afinidad siempre 100 ≥ umbral).
  */
 final class SensorGoogleTrends implements SensorInterface {
 

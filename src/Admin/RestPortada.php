@@ -159,13 +159,17 @@ final class RestPortada {
 	 */
 	private function alertas(): array {
 		return array(
-			'retenidas' => array_map(
+			'retenidas'           => array_map(
 				array( $this, 'piezaResumen' ),
 				$this->piezas->obtenerPorEstado( EstadoPieza::Retenida, self::LIMITE_ALERTAS )
 			),
-			'fallidas'  => array_map(
+			'fallidas'            => array_map(
 				array( $this, 'piezaResumen' ),
 				$this->piezas->obtenerPorEstado( EstadoPieza::Fallida, self::LIMITE_ALERTAS )
+			),
+			'sinPeriodistaIdoneo' => array_map(
+				array( $this, 'piezaResumen' ),
+				$this->piezas->obtenerPorEstado( EstadoPieza::SinPeriodistaIdoneo, self::LIMITE_ALERTAS )
 			),
 		);
 	}

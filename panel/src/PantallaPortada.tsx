@@ -43,6 +43,7 @@ export interface DatosPortada {
     alertas: {
         retenidas: PiezaResumen[];
         fallidas: PiezaResumen[];
+        sinPeriodistaIdoneo: PiezaResumen[];
     };
     tendenciasCalientes: TendenciaCaliente[];
     borradoresRespuestaPendientes: number;
@@ -84,8 +85,10 @@ export interface TextosPortada {
         titulo: string;
         retenidas: string;
         fallidas: string;
+        sinPeriodistaIdoneo: string;
         sinRetenidas: string;
         sinFallidas: string;
+        sinPeriodistaIdoneoVacio: string;
     };
     borradoresRespuestaPendientes: string;
     tendencias: {
@@ -113,6 +116,7 @@ const ORDEN_ESTADOS = [
     'retenida',
     'descartada',
     'fallida',
+    'sin_periodista_idoneo',
 ];
 
 interface Props {
@@ -184,6 +188,12 @@ export function PantallaPortada({ datos, error, textos }: Props) {
                         piezas={datos.alertas.fallidas}
                         tono="fallida"
                     />
+                    <ListaAlertas
+                        titulo={textos.alertas.sinPeriodistaIdoneo}
+                        vacio={textos.alertas.sinPeriodistaIdoneoVacio}
+                        piezas={datos.alertas.sinPeriodistaIdoneo}
+                        tono="sin_periodista_idoneo"
+                    />
                 </div>
             </section>
 
@@ -210,7 +220,7 @@ interface PropsListaAlertas {
     titulo: string;
     vacio: string;
     piezas: PiezaResumen[];
-    tono: 'retenida' | 'fallida';
+    tono: 'retenida' | 'fallida' | 'sin_periodista_idoneo';
 }
 
 function ListaAlertas({ titulo, vacio, piezas, tono }: PropsListaAlertas) {

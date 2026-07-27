@@ -115,4 +115,45 @@ final class TransicionadorTest extends CasoDePruebaUnitario {
 
 		$transicionador->transitar( 1, EstadoPieza::Descartada, 'motivo' );
 	}
+
+	/**
+	 * Nivel Dos C.3: `SIN_PERIODISTA_IDONEO` es una salida lateral nueva
+	 * desde `EN_REDACCION` (el paso de asignación de periodista).
+	 */
+	public function test_en_redaccion_puede_transitar_a_sin_periodista_idoneo(): void {
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->expects( 'obtenerPorId' )->andReturn( $this->piezaDeEjemplo( EstadoPieza::EnRedaccion ) );
+		$piezas->expects( 'actualizarEstado' )->andReturn( true );
+
+		$auditoria = Mockery::mock( RepositorioAuditoriaInterface::class );
+		$auditoria->expects( 'registrar' );
+
+		$transicionador = new Transicionador( $piezas, $auditoria, new RelojFijo() );
+
+		$resultado = $transicionador->transitar( 1, EstadoPieza::SinPeriodistaIdoneo, 'ningún periodista supera el umbral de dominio' );
+
+		self::assertNotNull( $resultado );
+	}
+
+	/**
+	 * Nivel Dos C.3: reanudable a `EN_REDACCION` (ajuste del banco por el
+	 * editor) o `DESCARTADA` (la tendencia caduca mientras espera).
+	 */
+	public function test_sin_periodista_idoneo_es_reanudable_o_descartable(): void {
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->expects( 'obtenerPorId' )->twice()->andReturn( $this->piezaDeEjemplo( EstadoPieza::SinPeriodistaIdoneo ) );
+		$piezas->expects( 'actualizarEstado' )->twice()->andReturn( true );
+
+		$auditoria = Mockery::mock( RepositorioAuditoriaInterface::class );
+		$auditoria->expects( 'registrar' )->twice();
+
+		$transicionador = new Transicionador( $piezas, $auditoria, new RelojFijo() );
+
+		self::assertNotNull( $transicionador->transitar( 1, EstadoPieza::EnRedaccion, 'ajuste del banco' ) );
+		self::assertNotNull( $transicionador->transitar( 1, EstadoPieza::Descartada, 'tendencia caducada' ) );
+	}
 }

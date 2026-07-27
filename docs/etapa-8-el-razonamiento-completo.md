@@ -1,6 +1,6 @@
 # Etapa 8 — El razonamiento completo (retrofit de mecanismo, TIER 1)
 
-**Estado: EN CURSO.** Porción 1 completa (1a + 1b). Roadmap completo de 10 porciones en `C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md` (aprobado); las Porciones 2-10 abren su propio Mission Lock cuando llegue su turno.
+**Estado: EN CURSO.** Porciones 1 (1a+1b), 2 y 3 completas. Roadmap completo de 10 porciones en `C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md` (aprobado); las Porciones 4-10 abren su propio Mission Lock cuando llegue su turno.
 
 ## Objetivo y criterio de salida (`docs/PLAN-MAESTRO-EVOLUCION.md` §6)
 
@@ -97,6 +97,35 @@
 | `npx tsc --noEmit` | limpio |
 | `npm run build` / Playwright | sin cambios de panel — no aplica a esta porción |
 
-## Porciones 3-10
+## Porción 3 — Aritmética del Radar y asignación (Nivel Dos C.1-C.3)
+
+**Decisiones de propietario tomadas al abrir esta porción** (Mission Lock): (1) no se integra Search Console como proxy de hueco competitivo en C.1 — evita inventar un mapeo que el texto fuente no pide literalmente; hueco y vida útil quedan diferidos (ya cubiertos por `PLUMA-E1-1`). `docs/puntuaciones.md` ya traía las dos tablas objetivo pre-registradas con los pesos exactos — esta porción implementa exactamente esas filas.
+
+**Qué se agregó:**
+
+- **C.1 — `Pluma\Sensores\PuntuacionOportunidad`**: afinidad con la línea editorial pasa de sumando a **puerta binaria** (`elegible = afinidad >= umbral_afinidad_minima`, opción `pluma_umbral_afinidad_minima`, default 15/100) — antes, una tendencia con afinidad cero (un evento deportivo en un sitio de tecnología) podía alcanzar puntuación alta si velocidad/hueco/vida útil eran altos, porque `0×0.30` seguía dejando 70 puntos de los otros factores. Reponderación honesta de los dos factores reales disponibles (velocidad 0.40, afinidad residual 0.15) — techo de `total` ahora es **55/100**, no 100, mientras hueco competitivo (0.25) y vida útil (0.20) sigan sin construir. No se añadieron parámetros `hueco`/`vidaUtil` con default 0.0: pasar un 0.0 como si fuera un dato medido sería el placeholder que CLAUDE.md prohíbe.
+- **C.2+C.3 — `Pluma\Redaccion\AsignadorPeriodista`**: nuevo piso de dominio (`umbral_dominio_minimo_periodista`, opción `pluma_umbral_dominio_minimo_periodista`, default 40/100 — rechaza el ejemplo literal del propio texto fuente, dominio 1/5=20/100) — si ningún candidato lo supera, nueva `Pluma\Redaccion\NingunPeriodistaIdoneoException` (sibling de `DecisionEditorialException`, no subclase, para no caer en catches existentes) en vez de asignar "al menos malo". Nueva cascada de desempate cuando el primero y el segundo candidato están dentro de un margen configurable (`pluma_margen_empate_asignacion`, default 5/100): balance de carga → historial con la historia específica → `AzarInterface` con semilla — nunca "el primero del array" (el bug de desempate más común, que el código anterior sí tenía con su comparación `>` estricta). "Historia específica" (C.2 punto 2) reutiliza `Pieza::$piezaOriginalId` y `RepositorioPiezasInterface::obtenerPorId()` — ya modela exactamente "quién empezó esta historia", cero infraestructura nueva.
+- **Estado `SIN_PERIODISTA_IDONEO`**: nuevo `EstadoPieza::SinPeriodistaIdoneo`, lateral desde `EnRedaccion` (sin migración — `pluma_piezas.estado` es `VARCHAR(30)`), reanudable a `EnRedaccion` o descartable. `ResultadoRedaccion` gana dos campos opcionales (`sinPeriodistaIdoneo`, `motivoSinPeriodistaIdoneo`) — los 5 call sites existentes no cambian. `RedactorConFallbackMecanico` captura la nueva excepción y devuelve el resultado sin pasar por el fallback mecánico (C.3 prohíbe escribir cualquier borrador). `Orquestador::procesarRedaccionYBorrador()` gana una rama nueva, antes del chequeo de `retenida`. Notificación por correo (`Pluma\Admin\NotificadorSinPeriodistaIdoneo`, copia exacta del patrón de `NotificadorRevision`, enganchada al evento genérico `pluma/pieza_sin_periodista_idoneo` que `Transicionador` ya dispara). Superficie en panel: nueva etiqueta en `PantallaPanel` y nuevo bucket de alerta en `RestPortada`.
+- **Compatibilidad**: `AsignadorPeriodista` gana un constructor (`AzarInterface`) — 10 call sites de test reparados. `DecisionEditorial::decidir()` gana un parámetro final opcional `?int $piezaOriginalId` — sin romper llamadas existentes.
+
+**Gap descubierto, no de esta porción**: el `decaimiento_temporal` de B.3 (Porción 2) y el consumo del gate `elegible`/`total` de C.1 en `Orquestador` quedan diferidos — ver `docs/deuda.md` (`PLUMA-E8-2`, `PLUMA-E8-5`).
+
+**Sin cambios de esquema** — todo vive en opciones de WordPress y en el JSON/VARCHAR ya persistidos.
+
+### Evidencia de gates — Porción 3
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 492/492 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 168/168 (2 skipped esperados) |
+| `npx vitest run` | 92/92 (esta porción SÍ toca panel — `PantallaPortada.tsx`, `BarraEstado`/`Aplicacion` fixtures reparadas) |
+| `npx tsc --noEmit` | limpio |
+| `npm run build` | build de producción real (`vite build`), sin errores |
+| `npx playwright test tests/e2e/salud.spec.ts` | 2/2 — panel real cargado contra wp-env con los cambios de `PantallaPanel.php` presentes |
+
+## Porciones 4-10
 
 Pendientes. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); cada una abre su propio Mission Lock al comenzar.

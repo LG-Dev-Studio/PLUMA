@@ -371,6 +371,8 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 	}
 
 	public function test_detecta_una_tendencia_nueva_y_crea_su_pieza(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+
 		$bitacora = Mockery::mock( RepositorioBitacoraInterface::class );
 		$bitacora->expects( 'iniciarEjecucion' )->once()->andReturn( 1 );
 		$bitacora->expects( 'finalizarEjecucion' )->once();
@@ -404,6 +406,8 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 	}
 
 	public function test_tendencia_ya_existente_no_se_duplica(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
 		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
@@ -625,6 +629,50 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		Functions\when( 'do_action' )->justReturn( null );
 
 		$resultadoRedaccion = new ResultadoRedaccion( '', '', true, 'El Corrector Interno no aprobó la pieza tras 2 ciclos de revisión.', 2 );
+		$redactor           = Mockery::mock( RedactorInterface::class );
+		$redactor->expects( 'redactar' )->once()->andReturn( $resultadoRedaccion );
+
+		$creadorBorrador = Mockery::mock( CreadorBorradorInterface::class );
+		$creadorBorrador->expects( 'crear' )->never();
+
+		$resultado = $this->construir(
+			array(
+				'piezas'          => $piezas,
+				'transicionador'  => new Transicionador( $piezas, $auditoria, new RelojFijo() ),
+				'redactor'        => $redactor,
+				'creadorBorrador' => $creadorBorrador,
+			)
+		)->ejecutarTick();
+
+		self::assertSame( 1, $resultado['lotesProcesados'] );
+	}
+
+	/**
+	 * Nivel Dos C.3: si ningún periodista supera el umbral de dominio, la
+	 * Pieza transita a `SinPeriodistaIdoneo` — nunca crea un borrador.
+	 */
+	public function test_una_pieza_sin_periodista_idoneo_no_crea_borrador(): void {
+		$expediente       = new Expediente( 'una tendencia', array() );
+		$piezaInvestigada = $this->pieza( 11, EstadoPieza::Investigada, $expediente );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
+		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Investigada, Mockery::any() )->andReturn( array( $piezaInvestigada ) );
+		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
+		$piezas->expects( 'obtenerPorId' )->with( 11 )->twice()->andReturn(
+			$piezaInvestigada,
+			$this->pieza( 11, EstadoPieza::EnRedaccion, $expediente )
+		);
+		$piezas->expects( 'actualizarEstado' )->with( 11, EstadoPieza::Investigada, EstadoPieza::EnRedaccion, Mockery::any() )->andReturn( true );
+		$piezas->expects( 'actualizarEstado' )->with( 11, EstadoPieza::EnRedaccion, EstadoPieza::SinPeriodistaIdoneo, Mockery::any() )->andReturn( true );
+		$piezas->expects( 'actualizarPostId' )->never();
+
+		$auditoria = Mockery::mock( RepositorioAuditoriaInterface::class );
+		$auditoria->allows( 'registrar' );
+
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$resultadoRedaccion = new ResultadoRedaccion( '', '', false, null, 0, true, 'Ningún periodista del banco supera el umbral de dominio.' );
 		$redactor           = Mockery::mock( RedactorInterface::class );
 		$redactor->expects( 'redactar' )->once()->andReturn( $resultadoRedaccion );
 

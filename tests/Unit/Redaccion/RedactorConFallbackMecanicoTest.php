@@ -27,6 +27,7 @@ use Pluma\Redaccion\CorrectorInterno;
 use Pluma\Redaccion\DecisionEditorial;
 use Pluma\Redaccion\Diales;
 use Pluma\Redaccion\EntradaMatrizTono;
+use Pluma\Redaccion\Especialidad;
 use Pluma\Redaccion\EstadoPeriodista;
 use Pluma\Redaccion\GeneradorBloqueEditor;
 use Pluma\Redaccion\GeneradorEsqueleto;
@@ -47,6 +48,7 @@ use Pluma\Redaccion\VerificadorNGramas;
 use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
+use Pluma\Tests\Unit\Dobles\AzarFijo;
 use Pluma\Tests\Unit\Dobles\EmbeddingsFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeQueFalla;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeSecuencial;
@@ -76,7 +78,7 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 			null,
 			'Bio.',
 			RolPeriodista::Columnista,
-			array(),
+			array( new Especialidad( 'economia', 3 ) ),
 			EstadoPeriodista::Activo,
 			$conducta,
 			new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ),
@@ -141,7 +143,7 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 		$redactor = new RedactorConFallbackMecanico(
 			new DecisionEditorial(
 				new ClasificadorNoticia( $proveedor ),
-				new AsignadorPeriodista(),
+				new AsignadorPeriodista( new AzarFijo( 0 ) ),
 				new SelectorAngulo( $proveedor ),
 				new GeneradorEsqueleto( $proveedor ),
 				$repoPeriodistas,
@@ -204,6 +206,75 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 		self::assertFalse( $resultado->retenida );
 	}
 
+	/**
+	 * Nivel Dos C.3: si ningún periodista supera el umbral de dominio, el
+	 * resultado se marca `sinPeriodistaIdoneo` — sin borrador mecánico, sin
+	 * borrador sintético, "no se asigna a el menos malo".
+	 */
+	public function test_ningun_periodista_idoneo_no_dispara_el_fallback_mecanico(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+
+		$proveedor = new ProveedorLenguajeSecuencial(
+			array( '{"tema": "economia", "gravedad": 30, "polaridad": "x", "novedad": "primicia", "potencialConversacional": 50, "tipoNoticia": "dato_economico"}' )
+		);
+
+		$periodistaSinDominio = new Periodista(
+			1,
+			'Periodista',
+			null,
+			'Bio.',
+			RolPeriodista::Columnista,
+			array( new Especialidad( 'cultura', 1 ) ),
+			EstadoPeriodista::Activo,
+			$this->periodista()->conductaActual,
+			new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ),
+			new DateTimeImmutable( '2026-01-01T00:00:00+00:00' )
+		);
+
+		$repoPeriodistas = $this->createMock( RepositorioPeriodistasInterface::class );
+		$repoPeriodistas->method( 'obtenerActivos' )->willReturn( array( $periodistaSinDominio ) );
+
+		$repoMemoria = $this->createMock( RepositorioMemoriaEditorialInterface::class );
+		$repoMemoria->method( 'existeCoberturaDelTema' )->willReturn( false );
+
+		$repoPiezas = $this->createMock( RepositorioPiezasInterface::class );
+		$repoPiezas->method( 'contarAsignadasDesde' )->willReturn( 0 );
+		$repoPiezas->expects( self::never() )->method( 'asignarPeriodista' );
+
+		$redactor = new RedactorConFallbackMecanico(
+			new DecisionEditorial(
+				new ClasificadorNoticia( $proveedor ),
+				new AsignadorPeriodista( new AzarFijo( 0 ) ),
+				new SelectorAngulo( $proveedor ),
+				new GeneradorEsqueleto( $proveedor ),
+				$repoPeriodistas,
+				$repoMemoria,
+				$repoPiezas,
+				new RelojFijo()
+			),
+			new RedactorSintetico(
+				$proveedor,
+				new CompiladorDirectrices(),
+				new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas(), new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ) ),
+				new GeneradorBloqueEditor( $proveedor ),
+				new AvisoTransparenciaIa(),
+				$this->createMock( RepositorioBorradoresInterface::class ),
+				new RelojFijo()
+			),
+			new RedactorMecanico(),
+			$repoPiezas,
+			new RelojFijo()
+		);
+
+		$resultado = $redactor->redactar( $this->pieza( $this->expediente() ) );
+
+		self::assertTrue( $resultado->sinPeriodistaIdoneo );
+		self::assertSame( '', $resultado->titulo );
+		self::assertSame( '', $resultado->cuerpoHtml );
+		self::assertFalse( $resultado->retenida );
+		self::assertNotNull( $resultado->motivoSinPeriodistaIdoneo );
+	}
+
 	public function test_un_fallo_tecnico_real_se_propaga_sin_usar_el_fallback(): void {
 		Functions\when( 'esc_html' )->alias( static fn ( string $s ): string => htmlspecialchars( $s, ENT_QUOTES ) );
 
@@ -237,7 +308,7 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 		return new RedactorConFallbackMecanico(
 			new DecisionEditorial(
 				new ClasificadorNoticia( $proveedor ),
-				new AsignadorPeriodista(),
+				new AsignadorPeriodista( new AzarFijo( 0 ) ),
 				new SelectorAngulo( $proveedor ),
 				new GeneradorEsqueleto( $proveedor ),
 				$repoPeriodistas,

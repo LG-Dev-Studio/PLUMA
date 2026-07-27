@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pluma\Kernel;
 
 use Pluma\Admin\NotificadorRevision;
+use Pluma\Admin\NotificadorSinPeriodistaIdoneo;
 use Pluma\Admin\PantallaPanel;
 use Pluma\Admin\RestBancoPeriodistas;
 use Pluma\Admin\RestEstudioSeo;
@@ -319,7 +320,10 @@ final class Nucleo {
 			ClasificadorNoticia::class,
 			fn ( Contenedor $c ): ClasificadorNoticia => new ClasificadorNoticia( $c->obtener( LenguajeInterface::class ) )
 		);
-		$this->contenedor->registrar( AsignadorPeriodista::class, static fn (): AsignadorPeriodista => new AsignadorPeriodista() );
+		$this->contenedor->registrar(
+			AsignadorPeriodista::class,
+			fn ( Contenedor $c ): AsignadorPeriodista => new AsignadorPeriodista( $c->obtener( AzarInterface::class ) )
+		);
 		$this->contenedor->registrar(
 			SelectorAngulo::class,
 			fn ( Contenedor $c ): SelectorAngulo => new SelectorAngulo( $c->obtener( LenguajeInterface::class ) )
@@ -564,6 +568,7 @@ final class Nucleo {
 			}
 		);
 		$this->contenedor->registrar( NotificadorRevision::class, static fn (): NotificadorRevision => new NotificadorRevision() );
+		$this->contenedor->registrar( NotificadorSinPeriodistaIdoneo::class, static fn (): NotificadorSinPeriodistaIdoneo => new NotificadorSinPeriodistaIdoneo() );
 
 		$this->contenedor->registrar(
 			GestorSalaTendencias::class,
@@ -751,6 +756,7 @@ final class Nucleo {
 		$this->contenedor->obtener( RestBancoPeriodistas::class )->registrar();
 		$this->contenedor->obtener( RestSalaRevision::class )->registrar();
 		$this->contenedor->obtener( NotificadorRevision::class )->registrar();
+		$this->contenedor->obtener( NotificadorSinPeriodistaIdoneo::class )->registrar();
 		$this->contenedor->obtener( RestPortada::class )->registrar();
 		$this->contenedor->obtener( RestSalaTendencias::class )->registrar();
 		$this->contenedor->obtener( RestMesaEditorial::class )->registrar();

@@ -40,9 +40,13 @@ final class RedactorConFallbackMecanico implements RedactorInterface {
 		}
 
 		try {
-			$decision = $this->decisionEditorial->decidir( $pieza->expediente );
+			$decision = $this->decisionEditorial->decidir( $pieza->expediente, $pieza->piezaOriginalId );
 		} catch ( ProveedorLenguajeException $e ) {
 			return $this->usarFallbackMecanico( $pieza, $e );
+		} catch ( NingunPeriodistaIdoneoException $e ) {
+			// Nivel Dos C.3: "no se asigna a 'el menos malo'" — a diferencia del
+			// fallback mecánico, aquí NO se escribe ningún borrador.
+			return new ResultadoRedaccion( '', '', false, null, 0, true, $e->getMessage() );
 		}
 
 		$periodista = $decision['periodista'];
