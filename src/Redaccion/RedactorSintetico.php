@@ -117,8 +117,9 @@ final class RedactorSintetico {
 
 		if ( null !== $anotacionesPrevias && null !== $borradorPrevio ) {
 			$fallos = array_values( array_filter( $anotacionesPrevias, static fn ( AnotacionCorrector $a ): bool => ! $a->aprobado ) );
+			$fallos = self::ordenadosPorPrioridadDeReparacion( $fallos );
 
-			$instruccion .= "\n\nEsta es una REVISIÓN: el Corrector Interno encontró estos problemas en el borrador anterior. Corrígelos explícitamente, no los ignores:\n"
+			$instruccion .= "\n\nEsta es una REVISIÓN: el Corrector Interno encontró estos problemas en el borrador anterior. Corrígelos en este orden, explícitamente, no los ignores:\n"
 				. implode( "\n", array_map( static fn ( AnotacionCorrector $a ): string => "- {$a->detalle}", $fallos ) )
 				. "\n\nBorrador anterior:\nTítulo: {$borradorPrevio['titulo']}\nCuerpo:\n{$borradorPrevio['cuerpo']}";
 		}
@@ -136,6 +137,27 @@ final class RedactorSintetico {
 			'titulo' => $datos['titulo'],
 			'cuerpo' => $datos['cuerpo'],
 		);
+	}
+
+	/**
+	 * Nivel Dos A.6: reordena los puntos reprobados de orden de verificación
+	 * (enumeración de {@see PuntoCorrector}) a orden de reparación
+	 * ({@see PuntoCorrector::ordenDeReparacion()}) antes de instruir la
+	 * siguiente pasada.
+	 *
+	 * @param list<AnotacionCorrector> $fallos
+	 * @return list<AnotacionCorrector>
+	 */
+	private static function ordenadosPorPrioridadDeReparacion( array $fallos ): array {
+		$prioridad = PuntoCorrector::ordenDeReparacion();
+
+		usort(
+			$fallos,
+			static fn ( AnotacionCorrector $a, AnotacionCorrector $b ): int =>
+				array_search( $a->punto, $prioridad, true ) <=> array_search( $b->punto, $prioridad, true )
+		);
+
+		return $fallos;
 	}
 
 	private function ensamblarHtml( string $cuerpo, BloqueEditor $bloqueEditor, Expediente $expediente, string $nombrePeriodista ): string {

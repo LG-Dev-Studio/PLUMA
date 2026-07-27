@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pluma\Tests\Invariantes;
 
+use Brain\Monkey\Functions;
 use DateTimeImmutable;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
@@ -23,12 +24,15 @@ use Pluma\Redaccion\NovedadNoticia;
 use Pluma\Redaccion\Periodista;
 use Pluma\Redaccion\ReglasConducta;
 use Pluma\Redaccion\RolPeriodista;
+use Pluma\Redaccion\SegmentadorUnidadesFactuales;
 use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\TratamientoLector;
 use Pluma\Redaccion\VerificadorNGramas;
+use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
+use Pluma\Tests\Unit\Dobles\EmbeddingsFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeFalso;
 
 /**
@@ -99,7 +103,9 @@ final class AntiAlucinacionInvarianteTest extends CasoDePruebaUnitario {
 				. '"matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}'
 		);
 
-		$corrector = new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas() );
+		Functions\when( 'get_option' )->justReturn( false );
+
+		$corrector = new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas(), new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ) );
 
 		$anotaciones = $corrector->revisar(
 			$this->periodista(),
@@ -128,7 +134,9 @@ final class AntiAlucinacionInvarianteTest extends CasoDePruebaUnitario {
 				. '"matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}'
 		);
 
-		$corrector = new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas() );
+		Functions\when( 'get_option' )->justReturn( false );
+
+		$corrector = new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas(), new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ) );
 
 		$anotaciones = $corrector->revisar(
 			$this->periodista(),

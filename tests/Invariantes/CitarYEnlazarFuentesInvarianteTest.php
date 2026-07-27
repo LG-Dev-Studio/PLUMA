@@ -29,12 +29,15 @@ use Pluma\Redaccion\Periodista;
 use Pluma\Redaccion\RedactorSintetico;
 use Pluma\Redaccion\ReglasConducta;
 use Pluma\Redaccion\RolPeriodista;
+use Pluma\Redaccion\SegmentadorUnidadesFactuales;
 use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\TratamientoLector;
 use Pluma\Redaccion\VerificadorNGramas;
+use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
+use Pluma\Tests\Unit\Dobles\EmbeddingsFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeSecuencial;
 use Pluma\Tests\Unit\Dobles\RelojFijo;
 
@@ -118,7 +121,7 @@ final class CitarYEnlazarFuentesInvarianteTest extends CasoDePruebaUnitario {
 		$redactor = new RedactorSintetico(
 			$proveedor,
 			new CompiladorDirectrices(),
-			new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas() ),
+			new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas(), new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ) ),
 			new GeneradorBloqueEditor( $proveedor ),
 			new AvisoTransparenciaIa(),
 			$this->createMock( RepositorioBorradoresInterface::class ),

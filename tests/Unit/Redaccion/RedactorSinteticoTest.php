@@ -29,12 +29,15 @@ use Pluma\Redaccion\Periodista;
 use Pluma\Redaccion\RedactorSintetico;
 use Pluma\Redaccion\ReglasConducta;
 use Pluma\Redaccion\RolPeriodista;
+use Pluma\Redaccion\SegmentadorUnidadesFactuales;
 use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\TratamientoLector;
 use Pluma\Redaccion\VerificadorNGramas;
+use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
+use Pluma\Tests\Unit\Dobles\EmbeddingsFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeSecuencial;
 use Pluma\Tests\Unit\Dobles\RelojFijo;
 
@@ -46,9 +49,10 @@ use Pluma\Tests\Unit\Dobles\RelojFijo;
  */
 final class RedactorSinteticoTest extends CasoDePruebaUnitario {
 
-	private const CORRECTOR_APRUEBA  = '{"hechos": {"aprobado": true, "detalle": "ok"}, "proporcion_interpretativa": {"aprobado": true, "detalle": "ok"}, "titular_honesto": {"aprobado": true, "detalle": "ok"}, "matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}';
-	private const CORRECTOR_REPRUEBA = '{"hechos": {"aprobado": false, "detalle": "una cifra no está en el expediente"}, "proporcion_interpretativa": {"aprobado": true, "detalle": "ok"}, "titular_honesto": {"aprobado": true, "detalle": "ok"}, "matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}';
-	private const BLOQUE_EDITOR      = '{"comentario": "Yo ya lo veía venir.", "pregunta": "¿A quién le crees aquí?"}';
+	private const CORRECTOR_APRUEBA         = '{"hechos": {"aprobado": true, "detalle": "ok"}, "proporcion_interpretativa": {"aprobado": true, "detalle": "ok"}, "titular_honesto": {"aprobado": true, "detalle": "ok"}, "matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}';
+	private const CORRECTOR_REPRUEBA        = '{"hechos": {"aprobado": false, "detalle": "una cifra no está en el expediente"}, "proporcion_interpretativa": {"aprobado": true, "detalle": "ok"}, "titular_honesto": {"aprobado": true, "detalle": "ok"}, "matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}';
+	private const CORRECTOR_REPRUEBA_TRIPLE = '{"hechos": {"aprobado": false, "detalle": "falla de hechos"}, "proporcion_interpretativa": {"aprobado": false, "detalle": "falla de proporcion"}, "titular_honesto": {"aprobado": true, "detalle": "ok"}, "matriz_y_lineas_rojas": {"aprobado": false, "detalle": "falla de matriz"}}';
+	private const BLOQUE_EDITOR             = '{"comentario": "Yo ya lo veía venir.", "pregunta": "¿A quién le crees aquí?"}';
 
 	private function periodista(): Periodista {
 		$diales   = new Diales( 80, 55, 40, 55, 75, 60, 60, 65 );
@@ -97,7 +101,7 @@ final class RedactorSinteticoTest extends CasoDePruebaUnitario {
 		return new RedactorSintetico(
 			$proveedor,
 			new CompiladorDirectrices(),
-			new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas() ),
+			new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas(), new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ) ),
 			new GeneradorBloqueEditor( $proveedor ),
 			new AvisoTransparenciaIa(),
 			$repoBorradores,
@@ -171,7 +175,52 @@ final class RedactorSinteticoTest extends CasoDePruebaUnitario {
 		self::assertStringContainsString( 'una cifra no está en el expediente', $proveedor->peticiones[2]->directrices );
 	}
 
+	/**
+	 * Nivel Dos A.6: cuando el Corrector Interno reprueba varios puntos a la
+	 * vez, la segunda pasada debe instruirlos en orden de REPARACIÓN
+	 * (`PuntoCorrector::ordenDeReparacion()`: Hechos → MatrizYLineasRojas →
+	 * SolapamientoNGrama → ProporcionInterpretativa → Voz → TitularHonesto),
+	 * no en el orden de enumeración/verificación en que el Corrector los
+	 * evalúa (Hechos → ProporcionInterpretativa → ... → MatrizYLineasRojas).
+	 */
+	public function test_varios_fallos_a_la_vez_se_instruyen_en_orden_de_reparacion_no_de_verificacion(): void {
+		$this->mockearFuncionesDeEnsamblado();
+
+		$proveedor = new ProveedorLenguajeSecuencial(
+			array(
+				'{"titulo": "Titular", "cuerpo": "Borrador inicial."}',
+				self::CORRECTOR_REPRUEBA_TRIPLE,
+				'{"titulo": "Titular corregido", "cuerpo": "Borrador revisado."}',
+				self::CORRECTOR_APRUEBA,
+				self::BLOQUE_EDITOR,
+			)
+		);
+
+		$repoBorradores = $this->createMock( RepositorioBorradoresInterface::class );
+		$repoBorradores->expects( self::exactly( 2 ) )->method( 'crear' );
+
+		$this->redactor( $proveedor, $repoBorradores )->redactar( 1, $this->periodista(), $this->expediente(), $this->ficha() );
+
+		$instruccion = $proveedor->peticiones[2]->directrices;
+
+		$posicionHechos     = strpos( $instruccion, 'falla de hechos' );
+		$posicionMatriz     = strpos( $instruccion, 'falla de matriz' );
+		$posicionProporcion = strpos( $instruccion, 'falla de proporcion' );
+
+		self::assertIsInt( $posicionHechos );
+		self::assertIsInt( $posicionMatriz );
+		self::assertIsInt( $posicionProporcion );
+
+		// Orden de reparación: Hechos primero, luego MatrizYLineasRojas,
+		// y solo al final ProporcionInterpretativa — pese a que el Corrector
+		// las evalúa y devuelve en el orden contrario (verificación).
+		self::assertLessThan( $posicionMatriz, $posicionHechos );
+		self::assertLessThan( $posicionProporcion, $posicionMatriz );
+	}
+
 	public function test_dos_fallos_consecutivos_marcan_la_pieza_retenida_sin_generar_bloque_editor(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+
 		$proveedor = new ProveedorLenguajeSecuencial(
 			array(
 				'{"titulo": "Titular", "cuerpo": "Borrador con un dato flojo."}',

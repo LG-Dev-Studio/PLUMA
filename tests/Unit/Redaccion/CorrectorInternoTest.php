@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pluma\Tests\Unit\Redaccion;
 
+use Brain\Monkey\Functions;
 use DateTimeImmutable;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
@@ -25,12 +26,15 @@ use Pluma\Redaccion\Periodista;
 use Pluma\Redaccion\PuntoCorrector;
 use Pluma\Redaccion\ReglasConducta;
 use Pluma\Redaccion\RolPeriodista;
+use Pluma\Redaccion\SegmentadorUnidadesFactuales;
 use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\TratamientoLector;
 use Pluma\Redaccion\VerificadorNGramas;
+use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
+use Pluma\Tests\Unit\Dobles\EmbeddingsFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeFalso;
 
 /**
@@ -84,7 +88,14 @@ final class CorrectorInternoTest extends CasoDePruebaUnitario {
 	}
 
 	private function corrector( ProveedorLenguajeFalso $proveedor ): CorrectorInterno {
-		return new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas() );
+		Functions\when( 'get_option' )->justReturn( false );
+
+		return new CorrectorInterno(
+			$proveedor,
+			new VerificadorVoz(),
+			new VerificadorNGramas(),
+			new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() )
+		);
 	}
 
 	public function test_revisar_devuelve_seis_anotaciones_en_el_orden_del_enum(): void {
@@ -151,5 +162,75 @@ final class CorrectorInternoTest extends CasoDePruebaUnitario {
 		$this->expectException( DecisionEditorialException::class );
 
 		$this->corrector( $proveedor )->revisar( $this->periodista(), $this->expediente(), $this->ficha(), 'Título', 'cuerpo' );
+	}
+
+	/**
+	 * Nivel Tres J.3: cuando la capa determinista detecta una frase sin
+	 * respaldo aparente en el expediente, `CorrectorInterno` la señala en la
+	 * petición que envía al proveedor de lenguaje para el punto "hechos" —
+	 * prioriza y abarata la evaluación, no la sustituye.
+	 */
+	public function test_una_frase_sin_respaldo_aparente_se_señala_en_la_peticion_al_proveedor(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+
+		$embeddings = new EmbeddingsFalso(
+			static function ( string $texto ): array {
+				if ( str_contains( $texto, 'respaldado' ) ) {
+					return array( 1.0, 0.0 );
+				}
+
+				return array( 0.0, 1.0 );
+			}
+		);
+
+		$proveedor = new ProveedorLenguajeFalso(
+			'{"hechos": {"aprobado": true, "detalle": "ok"}, "proporcion_interpretativa": {"aprobado": true, "detalle": "ok"}, '
+				. '"titular_honesto": {"aprobado": true, "detalle": "ok"}, "matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}'
+		);
+
+		$corrector = new CorrectorInterno(
+			$proveedor,
+			new VerificadorVoz(),
+			new VerificadorNGramas(),
+			new VerificadorTrazabilidadDeterminista( $embeddings, new SegmentadorUnidadesFactuales() )
+		);
+
+		$expediente = new Expediente(
+			'una tendencia',
+			array( new HechoFuente( 'un hecho respaldado', 'https://example.com', new DateTimeImmutable( '2026-07-22T12:00:00+00:00' ), NivelVerificacion::Verificado ) )
+		);
+
+		$corrector->revisar( $this->periodista(), $expediente, $this->ficha(), 'Título', 'Este dato fue completamente inventado sin fuente alguna.' );
+
+		self::assertNotNull( $proveedor->ultimaPeticion );
+		self::assertStringContainsString( 'ALERTA DE TRAZABILIDAD DETERMINISTA', $proveedor->ultimaPeticion->directrices );
+		self::assertStringContainsString( 'inventado', $proveedor->ultimaPeticion->directrices );
+	}
+
+	/**
+	 * Contraprueba: un borrador enteramente trazable al expediente no dispara
+	 * la alerta — la capa determinista no genera ruido cuando no hace falta.
+	 */
+	public function test_un_borrador_trazable_no_dispara_la_alerta_de_trazabilidad(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+
+		$embeddings = new EmbeddingsFalso( static fn (): array => array( 1.0, 0.0 ) );
+
+		$proveedor = new ProveedorLenguajeFalso(
+			'{"hechos": {"aprobado": true, "detalle": "ok"}, "proporcion_interpretativa": {"aprobado": true, "detalle": "ok"}, '
+				. '"titular_honesto": {"aprobado": true, "detalle": "ok"}, "matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}'
+		);
+
+		$corrector = new CorrectorInterno(
+			$proveedor,
+			new VerificadorVoz(),
+			new VerificadorNGramas(),
+			new VerificadorTrazabilidadDeterminista( $embeddings, new SegmentadorUnidadesFactuales() )
+		);
+
+		$corrector->revisar( $this->periodista(), $this->expediente(), $this->ficha(), 'Título', 'Un cuerpo cualquiera sin copias.' );
+
+		self::assertNotNull( $proveedor->ultimaPeticion );
+		self::assertStringNotContainsString( 'ALERTA DE TRAZABILIDAD DETERMINISTA', $proveedor->ultimaPeticion->directrices );
 	}
 }

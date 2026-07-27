@@ -16,6 +16,11 @@ use Pluma\Proveedores\PropositoLenguaje;
  * proveedor de lenguaje. Los otros 4 se evalúan en una sola llamada
  * (`PropositoLenguaje::Corregir`) por eficiencia de coste.
  *
+ * Nivel Tres J.3: antes de esa llamada, {@see VerificadorTrazabilidadDeterminista}
+ * (capa no generativa, embeddings) señala qué frases del borrador no
+ * encontraron respaldo aparente en el expediente — prioriza y abarata el
+ * punto "hechos", nunca lo sustituye.
+ *
  * "Jamás aprobar lo menos malo" (pl-periodistas §5): {@see aprobado()} exige
  * los 6 puntos, no una mayoría.
  */
@@ -27,6 +32,7 @@ final class CorrectorInterno {
 		private readonly LenguajeInterface $proveedor,
 		private readonly VerificadorVoz $verificadorVoz,
 		private readonly VerificadorNGramas $verificadorNGramas,
+		private readonly VerificadorTrazabilidadDeterminista $verificadorTrazabilidad,
 	) {
 	}
 
@@ -78,26 +84,35 @@ final class CorrectorInterno {
 		string $titulo,
 		string $cuerpo
 	): array {
-		$reglas      = $periodista->conductaActual->reglas;
-		$filaMatriz  = $periodista->conductaActual->matrizTonos->paraTipo( $ficha->clasificacion->tipoNoticia );
-		$directrices = implode(
-			"\n",
-			array(
-				'Eres el Corrector Interno: un agente separado del redactor, con un solo trabajo, atacar el borrador. Jamás apruebes "lo menos malo".',
-				'Evalúa EXACTAMENTE estos 4 puntos contra el expediente y el borrador, cada uno con {"aprobado": boolean, "detalle": string}:',
-				'"hechos": ¿Cada hecho del texto existe en el expediente con el estado correcto (verificado/atribuido)? Regla de oro: el redactor no puede saber nada que el expediente no sepa. Reprueba si hay una sola afirmación sin respaldo.',
-				'"proporcion_interpretativa": ¿La proporción interpretación/relato cumple el mínimo del 60% (la mayoría del texto interpreta y argumenta, no solo narra los hechos crudos)?',
-				'"titular_honesto": ¿El titular promete exactamente lo que la pieza cumple (sin clickbait)?',
-				sprintf(
-					'"matriz_y_lineas_rojas": ¿La pieza respeta el tono esperado (dominante: %s, apoyo: %s) y las líneas rojas personales del periodista (%s)?',
-					$filaMatriz->tonoDominante->value,
-					$filaMatriz->tonoApoyo->value,
-					array() !== $reglas->lineasRojas ? implode( '; ', $reglas->lineasRojas ) : 'ninguna configurada'
-				),
-				'Responde ÚNICAMENTE con un objeto JSON de esta forma exacta:',
-				'{"hechos": {"aprobado": boolean, "detalle": string}, "proporcion_interpretativa": {"aprobado": boolean, "detalle": string}, "titular_honesto": {"aprobado": boolean, "detalle": string}, "matriz_y_lineas_rojas": {"aprobado": boolean, "detalle": string}}',
-			)
+		$reglas     = $periodista->conductaActual->reglas;
+		$filaMatriz = $periodista->conductaActual->matrizTonos->paraTipo( $ficha->clasificacion->tipoNoticia );
+		$bloques    = array(
+			'Eres el Corrector Interno: un agente separado del redactor, con un solo trabajo, atacar el borrador. Jamás apruebes "lo menos malo".',
+			'Evalúa EXACTAMENTE estos 4 puntos contra el expediente y el borrador, cada uno con {"aprobado": boolean, "detalle": string}:',
+			'"hechos": ¿Cada hecho del texto existe en el expediente con el estado correcto (verificado/atribuido)? Regla de oro: el redactor no puede saber nada que el expediente no sepa. Reprueba si hay una sola afirmación sin respaldo.',
+			'"proporcion_interpretativa": ¿La proporción interpretación/relato cumple el mínimo del 60% (la mayoría del texto interpreta y argumenta, no solo narra los hechos crudos)?',
+			'"titular_honesto": ¿El titular promete exactamente lo que la pieza cumple (sin clickbait)?',
+			sprintf(
+				'"matriz_y_lineas_rojas": ¿La pieza respeta el tono esperado (dominante: %s, apoyo: %s) y las líneas rojas personales del periodista (%s)?',
+				$filaMatriz->tonoDominante->value,
+				$filaMatriz->tonoApoyo->value,
+				array() !== $reglas->lineasRojas ? implode( '; ', $reglas->lineasRojas ) : 'ninguna configurada'
+			),
+			'Responde ÚNICAMENTE con un objeto JSON de esta forma exacta:',
+			'{"hechos": {"aprobado": boolean, "detalle": string}, "proporcion_interpretativa": {"aprobado": boolean, "detalle": string}, "titular_honesto": {"aprobado": boolean, "detalle": string}, "matriz_y_lineas_rojas": {"aprobado": boolean, "detalle": string}}',
 		);
+
+		$unidadesSinRespaldo = $this->verificadorTrazabilidad->unidadesSinRespaldoAparente( $expediente, $cuerpo );
+
+		if ( array() !== $unidadesSinRespaldo ) {
+			// Nivel Tres J.3: capa determinista (no generativa), previa a esta llamada — prioriza
+			// el punto "hechos", nunca lo sustituye (puede ser un falso positivo de paráfrasis legítima).
+			$bloques[] = 'ALERTA DE TRAZABILIDAD DETERMINISTA para el punto "hechos" (verificación por embeddings, revísala con tu propio criterio semántico, puede ser un falso positivo): '
+				. 'estas frases del borrador no encontraron un extracto suficientemente similar en el expediente: '
+				. implode( ' | ', $unidadesSinRespaldo );
+		}
+
+		$directrices = implode( "\n", $bloques );
 
 		$material = FormateadorExpediente::comoTexto( $expediente ) . "\n\nTítulo:\n{$titulo}\n\nCuerpo:\n{$cuerpo}";
 

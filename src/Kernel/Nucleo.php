@@ -100,9 +100,11 @@ use Pluma\Redaccion\RedactorConFallbackMecanico;
 use Pluma\Redaccion\RedactorInterface;
 use Pluma\Redaccion\RedactorMecanico;
 use Pluma\Redaccion\RedactorSintetico;
+use Pluma\Redaccion\SegmentadorUnidadesFactuales;
 use Pluma\Redaccion\SelectorAngulo;
 use Pluma\Redaccion\VerificadorComentarioSustantivo;
 use Pluma\Redaccion\VerificadorNGramas;
+use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
 use Pluma\Seo\AuditorCanibalizacion;
 use Pluma\Seo\ConstructorEsquemaNewsArticle;
@@ -328,12 +330,21 @@ final class Nucleo {
 		$this->contenedor->registrar( CompiladorDirectrices::class, static fn (): CompiladorDirectrices => new CompiladorDirectrices() );
 		$this->contenedor->registrar( VerificadorVoz::class, static fn (): VerificadorVoz => new VerificadorVoz() );
 		$this->contenedor->registrar( VerificadorNGramas::class, static fn (): VerificadorNGramas => new VerificadorNGramas() );
+		$this->contenedor->registrar( SegmentadorUnidadesFactuales::class, static fn (): SegmentadorUnidadesFactuales => new SegmentadorUnidadesFactuales() );
+		$this->contenedor->registrar(
+			VerificadorTrazabilidadDeterminista::class,
+			fn ( Contenedor $c ): VerificadorTrazabilidadDeterminista => new VerificadorTrazabilidadDeterminista(
+				$c->obtener( EmbeddingsInterface::class ),
+				$c->obtener( SegmentadorUnidadesFactuales::class )
+			)
+		);
 		$this->contenedor->registrar(
 			CorrectorInterno::class,
 			fn ( Contenedor $c ): CorrectorInterno => new CorrectorInterno(
 				$c->obtener( LenguajeInterface::class ),
 				$c->obtener( VerificadorVoz::class ),
-				$c->obtener( VerificadorNGramas::class )
+				$c->obtener( VerificadorNGramas::class ),
+				$c->obtener( VerificadorTrazabilidadDeterminista::class )
 			)
 		);
 		$this->contenedor->registrar(
