@@ -30,7 +30,8 @@ final class SelectorAngulo {
 	}
 
 	/**
-	 * @param list<EntradaMemoria> $posturasPrevias más recientes primero (ver `RepositorioMemoriaEditorialInterface::obtenerPosturasPorTema()`)
+	 * @param list<EntradaMemoria>    $posturasPrevias    más recientes primero (ver `RepositorioMemoriaEditorialInterface::obtenerPosturasPorTema()`)
+	 * @param list<PosturaColectiva>  $posturasColectivas más recientes primero, de OTROS periodistas — memoria colectiva del sitio (Nivel Dos E.2)
 	 * @return list<CandidatoTesis> 3–5 candidatos que superaron el umbral de sustento
 	 *
 	 * @throws DecisionEditorialException si ningún candidato supera el umbral, o la respuesta no trae el formato esperado.
@@ -40,7 +41,8 @@ final class SelectorAngulo {
 		Periodista $periodista,
 		Expediente $expediente,
 		ClasificacionNoticia $clasificacion,
-		array $posturasPrevias
+		array $posturasPrevias,
+		array $posturasColectivas = array()
 	): array {
 		$directrices = implode(
 			"\n",
@@ -48,13 +50,16 @@ final class SelectorAngulo {
 				"Eres el estratega de ángulos de {$periodista->nombre}, cuya línea editorial es: {$periodista->conductaActual->reglas->lineaEditorial}",
 				'A partir del expediente, propone entre 3 y 5 candidatos de tesis (ángulos argumentales distintos entre sí).',
 				'IMPORTANTE — memoria antes de tesis: si alguna postura previa listada abajo entra en contradicción con un candidato, ese candidato DEBE incluir, en su propio texto, un reconocimiento explícito de la contradicción (ej. "hace tres meses defendí lo contrario; estos datos me obligan a rectificar"). Silenciar una contradicción no está permitido.',
+				'IMPORTANTE — memoria colectiva del sitio: si alguna postura colectiva listada abajo (de OTRO periodista de esta redacción) entra en contradicción con un candidato, ese candidato DEBE reconocerlo explícitamente, con la atribución exacta que se indique para cada una (individual si ese periodista sigue activo, de sitio/redacción si ya está jubilado) — nunca como si fuera la propia postura anterior del periodista actual.',
 				'Para cada candidato, puntúa 0-100 en cuatro ejes: originalidad frente a la cobertura existente, compatibilidad con la línea editorial, sustento en los hechos VERIFICADOS del expediente (0 si la tesis no está respaldada por ningún hecho del expediente), y potencial de conversación.',
 				'Responde ÚNICAMENTE con un objeto JSON de esta forma exacta:',
 				'{"candidatos": [{"tesis": string, "puntuacionOriginalidad": integer, "puntuacionCompatibilidadLinea": integer, "puntuacionSustento": integer, "puntuacionConversacional": integer}, ...]}',
 			)
 		);
 
-		$material = FormateadorExpediente::comoTexto( $expediente ) . "\n\n" . $this->formatearPosturasPrevias( $posturasPrevias );
+		$material = FormateadorExpediente::comoTexto( $expediente ) . "\n\n"
+			. $this->formatearPosturasPrevias( $posturasPrevias ) . "\n\n"
+			. $this->formatearPosturasColectivas( $posturasColectivas );
 
 		$peticion  = new PeticionLenguaje( PropositoLenguaje::Angulos, $directrices, $material, self::MAX_TOKENS_RESPUESTA );
 		$respuesta = $this->proveedor->completar( $peticion );
@@ -145,6 +150,30 @@ final class SelectorAngulo {
 		foreach ( $posturasPrevias as $entrada ) {
 			$postura  = $entrada->contenido['postura'] ?? null;
 			$lineas[] = '- ' . ( is_string( $postura ) ? $postura : '(postura sin texto)' );
+		}
+
+		return implode( "\n", $lineas );
+	}
+
+	/**
+	 * @param list<PosturaColectiva> $posturasColectivas
+	 */
+	private function formatearPosturasColectivas( array $posturasColectivas ): string {
+		if ( array() === $posturasColectivas ) {
+			return 'Ningún otro periodista de esta redacción tiene posturas previas registradas sobre este tema.';
+		}
+
+		$lineas = array( 'Posturas previas de OTROS periodistas de esta redacción sobre este tema (memoria colectiva del sitio):' );
+
+		foreach ( $posturasColectivas as $postura ) {
+			$texto = $postura->entrada->contenido['postura'] ?? null;
+			$texto = is_string( $texto ) ? $texto : '(postura sin texto)';
+
+			$atribucion = $postura->periodistaActivo
+				? "un colega de esta redacción, {$postura->periodistaNombre}, sostuvo"
+				: 'esta redacción sostuvo antes (a través de un periodista que ya no forma parte del banco)';
+
+			$lineas[] = "- {$atribucion}: {$texto}";
 		}
 
 		return implode( "\n", $lineas );

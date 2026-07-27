@@ -19,6 +19,7 @@ use Pluma\Redaccion\NivelSatiraPermitida;
 use Pluma\Redaccion\NovedadNoticia;
 use Pluma\Redaccion\DecisionEditorialException;
 use Pluma\Redaccion\Periodista;
+use Pluma\Redaccion\PosturaColectiva;
 use Pluma\Redaccion\ReglasConducta;
 use Pluma\Redaccion\RolPeriodista;
 use Pluma\Redaccion\SelectorAngulo;
@@ -169,5 +170,61 @@ final class SelectorAnguloTest extends CasoDePruebaUnitario {
 
 		self::assertNotNull( $proveedor->ultimaPeticion );
 		self::assertStringContainsString( 'no tiene posturas previas', $proveedor->ultimaPeticion->material );
+	}
+
+	/**
+	 * Nivel Dos E.2, memoria colectiva del sitio: una postura de un colega
+	 * ACTIVO se atribuye por nombre — nunca como si fuera la propia postura
+	 * anterior del periodista actual.
+	 */
+	public function test_una_postura_colectiva_de_periodista_activo_se_atribuye_por_nombre(): void {
+		$proveedor = new ProveedorLenguajeFalso(
+			'{"candidatos": [{"tesis": "x", "puntuacionOriginalidad": 70, "puntuacionCompatibilidadLinea": 70, "puntuacionSustento": 70, "puntuacionConversacional": 70}]}'
+		);
+
+		$posturaColectiva = new PosturaColectiva(
+			new EntradaMemoria( 2, 2, TipoMemoria::Postura, 'economia', array( 'postura' => 'La reforma fiscal es necesaria.' ), null, new DateTimeImmutable( '2026-04-01T00:00:00+00:00' ) ),
+			'Otro Periodista',
+			true
+		);
+
+		( new SelectorAngulo( $proveedor ) )->generarCandidatos( $this->periodista(), $this->expediente(), $this->clasificacion(), array(), array( $posturaColectiva ) );
+
+		self::assertNotNull( $proveedor->ultimaPeticion );
+		self::assertStringContainsString( 'un colega de esta redacción, Otro Periodista, sostuvo: La reforma fiscal es necesaria.', $proveedor->ultimaPeticion->material );
+	}
+
+	/**
+	 * Nivel Dos E.2: una postura de un periodista JUBILADO se atribuye a la
+	 * redacción como voz colectiva, no al individuo — el propio texto fuente
+	 * exige este cambio de forma exacto.
+	 */
+	public function test_una_postura_colectiva_de_periodista_jubilado_se_atribuye_a_la_redaccion(): void {
+		$proveedor = new ProveedorLenguajeFalso(
+			'{"candidatos": [{"tesis": "x", "puntuacionOriginalidad": 70, "puntuacionCompatibilidadLinea": 70, "puntuacionSustento": 70, "puntuacionConversacional": 70}]}'
+		);
+
+		$posturaColectiva = new PosturaColectiva(
+			new EntradaMemoria( 3, 3, TipoMemoria::Postura, 'economia', array( 'postura' => 'La reforma fiscal era innecesaria.' ), null, new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ) ),
+			'Periodista Jubilado',
+			false
+		);
+
+		( new SelectorAngulo( $proveedor ) )->generarCandidatos( $this->periodista(), $this->expediente(), $this->clasificacion(), array(), array( $posturaColectiva ) );
+
+		self::assertNotNull( $proveedor->ultimaPeticion );
+		self::assertStringContainsString( 'esta redacción sostuvo antes', $proveedor->ultimaPeticion->material );
+		self::assertStringNotContainsString( 'Periodista Jubilado, sostuvo', $proveedor->ultimaPeticion->material );
+	}
+
+	public function test_sin_posturas_colectivas_el_material_lo_indica_explicitamente(): void {
+		$proveedor = new ProveedorLenguajeFalso(
+			'{"candidatos": [{"tesis": "x", "puntuacionOriginalidad": 70, "puntuacionCompatibilidadLinea": 70, "puntuacionSustento": 70, "puntuacionConversacional": 70}]}'
+		);
+
+		( new SelectorAngulo( $proveedor ) )->generarCandidatos( $this->periodista(), $this->expediente(), $this->clasificacion(), array() );
+
+		self::assertNotNull( $proveedor->ultimaPeticion );
+		self::assertStringContainsString( 'Ningún otro periodista de esta redacción tiene posturas previas', $proveedor->ultimaPeticion->material );
 	}
 }

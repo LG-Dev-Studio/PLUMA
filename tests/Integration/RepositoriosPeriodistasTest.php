@@ -224,6 +224,62 @@ final class RepositoriosPeriodistasTest extends WP_UnitTestCase {
 		self::assertCount( 0, $repoMemoria->obtenerPorPeriodista( $periodistaId, TipoMemoria::Cobertura ) );
 	}
 
+	/**
+	 * Nivel Dos E.2, memoria colectiva del sitio: `obtenerPosturasColectivasPorTema()`
+	 * consulta por `tema` SIN filtrar por periodista — a diferencia de
+	 * `obtenerPosturasPorTema()`, trae posturas de CUALQUIER periodista del
+	 * banco, activo o jubilado, ejercitando en datos reales el nuevo índice
+	 * `tema` (independiente del compuesto `periodista_tema`).
+	 */
+	public function test_memoria_editorial_obtiene_posturas_colectivas_de_cualquier_periodista_por_tema(): void {
+		global $wpdb;
+		$repoPeriodistas = new RepositorioPeriodistas( $wpdb );
+		$repoMemoria     = new RepositorioMemoriaEditorial( $wpdb );
+		$reloj           = new RelojSistema();
+
+		$idA = $repoPeriodistas->crear(
+			'Periodista Colectivo A',
+			null,
+			'Bio.',
+			RolPeriodista::Analista,
+			array(),
+			EstadoPeriodista::Activo,
+			$this->dialesDePrueba(),
+			$this->reglasDePrueba(),
+			$this->matrizDePrueba(),
+			$reloj->ahora()
+		);
+		$idB = $repoPeriodistas->crear(
+			'Periodista Colectivo B',
+			null,
+			'Bio.',
+			RolPeriodista::Analista,
+			array(),
+			EstadoPeriodista::Activo,
+			$this->dialesDePrueba(),
+			$this->reglasDePrueba(),
+			$this->matrizDePrueba(),
+			$reloj->ahora()
+		);
+
+		self::assertSame( array(), $repoMemoria->obtenerPosturasColectivasPorTema( 'reforma-fiscal' ) );
+
+		// Marcas de tiempo explícitas y distintas — `creada_en` es DATETIME
+		// (precisión de segundo), y ambos registros pueden caer en el mismo
+		// segundo con el reloj real, dejando el orden DESC indeterminado.
+		$repoMemoria->registrar( $idA, TipoMemoria::Postura, 'reforma-fiscal', array( 'postura' => 'A favor de la reforma.' ), null, $reloj->ahora()->modify( '-1 minute' ) );
+		$repoMemoria->registrar( $idB, TipoMemoria::Postura, 'reforma-fiscal', array( 'postura' => 'En contra de la reforma.' ), null, $reloj->ahora() );
+		$repoMemoria->registrar( $idA, TipoMemoria::Cobertura, 'reforma-fiscal', array(), null, $reloj->ahora() );
+
+		$colectivas = $repoMemoria->obtenerPosturasColectivasPorTema( 'reforma-fiscal' );
+
+		self::assertCount( 2, $colectivas );
+		self::assertSame( array( $idB, $idA ), array_map( static fn ( $entrada ) => $entrada->periodistaId, $colectivas ) );
+
+		self::assertTrue( $repoPeriodistas->jubilar( $idB, $reloj->ahora() ) );
+		self::assertSame( EstadoPeriodista::Jubilado, $repoPeriodistas->obtenerPorId( $idB )->estado );
+	}
+
 	public function test_borradores_registra_ciclos_de_revision_y_devuelve_el_ultimo(): void {
 		global $wpdb;
 		$repoTendencias = new RepositorioTendencias( $wpdb );

@@ -62,6 +62,21 @@ final class RepositorioMemoriaEditorial implements RepositorioMemoriaEditorialIn
 		return array_map( fn ( array $fila ): EntradaMemoria => $this->filaAEntrada( $fila ), $filas ?? array() );
 	}
 
+	public function obtenerPosturasColectivasPorTema( string $tema, int $limite = 20 ): array {
+		$sql = $this->wpdb->prepare(
+			"SELECT * FROM {$this->tabla()} WHERE tipo = %s AND tema = %s ORDER BY creada_en DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type
+			TipoMemoria::Postura->value,
+			$tema,
+			$limite
+		);
+		assert( null !== $sql );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql ya se construyó con $wpdb->prepare() arriba.
+		$filas = $this->wpdb->get_results( $sql, ARRAY_A );
+
+		return array_map( fn ( array $fila ): EntradaMemoria => $this->filaAEntrada( $fila ), $filas ?? array() );
+	}
+
 	public function obtenerPorPeriodista( int $periodistaId, ?TipoMemoria $tipo = null, int $limite = 50 ): array {
 		if ( null !== $tipo ) {
 			$sql = $this->wpdb->prepare(

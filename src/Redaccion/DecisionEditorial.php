@@ -76,7 +76,28 @@ final class DecisionEditorial {
 		// pl-periodistas §3 "memoria antes de tesis": se consulta ANTES de seleccionar ángulo.
 		$posturasPrevias = $this->repoMemoria->obtenerPosturasPorTema( $periodista->id, $clasificacion->tema );
 
-		$candidatos         = $this->selectorAngulo->generarCandidatos( $periodista, $expediente, $clasificacion, $posturasPrevias );
+		// Nivel Dos E.2, memoria colectiva del sitio: además de la memoria
+		// individual del periodista asignado, se consulta si CUALQUIER OTRO
+		// periodista (activo o jubilado) ya se pronunció sobre este tema —
+		// el sitio como voz colectiva no debe contradecirse a sí mismo solo
+		// porque quien firmó antes ya no está en el banco.
+		$posturasColectivas = array();
+
+		foreach ( $this->repoMemoria->obtenerPosturasColectivasPorTema( $clasificacion->tema ) as $entrada ) {
+			if ( $entrada->periodistaId === $periodista->id ) {
+				continue; // Ya cubierta por la memoria individual de arriba.
+			}
+
+			$autor = $this->repoPeriodistas->obtenerPorId( $entrada->periodistaId );
+
+			if ( null === $autor ) {
+				continue; // Registro huérfano (periodista eliminado) — no se inventa atribución.
+			}
+
+			$posturasColectivas[] = new PosturaColectiva( $entrada, $autor->nombre, EstadoPeriodista::Activo === $autor->estado );
+		}
+
+		$candidatos         = $this->selectorAngulo->generarCandidatos( $periodista, $expediente, $clasificacion, $posturasPrevias, $posturasColectivas );
 		$indiceTesisElegida = $this->selectorAngulo->elegirGanadora( $candidatos );
 
 		// Nivel Tres O.1, Fase 3.5 — Prueba de Falseabilidad: entre la

@@ -21,6 +21,7 @@ use Pluma\Redaccion\DecisionEditorial;
 use Pluma\Redaccion\DecisionEditorialException;
 use Pluma\Redaccion\Diales;
 use Pluma\Redaccion\EntradaMatrizTono;
+use Pluma\Redaccion\EntradaMemoria;
 use Pluma\Redaccion\Especialidad;
 use Pluma\Redaccion\EstadoPeriodista;
 use Pluma\Redaccion\GeneradorEsqueleto;
@@ -30,6 +31,7 @@ use Pluma\Redaccion\Periodista;
 use Pluma\Redaccion\ReglasConducta;
 use Pluma\Redaccion\RolPeriodista;
 use Pluma\Redaccion\SelectorAngulo;
+use Pluma\Redaccion\TipoMemoria;
 use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\TratamientoLector;
@@ -87,6 +89,7 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 		$repoMemoria = $this->createMock( RepositorioMemoriaEditorialInterface::class );
 		$repoMemoria->method( 'existeCoberturaDelTema' )->willReturn( false );
 		$repoMemoria->method( 'obtenerPosturasPorTema' )->willReturn( array() );
+		$repoMemoria->method( 'obtenerPosturasColectivasPorTema' )->willReturn( array() );
 
 		$repoPiezas = $this->createMock( RepositorioPiezasInterface::class );
 		$repoPiezas->method( 'contarAsignadasDesde' )->willReturn( 0 );
@@ -161,6 +164,7 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 		$repoMemoria = $this->createMock( RepositorioMemoriaEditorialInterface::class );
 		$repoMemoria->method( 'existeCoberturaDelTema' )->willReturn( false );
 		$repoMemoria->method( 'obtenerPosturasPorTema' )->willReturn( array() );
+		$repoMemoria->method( 'obtenerPosturasColectivasPorTema' )->willReturn( array() );
 
 		$repoPiezas = $this->createMock( RepositorioPiezasInterface::class );
 		$repoPiezas->method( 'contarAsignadasDesde' )->willReturn( 0 );
@@ -261,6 +265,97 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 		$this->expectException( DecisionEditorialException::class );
 
 		$this->construirDecision( $proveedor, $this->periodista() )->decidir( $this->expediente() );
+	}
+
+	/**
+	 * Nivel Dos E.2, memoria colectiva del sitio: `decidir()` consulta
+	 * `obtenerPosturasColectivasPorTema()`, excluye la entrada que pertenece
+	 * al propio periodista asignado (ya cubierta por la memoria individual),
+	 * y resuelve la atribución activo/jubilado vía `RepositorioPeriodistasInterface`
+	 * antes de pasarla a `SelectorAngulo`.
+	 */
+	public function test_decidir_pasa_memoria_colectiva_excluyendo_al_propio_periodista_y_resolviendo_atribucion(): void {
+		$proveedor = new ProveedorLenguajeSecuencial(
+			array(
+				'{"tema": "economia", "gravedad": 30, "polaridad": "x", "novedad": "primicia", "potencialConversacional": 50, "tipoNoticia": "dato_economico"}',
+				'{"candidatos": [{"tesis": "x", "puntuacionOriginalidad": 80, "puntuacionCompatibilidadLinea": 80, "puntuacionSustento": 80, "puntuacionConversacional": 80}]}',
+				'{"casoEnContra": "caso débil", "fuerzaSustento": 5}',
+				'{"gancho": "g", "hechosEsencialesConAtribucion": "h", "movimientosArgumentales": ["m1", "m2"], "contraargumentoReconocido": "c", "remate": "r"}',
+			)
+		);
+
+		$periodistaAsignado = $this->periodista();
+		$colegaActivo       = new Periodista(
+			2,
+			'Colega Activo',
+			null,
+			'Bio.',
+			RolPeriodista::Columnista,
+			array(),
+			EstadoPeriodista::Activo,
+			$periodistaAsignado->conductaActual,
+			new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ),
+			new DateTimeImmutable( '2026-01-01T00:00:00+00:00' )
+		);
+		$colegaJubilado     = new Periodista(
+			3,
+			'Colega Jubilado',
+			null,
+			'Bio.',
+			RolPeriodista::Columnista,
+			array(),
+			EstadoPeriodista::Jubilado,
+			$periodistaAsignado->conductaActual,
+			new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ),
+			new DateTimeImmutable( '2026-01-01T00:00:00+00:00' )
+		);
+
+		$posturaDelPropioPeriodista = new EntradaMemoria( 1, $periodistaAsignado->id, TipoMemoria::Postura, 'economia', array( 'postura' => 'no debe llegar como colectiva' ), null, new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ) );
+		$posturaColegaActivo        = new EntradaMemoria( 2, $colegaActivo->id, TipoMemoria::Postura, 'economia', array( 'postura' => 'postura del colega activo' ), null, new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ) );
+		$posturaColegaJubilado      = new EntradaMemoria( 3, $colegaJubilado->id, TipoMemoria::Postura, 'economia', array( 'postura' => 'postura del colega jubilado' ), null, new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ) );
+		$posturaHuerfana            = new EntradaMemoria( 4, 999, TipoMemoria::Postura, 'economia', array( 'postura' => 'postura de un periodista eliminado' ), null, new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ) );
+
+		$repoPeriodistas = $this->createMock( RepositorioPeriodistasInterface::class );
+		$repoPeriodistas->method( 'obtenerActivos' )->willReturn( array( $periodistaAsignado ) );
+		$repoPeriodistas->method( 'obtenerPorId' )->willReturnMap(
+			array(
+				array( $colegaActivo->id, $colegaActivo ),
+				array( $colegaJubilado->id, $colegaJubilado ),
+				array( 999, null ),
+			)
+		);
+
+		$repoMemoria = $this->createMock( RepositorioMemoriaEditorialInterface::class );
+		$repoMemoria->method( 'existeCoberturaDelTema' )->willReturn( false );
+		$repoMemoria->method( 'obtenerPosturasPorTema' )->willReturn( array() );
+		$repoMemoria->method( 'obtenerPosturasColectivasPorTema' )->willReturn(
+			array( $posturaDelPropioPeriodista, $posturaColegaActivo, $posturaColegaJubilado, $posturaHuerfana )
+		);
+
+		$repoPiezas = $this->createMock( RepositorioPiezasInterface::class );
+		$repoPiezas->method( 'contarAsignadasDesde' )->willReturn( 0 );
+
+		$decision = new DecisionEditorial(
+			new ClasificadorNoticia( $proveedor ),
+			new AsignadorPeriodista( new AzarFijo( 0 ) ),
+			new SelectorAngulo( $proveedor ),
+			new GeneradorEsqueleto( $proveedor ),
+			$repoPeriodistas,
+			$repoMemoria,
+			$repoPiezas,
+			new RelojFijo(),
+			new VerificadorFalseabilidad( $proveedor )
+		);
+
+		$decision->decidir( $this->expediente() );
+
+		$materialEnviado = $proveedor->peticiones[1]->material;
+
+		self::assertStringContainsString( 'un colega de esta redacción, Colega Activo, sostuvo: postura del colega activo', $materialEnviado );
+		self::assertStringContainsString( 'esta redacción sostuvo antes', $materialEnviado );
+		self::assertStringContainsString( 'postura del colega jubilado', $materialEnviado );
+		self::assertStringNotContainsString( 'no debe llegar como colectiva', $materialEnviado );
+		self::assertStringNotContainsString( 'postura de un periodista eliminado', $materialEnviado );
 	}
 
 	public function test_lanza_excepcion_si_no_hay_periodistas_activos(): void {

@@ -37,6 +37,18 @@ interface RepositorioMemoriaEditorialInterface {
 	public function obtenerPosturasPorTema( int $periodistaId, string $tema ): array;
 
 	/**
+	 * Posturas previas sobre `$tema` de CUALQUIER periodista (activo o
+	 * jubilado), más recientes primero — la memoria colectiva del sitio
+	 * (Nivel Dos E.2): un periodista nuevo, o uno que nunca cubrió este tema,
+	 * necesita saber si la redacción como voz colectiva ya se pronunció,
+	 * aunque quien lo hizo ya no firme. Distinto de
+	 * {@see obtenerPosturasPorTema()}, que filtra por un único periodista.
+	 *
+	 * @return list<EntradaMemoria>
+	 */
+	public function obtenerPosturasColectivasPorTema( string $tema, int $limite = 20 ): array;
+
+	/**
 	 * @return list<EntradaMemoria>
 	 */
 	public function obtenerPorPeriodista( int $periodistaId, ?TipoMemoria $tipo = null, int $limite = 50 ): array;

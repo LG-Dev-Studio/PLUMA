@@ -165,6 +165,35 @@ El **Nivel 1** (verificación de postura ya existente en el expediente) ya está
 
 Documentación completa de la funcionalidad diferida — qué es, por qué importa, diseño exacto para cuando se retome — en `docs/funcionalidad-replica-dirigida-m2.md`. Deuda registrada como `PLUMA-E8-6`.
 
-## Porciones 6-10
+## Porción 6 — Grafo y memoria (Nivel Dos E.1 + E.2)
+
+**E.1 — estado lateral `SinPeriodistaIdoneo`**: ya construido en la Porción 3 (junto a C.3), sin cambios en esta porción. `RETENIDA: sin_activo_visual` sigue siendo un *motivo*, no un estado nuevo — comparte pieza con D.3 (Porción 8, imagen destacada), fuera de alcance aquí.
+
+**E.2 — el problema de la memoria del periodista jubilado**: 5.8 del Libro dice que jubilar a un periodista significa "sus piezas quedan, deja de recibir asignaciones" — resuelve el problema de datos, no el editorial. La Memoria Editorial (5.4) es por periodista; un periodista nuevo (o uno que nunca cubrió un tema) no tenía forma de saber que el sitio, como voz colectiva, ya se pronunció sobre ese tema a través de alguien que ya no firma. Resultado sin corrección: el sitio puede contradecirse a sí mismo con total naturalidad.
+
+**Qué se agregó:**
+
+- **Esquema `0.14.0`**: nuevo índice `KEY tema (tema(100))` en solitario sobre `pluma_memoria_editorial`. El índice compuesto existente `periodista_tema (periodista_id, tema(100))` tiene `periodista_id` como columna líder — por la regla del prefijo izquierdo de MySQL, no sirve para la consulta "todas las posturas sobre este tema, de cualquier periodista" que la memoria colectiva necesita. Reversa registrada (`0.14.0->0.13.0`: `DROP INDEX tema`), probada con datos reales sembrados en el shape anterior (`tests/Integration/MigracionA0140ConDatosRealesTest.php`, mismo patrón que `MigracionA0130ConDatosRealesTest`).
+- **`Pluma\Datos\RepositorioMemoriaEditorialInterface::obtenerPosturasColectivasPorTema( string $tema, int $limite = 20 )`**: filtra solo por `tipo = Postura` y `tema` — sin `periodista_id` — a diferencia de `obtenerPosturasPorTema()`. Implementado en `RepositorioMemoriaEditorial` con el mismo idioma de `$wpdb->prepare()` ya usado en el resto del repositorio.
+- **`Pluma\Redaccion\PosturaColectiva`** (DTO nuevo, `final readonly`): empareja una `EntradaMemoria` con `periodistaNombre` y `periodistaActivo` — la atribución que el texto exige resolver antes de que la postura llegue al material del proveedor de lenguaje.
+- **`DecisionEditorial::decidir()`**: tras la consulta de memoria individual ya existente, consulta `obtenerPosturasColectivasPorTema( $clasificacion->tema )`, excluye la entrada que pertenece al propio periodista asignado (ya cubierta por la memoria individual — evita duplicar el mismo hecho con dos atribuciones distintas), y resuelve cada autor restante vía `RepositorioPeriodistasInterface::obtenerPorId()`. Un registro huérfano (periodista eliminado, `obtenerPorId()` devuelve `null`) se descarta sin inventar atribución — cero invención también aplica a un dato de identidad que ya no existe.
+- **`SelectorAngulo::generarCandidatos()`** gana un quinto parámetro `array $posturasColectivas = array()` (trailing, con default — los call sites existentes no cambian). Nueva directriz explícita: una postura colectiva que contradiga un candidato exige el mismo reconocimiento obligatorio ya vigente para la memoria individual, con la atribución exacta que corresponda:
+  - Periodista aún **activo**: atribución individual por nombre — "un colega de esta redacción, {nombre}, sostuvo...".
+  - Periodista **jubilado**: atribución de sitio, no de individuo — "esta redacción sostuvo antes (a través de un periodista que ya no forma parte del banco)..." — el cambio de forma que el propio texto fuente exige literalmente.
+
+**Sin endpoints REST nuevos, sin cambios de panel** — 100% backend en `Datos`/`Redaccion`, con un cambio de esquema real (el primero de la Etapa 8).
+
+### Evidencia de gates — Porción 6
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 507/507 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 171/171 (2 skipped esperados) — incluye migración real 0.13.0→0.14.0→0.13.0 con datos sembrados |
+| `npx vitest run` / `tsc` / `build` / Playwright | sin cambios de panel — no aplica a esta porción |
+
+## Porciones 7-10
 
 Pendientes. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); cada una abre su propio Mission Lock al comenzar.

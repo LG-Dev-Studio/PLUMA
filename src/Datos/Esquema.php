@@ -127,6 +127,12 @@ final class Esquema {
                 PRIMARY KEY  (id),
                 KEY periodista_id (periodista_id)
             ) {$charset};",
+			// Etapa 8 (Nivel Dos E.2, memoria colectiva del sitio): índice
+			// `tema` en solitario — el índice compuesto `periodista_tema` tiene
+			// `periodista_id` como columna líder y no sirve para la consulta
+			// agregada "todas las posturas sobre este tema, de cualquier
+			// periodista" que la memoria colectiva necesita (regla del prefijo
+			// izquierdo de MySQL).
 			"CREATE TABLE {$prefijo}memoria_editorial (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 periodista_id BIGINT UNSIGNED NOT NULL,
@@ -137,7 +143,8 @@ final class Esquema {
                 creada_en DATETIME NOT NULL,
                 PRIMARY KEY  (id),
                 KEY periodista_tema (periodista_id, tema(100)),
-                KEY pieza_id (pieza_id)
+                KEY pieza_id (pieza_id),
+                KEY tema (tema(100))
             ) {$charset};",
 			// Etapa 4 añade editado_manualmente (Mesa Editorial, Cap. 10.2:
 			// distingue un ciclo del Corrector Interno de una edición humana).
@@ -335,6 +342,9 @@ final class Esquema {
 		$prefijo = $wpdb->prefix . 'pluma_';
 
 		return match ( $versionOrigen . '->' . $versionDestino ) {
+			'0.14.0->0.13.0' => array(
+				"DROP INDEX tema ON {$prefijo}memoria_editorial;",
+			),
 			'0.13.0->0.12.0' => array(
 				"ALTER TABLE {$prefijo}auditoria DROP COLUMN tipo_aprobacion;",
 				"ALTER TABLE {$prefijo}cola_publicacion DROP COLUMN aprobacion_activa;",
