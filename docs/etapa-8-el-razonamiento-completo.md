@@ -194,6 +194,37 @@ Documentación completa de la funcionalidad diferida — qué es, por qué impor
 | `composer test:integration` (wp-env real) | 171/171 (2 skipped esperados) — incluye migración real 0.13.0→0.14.0→0.13.0 con datos sembrados |
 | `npx vitest run` / `tsc` / `build` / Playwright | sin cambios de panel — no aplica a esta porción |
 
-## Porciones 7-10
+## Porción 7a — Modo respeto: clasificación de gravedad y máquina de estados (Nivel Dos F.1-F.2)
+
+**Diagnóstico del texto fuente (F.1)**: el Radar clasificaba gravedad únicamente de forma implícita (3.3) y, en el código real, ese eje solo existía mucho más tarde como `ClasificacionNoticia::$gravedad` — calculado *después* de asignar periodista, inútil para un disparador que necesita actuar sobre tendencias crudas, antes de que exista ninguna Pieza. F.2 exige un disparador de dos niveles: automático (2+ tendencias de gravedad máxima, ventana corta, mismo campo temático o geográfico) y manual (un clic del editor). Dado que F.3 (efectos del modo respeto sobre el resto del pipeline) es una superficie propia y grande, esta porción se dividió en 7a (esta) y 7b — decisión de ejecución confirmada con el propietario al abrir la porción.
+
+**Qué se agregó:**
+
+- **Esquema `0.15.0`**: `pluma_tendencias` gana `gravedad TINYINT UNSIGNED NULL`, `campo_tematico VARCHAR(191) NULL`, `campo_geografico VARCHAR(191) NULL`, con un índice propio en `gravedad` — deliberadamente NO compuesto con `detectada_en` (`(gravedad, detectada_en)` disparaba `Duplicate key name` en ciclos repetidos de migración contra wp-env real, un límite conocido de `dbDelta` con claves multi-columna). Tabla nueva `pluma_modo_respeto`: registro histórico append-only (`id`, `activado_en`, `activado_por`, `motivo`, `duracion_minima_horas`, `desactivado_en`) — el estado actual es siempre la fila más reciente sin `desactivado_en`; `duracion_minima_horas` congela, en la propia activación, el piso vigente en ese momento, para que un cambio posterior de configuración no reabra ni acorte una ventana ya en curso.
+- **`Pluma\Compuertas\ClasificadorGravedadTendencia`**: una llamada `PropositoLenguaje::Clasificar` (económica, mismo tratamiento que `ClasificadorNoticia`) sobre la tendencia cruda (término + artículos relacionados), devuelve `Pluma\Compuertas\GravedadTendencia` (`gravedad: int 0-100`, `campoTematico: string`, `campoGeografico: ?string`).
+- **`Pluma\Datos\RepositorioModoRespeto`** (único punto con `$wpdb` para la tabla nueva) + `RepositorioTendencias::actualizarGravedad()`/`obtenerGravedadMaximaRecientes()`.
+- **`Pluma\Compuertas\GestorModoRespeto`**: `evaluarDisparadorAutomatico()` agrupa las tendencias de gravedad máxima recientes por `campoTematico` y por `campoGeografico`, y activa si algún grupo tiene 2+ tendencias distintas; `activarManualmente()` es idempotente (reactivar un modo ya activo no reinicia la ventana de duración mínima); `desactivar()` lanza `ModoRespetoAunNoDesactivableException` si el piso configurado (`pluma_modo_respeto_duracion_minima_horas`, default 6h, piso de fábrica no editable a la baja 1h) no se cumplió.
+- **`Orquestador`**: clasifica gravedad justo después de guardar cada tendencia nueva, y evalúa el disparador automático una vez por tick — ambos pasos envueltos en manejo de errores propio (`evaluarModoRespeto()`, mismo patrón que la resiliencia ante un Sensor caído): un fallo aquí se registra y el resto del pipeline sigue.
+- **`Pluma\Admin\RestModoRespeto`** (`GET`/`POST /pluma/v1/motor/modo-respeto{,/activar,/desactivar}`, capacidad `pluma_configurar_motor`) + **`BloqueModoRespeto.tsx`** en la Sala de Máquinas: estado actual, quién/cuándo activó, motivo, piso de desactivación, botones activar/desactivar.
+
+**Hallazgo de robustez descubierto y corregido durante esta porción** (no una feature de F.1-F.2, un defecto real de infraestructura): verificado contra wp-env real que ciclos repetidos de `ADD`/`DROP COLUMN` sobre la misma tabla, dentro de la misma sesión de MySQL/MariaDB, acumulan indefinidamente los restos internos de columnas que el algoritmo `INSTANT` conserva hasta la siguiente reconstrucción real de la tabla — eventualmente dispara `ERROR 1118 (Row size too large)` aunque las columnas vivas estén muy por debajo del límite real (reproducido de forma aislada y confirmado que `ALTER TABLE ... FORCE` lo resuelve). `Migrador::migrar()` ahora reconstruye cada tabla que `dbDelta` reporta haber modificado — condicional al resultado real de `dbDelta`, no incondicional, para no pagar el costo en el caso común (no-op). Beneficia a todo el ciclo de vida del plugin, no solo a esta porción.
+
+**F.3 (forzar tono de Tragedia en todo el sitio, pausar cola con jitter recalculado, piso de duración) queda para la Porción 7b.**
+
+### Evidencia de gates — Porción 7a
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 522/522 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 178/178 (2 skipped esperados) — incluye migración real 0.14.0→0.15.0→0.14.0 con datos sembrados |
+| `npx vitest run` | 95/95 |
+| `npx tsc --noEmit` | limpio |
+| `npm run build` | real, verificado |
+| `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
+
+## Porciones 7b-10
 
 Pendientes. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); cada una abre su propio Mission Lock al comenzar.

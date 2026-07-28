@@ -34,6 +34,17 @@ final class Migrador {
 	 * Idempotente por construcción: `dbDelta` no reaplica cambios ya
 	 * presentes y `update_option` con el mismo valor no escribe de más.
 	 *
+	 * Tras `dbDelta`, reconstruye cada tabla tocada (`ALTER TABLE ... FORCE`)
+	 * — barato en el camino real (una migración de esquema es un evento raro,
+	 * nunca una ruta caliente: {@see \Pluma\Kernel\Activador::actualizarEsquemaSiHaceFalta()}
+	 * solo llega aquí cuando la versión instalada cambió), pero indispensable
+	 * para no acumular indefinidamente los "restos" internos de columnas que
+	 * MySQL/MariaDB conservan tras un `ALTER TABLE` con algoritmo `INSTANT`
+	 * hasta la siguiente reconstrucción real de la tabla — verificado que,
+	 * sin este paso, ciclos repetidos de `ADD`/`DROP COLUMN` sobre la misma
+	 * tabla eventualmente disparan `ERROR 1118 (Row size too large)` aunque
+	 * las columnas vivas de la tabla estén muy por debajo del límite real.
+	 *
 	 * @param list<string> $sentenciasCreateTable sentencias en formato dbDelta, una tabla por elemento
 	 */
 	public function migrar( string $versionObjetivo, array $sentenciasCreateTable = array() ): void {
@@ -43,7 +54,16 @@ final class Migrador {
 			}
 
 			foreach ( $sentenciasCreateTable as $sentencia ) {
-				dbDelta( $sentencia );
+				$resultado = dbDelta( $sentencia );
+
+				// Reconstruir solo cuando dbDelta reporta un cambio real
+				// (columna añadida/modificada) — la inmensa mayoría de las
+				// llamadas son no-op (tabla ya al día) y no necesitan pagar
+				// el costo de la reconstrucción.
+				if ( array() !== $resultado && 1 === preg_match( '/CREATE TABLE\s+(\S+)/i', $sentencia, $coincidencias ) ) {
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- nombre de tabla extraído de la propia sentencia interna de dbDelta, sin entrada de usuario.
+					$this->wpdb->query( "ALTER TABLE {$coincidencias[1]} FORCE" );
+				}
 			}
 		}
 

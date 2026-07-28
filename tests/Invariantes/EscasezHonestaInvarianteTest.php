@@ -6,11 +6,14 @@ namespace Pluma\Tests\Invariantes;
 
 use Brain\Monkey\Functions;
 use Mockery;
+use Pluma\Compuertas\ClasificadorGravedadTendencia;
 use Pluma\Compuertas\CompuertaCalidad;
 use Pluma\Compuertas\CompuertaOriginalidad;
 use Pluma\Compuertas\CompuertaRiesgo;
+use Pluma\Compuertas\EstadoModoRespeto;
 use Pluma\Compuertas\EvaluadorCompuertas;
 use Pluma\Compuertas\GestorDegradacion;
+use Pluma\Compuertas\GestorModoRespeto;
 use Pluma\Compuertas\VerificadorLegibilidad;
 use Pluma\Datos\CandadoGlobalInterface;
 use Pluma\Datos\RepositorioAuditoriaInterface;
@@ -21,6 +24,7 @@ use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Datos\RepositorioRespuestasComentariosInterface;
+use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabularioInterface;
 use Pluma\Investigacion\DetectorHuecos;
@@ -150,7 +154,12 @@ final class EscasezHonestaInvarianteTest extends CasoDePruebaUnitario {
 			Mockery::mock( RepositorioPeriodistasInterface::class ),
 			new RelojFijo(),
 			new ResolutorDisputas( Mockery::mock( LenguajeInterface::class ) ),
-			new DetectorHuecos( Mockery::mock( LenguajeInterface::class ) )
+			new DetectorHuecos( Mockery::mock( LenguajeInterface::class ) ),
+			new ClasificadorGravedadTendencia( Mockery::mock( LenguajeInterface::class ) ),
+			new GestorModoRespeto(
+				Mockery::mock( RepositorioModoRespetoInterface::class )->allows( 'estadoActual' )->andReturn( EstadoModoRespeto::inactivo() )->getMock(),
+				Mockery::mock( RepositorioTendenciasInterface::class )
+			)
 		);
 
 		$resultado = $orquestador->ejecutarTick();

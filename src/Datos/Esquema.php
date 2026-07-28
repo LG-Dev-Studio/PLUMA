@@ -35,6 +35,16 @@ final class Esquema {
 			// tendencia_original_id: cuando el Radar detecta que esta tendencia
 			// es la evolución de una historia ya cubierta ("dos golpes"), este
 			// campo apunta a esa tendencia original — nulo en el caso normal.
+			// Etapa 8, porción 7a (Nivel Dos F.1-F.2, modo respeto): gravedad,
+			// campo_tematico y campo_geografico — clasificados por
+			// `Pluma\Compuertas\ClasificadorGravedadTendencia` justo cuando la
+			// tendencia entra al pipeline (nulos hasta entonces). El disparador
+			// automático del modo respeto consulta por `gravedad >= umbral AND
+			// detectada_en >= ventana` — índice propio en `gravedad` (columna
+			// líder de la consulta), independiente de `estado`; deliberadamente
+			// NO compuesto con `detectada_en` por una limitación conocida de
+			// `dbDelta` detectando claves multi-columna en migraciones
+			// repetidas (verificado empíricamente contra wp-env real).
 			"CREATE TABLE {$prefijo}tendencias (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 termino VARCHAR(191) NOT NULL,
@@ -45,13 +55,17 @@ final class Esquema {
                 articulos_relacionados LONGTEXT NOT NULL,
                 estado VARCHAR(30) NOT NULL DEFAULT 'en_pipeline',
                 tendencia_original_id BIGINT UNSIGNED NULL,
+                gravedad TINYINT UNSIGNED NULL,
+                campo_tematico VARCHAR(191) NULL,
+                campo_geografico VARCHAR(191) NULL,
                 detectada_en DATETIME NOT NULL,
                 creada_en DATETIME NOT NULL,
                 PRIMARY KEY  (id),
                 KEY termino_fuente (termino(100), fuente_senal),
                 KEY puntuacion_total (puntuacion_total),
                 KEY estado (estado),
-                KEY tendencia_original_id (tendencia_original_id)
+                KEY tendencia_original_id (tendencia_original_id),
+                KEY gravedad (gravedad)
             ) {$charset};",
 			// Etapa 2 añade periodista_id, periodista_version_id (trazabilidad de
 			// qué Conducta redactó la pieza, pl-periodistas §1) y
@@ -283,6 +297,23 @@ final class Esquema {
                 KEY pieza_id (pieza_id),
                 KEY estado (estado)
             ) {$charset};",
+			// Etapa 8, porción 7a (Nivel Dos F.1-F.3, modo respeto): registro
+			// histórico de activaciones — append-only, nunca se sobrescribe una
+			// fila. El estado ACTUAL es la fila más reciente con
+			// `desactivado_en IS NULL` (a lo sumo una a la vez).
+			// `duracion_minima_horas` congela, en la propia activación, el piso
+			// de fábrica vigente ese momento — para que un cambio posterior del
+			// piso configurado no reabra ni acorte una ventana ya en curso.
+			"CREATE TABLE {$prefijo}modo_respeto (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                activado_en DATETIME NOT NULL,
+                activado_por VARCHAR(20) NOT NULL,
+                motivo VARCHAR(255) NOT NULL,
+                duracion_minima_horas DECIMAL(5,2) NOT NULL,
+                desactivado_en DATETIME NULL,
+                PRIMARY KEY  (id),
+                KEY desactivado_en (desactivado_en)
+            ) {$charset};",
 		);
 	}
 
@@ -306,6 +337,7 @@ final class Esquema {
 			$prefijo . 'cola_publicacion',
 			$prefijo . 'metricas_search_console',
 			$prefijo . 'respuestas_comentarios',
+			$prefijo . 'modo_respeto',
 		);
 	}
 
@@ -342,6 +374,10 @@ final class Esquema {
 		$prefijo = $wpdb->prefix . 'pluma_';
 
 		return match ( $versionOrigen . '->' . $versionDestino ) {
+			'0.15.0->0.14.0' => array(
+				"ALTER TABLE {$prefijo}tendencias DROP COLUMN gravedad, DROP COLUMN campo_tematico, DROP COLUMN campo_geografico;",
+				"DROP TABLE IF EXISTS {$prefijo}modo_respeto;",
+			),
 			'0.14.0->0.13.0' => array(
 				"DROP INDEX tema ON {$prefijo}memoria_editorial;",
 			),

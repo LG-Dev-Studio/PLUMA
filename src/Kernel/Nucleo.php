@@ -21,13 +21,16 @@ use Pluma\Admin\RestSalaRevision;
 use Pluma\Admin\RestSalaTendencias;
 use Pluma\Admin\RestSearchConsole;
 use Pluma\Admin\RestModeloVerificador;
+use Pluma\Admin\RestModoRespeto;
 use Pluma\Admin\RestRiesgoLegal;
 use Pluma\Admin\RestTransparencia;
+use Pluma\Compuertas\ClasificadorGravedadTendencia;
 use Pluma\Compuertas\CompuertaCalidad;
 use Pluma\Compuertas\CompuertaOriginalidad;
 use Pluma\Compuertas\CompuertaRiesgo;
 use Pluma\Compuertas\EvaluadorCompuertas;
 use Pluma\Compuertas\GestorDegradacion;
+use Pluma\Compuertas\GestorModoRespeto;
 use Pluma\Compuertas\VerificadorLegibilidad;
 use Pluma\Datos\CandadoGlobal;
 use Pluma\Datos\CandadoGlobalInterface;
@@ -43,6 +46,8 @@ use Pluma\Datos\RepositorioMemoriaEditorial;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioMetricasSearchConsole;
 use Pluma\Datos\RepositorioMetricasSearchConsoleInterface;
+use Pluma\Datos\RepositorioModoRespeto;
+use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioPeriodistas;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezas;
@@ -183,6 +188,10 @@ final class Nucleo {
 			fn ( Contenedor $c ): RepositorioTendencias => new RepositorioTendencias( $c->obtener( 'wpdb' ) )
 		);
 		$this->contenedor->registrar(
+			RepositorioModoRespetoInterface::class,
+			fn ( Contenedor $c ): RepositorioModoRespeto => new RepositorioModoRespeto( $c->obtener( 'wpdb' ) )
+		);
+		$this->contenedor->registrar(
 			RepositorioBitacoraInterface::class,
 			fn ( Contenedor $c ): RepositorioBitacora => new RepositorioBitacora( $c->obtener( 'wpdb' ) )
 		);
@@ -262,6 +271,17 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			DetectorHuecos::class,
 			fn ( Contenedor $c ): DetectorHuecos => new DetectorHuecos( $c->obtener( LenguajeInterface::class ) )
+		);
+		$this->contenedor->registrar(
+			ClasificadorGravedadTendencia::class,
+			fn ( Contenedor $c ): ClasificadorGravedadTendencia => new ClasificadorGravedadTendencia( $c->obtener( LenguajeInterface::class ) )
+		);
+		$this->contenedor->registrar(
+			GestorModoRespeto::class,
+			fn ( Contenedor $c ): GestorModoRespeto => new GestorModoRespeto(
+				$c->obtener( RepositorioModoRespetoInterface::class ),
+				$c->obtener( RepositorioTendenciasInterface::class )
+			)
 		);
 		$this->contenedor->registrar(
 			InvestigadorInterface::class,
@@ -542,13 +562,23 @@ final class Nucleo {
 				$c->obtener( RepositorioPeriodistasInterface::class ),
 				$c->obtener( RelojInterface::class ),
 				$c->obtener( ResolutorDisputas::class ),
-				$c->obtener( DetectorHuecos::class )
+				$c->obtener( DetectorHuecos::class ),
+				$c->obtener( ClasificadorGravedadTendencia::class ),
+				$c->obtener( GestorModoRespeto::class )
 			)
 		);
 
 		$this->contenedor->registrar(
 			RestOrquestador::class,
 			fn ( Contenedor $c ): RestOrquestador => new RestOrquestador( $c->obtener( Orquestador::class ) )
+		);
+
+		$this->contenedor->registrar(
+			RestModoRespeto::class,
+			fn ( Contenedor $c ): RestModoRespeto => new RestModoRespeto(
+				$c->obtener( GestorModoRespeto::class ),
+				$c->obtener( RelojInterface::class )
+			)
 		);
 
 		$this->contenedor->registrar(
@@ -759,6 +789,7 @@ final class Nucleo {
 
 		( new PantallaPanel( $this->contenedor->obtener( DetectorEntorno::class ) ) )->registrar();
 		$this->contenedor->obtener( RestOrquestador::class )->registrar();
+		$this->contenedor->obtener( RestModoRespeto::class )->registrar();
 		$this->contenedor->obtener( RestBancoPeriodistas::class )->registrar();
 		$this->contenedor->obtener( RestSalaRevision::class )->registrar();
 		$this->contenedor->obtener( NotificadorRevision::class )->registrar();

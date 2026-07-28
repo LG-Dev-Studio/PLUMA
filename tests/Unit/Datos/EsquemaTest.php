@@ -29,7 +29,19 @@ final class EsquemaTest extends CasoDePruebaUnitario {
 	public function test_sentencias_reversa_desde_una_transicion_no_registrada_lanza_excepcion(): void {
 		$this->expectException( ReversaNoDisponibleException::class );
 
-		Esquema::sentenciasReversaDesde( new wpdb(), '0.15.0', '0.14.0' );
+		Esquema::sentenciasReversaDesde( new wpdb(), '0.16.0', '0.15.0' );
+	}
+
+	public function test_sentencias_reversa_desde_0_15_0_a_0_14_0_elimina_gravedad_y_modo_respeto(): void {
+		$sentencias = Esquema::sentenciasReversaDesde( new wpdb(), '0.15.0', '0.14.0' );
+
+		self::assertSame(
+			array(
+				'ALTER TABLE wp_pluma_tendencias DROP COLUMN gravedad, DROP COLUMN campo_tematico, DROP COLUMN campo_geografico;',
+				'DROP TABLE IF EXISTS wp_pluma_modo_respeto;',
+			),
+			$sentencias
+		);
 	}
 
 	public function test_sentencias_reversa_desde_0_14_0_a_0_13_0_elimina_el_indice_de_tema(): void {

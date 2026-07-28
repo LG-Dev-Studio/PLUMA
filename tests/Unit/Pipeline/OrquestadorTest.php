@@ -7,14 +7,17 @@ namespace Pluma\Tests\Unit\Pipeline;
 use Brain\Monkey\Functions;
 use DateTimeImmutable;
 use Mockery;
+use Pluma\Compuertas\ClasificadorGravedadTendencia;
 use Pluma\Compuertas\CompuertaCalidad;
 use Pluma\Compuertas\CompuertaOriginalidad;
 use Pluma\Compuertas\CompuertaRiesgo;
 use Pluma\Compuertas\DiagnosticoCalidad;
 use Pluma\Compuertas\DiagnosticoOriginalidad;
 use Pluma\Compuertas\DiagnosticoRiesgo;
+use Pluma\Compuertas\EstadoModoRespeto;
 use Pluma\Compuertas\EvaluadorCompuertas;
 use Pluma\Compuertas\GestorDegradacion;
+use Pluma\Compuertas\GestorModoRespeto;
 use Pluma\Compuertas\ModoOperacion;
 use Pluma\Compuertas\ResultadoEvaluacion;
 use Pluma\Compuertas\VerificadorLegibilidad;
@@ -27,6 +30,7 @@ use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Datos\RepositorioRespuestasComentariosInterface;
+use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabularioInterface;
 use Pluma\Investigacion\DetectorHuecos;
@@ -335,8 +339,17 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			$overrides['periodistas'] ?? $this->periodistasPermisivo(),
 			new RelojFijo(),
 			$overrides['resolutorDisputas'] ?? new ResolutorDisputas( Mockery::mock( LenguajeInterface::class ) ),
-			$overrides['detectorHuecos'] ?? new DetectorHuecos( Mockery::mock( LenguajeInterface::class ) )
+			$overrides['detectorHuecos'] ?? new DetectorHuecos( Mockery::mock( LenguajeInterface::class ) ),
+			$overrides['clasificadorGravedad'] ?? new ClasificadorGravedadTendencia( Mockery::mock( LenguajeInterface::class ) ),
+			$overrides['gestorModoRespeto'] ?? new GestorModoRespeto( $this->modoRespetoPermisivo(), Mockery::mock( RepositorioTendenciasInterface::class ) )
 		);
+	}
+
+	private function modoRespetoPermisivo(): RepositorioModoRespetoInterface {
+		$repo = Mockery::mock( RepositorioModoRespetoInterface::class );
+		$repo->allows( 'estadoActual' )->andReturn( EstadoModoRespeto::inactivo() );
+
+		return $repo;
 	}
 
 	public function test_si_no_adquiere_el_candado_no_ejecuta_nada(): void {

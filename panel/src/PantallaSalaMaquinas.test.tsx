@@ -144,6 +144,22 @@ function textosDeEjemplo(): TextosSalaMaquinas {
             errorCarga: 'No se pudo cargar el modelo verificador.',
             errorAccion: 'No se pudo guardar.',
         },
+        modoRespeto: {
+            titulo: 'Modo respeto',
+            explicacion: 'Congela humor y sátira en todo el sitio.',
+            activo: 'Activo',
+            inactivo: 'Inactivo',
+            activadoEn: 'Activado el',
+            activadoPorAutomatico: 'Activado automáticamente por el sistema',
+            activadoPorManual: 'Activado manualmente por el editor',
+            motivo: 'Motivo',
+            puedeDesactivarseDesde: 'Puede desactivarse a partir de',
+            activar: 'Activar modo respeto ahora',
+            desactivar: 'Desactivar modo respeto',
+            errorCarga: 'No se pudo cargar el estado del modo respeto.',
+            errorAccion: 'No se pudo completar la acción.',
+            aunNoDesactivable: 'Todavía no puede desactivarse.',
+        },
         telemetria: {
             titulo: 'Telemetría',
             explicacion: 'Opcional y anónima.',
@@ -200,6 +216,12 @@ function stubFetch(bitacora: EjecucionBitacora[], estado: EstadoMotor, telemetri
             return Promise.resolve({
                 ok: true,
                 json: () => Promise.resolve({ modeloVerificador: 'anthropic/claude-sonnet-5', obligatoriedadDeFabrica: false }),
+            });
+        }
+        if (url.endsWith('/motor/modo-respeto')) {
+            return Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve({ activo: false, activadoEn: null, activadoPor: null, motivo: null, puedeDesactivarseDesde: null }),
             });
         }
         if (url.endsWith('/motor/diagnostico')) {

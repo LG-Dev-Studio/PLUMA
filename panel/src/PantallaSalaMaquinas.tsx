@@ -3,6 +3,7 @@ import { BloqueLlaveOpenRouter } from './BloqueLlaveOpenRouter';
 import { BloqueModeloVerificador, type TextosModeloVerificador } from './BloqueModeloVerificador';
 import { BloqueSearchConsole, type TextosSearchConsole } from './BloqueSearchConsole';
 import { BloqueRiesgoLegal, type TextosRiesgoLegal } from './BloqueRiesgoLegal';
+import { BloqueModoRespeto, type TextosModoRespeto } from './BloqueModoRespeto';
 import { BloqueTransparencia, type TextosTransparencia } from './BloqueTransparencia';
 
 export interface DatosSalud {
@@ -99,6 +100,7 @@ export interface TextosSalaMaquinas {
     transparencia: TextosTransparencia;
     riesgoLegal: TextosRiesgoLegal;
     modeloVerificador: TextosModeloVerificador;
+    modoRespeto: TextosModoRespeto;
     telemetria: {
         titulo: string;
         explicacion: string;
@@ -343,6 +345,8 @@ function SeccionesMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: st
             <BloqueRiesgoLegal restUrl={restUrl} nonce={nonce} textos={textos.riesgoLegal} />
 
             <BloqueModeloVerificador restUrl={restUrl} nonce={nonce} textos={textos.modeloVerificador} />
+
+            <BloqueModoRespeto restUrl={restUrl} nonce={nonce} textos={textos.modoRespeto} />
 
             <section className="pluma-maquinas__seccion">
                 <h2>{textos.telemetria.titulo}</h2>

@@ -212,6 +212,45 @@ final class RepositorioTendencias implements RepositorioTendenciasInterface {
 		return (int) $this->wpdb->get_var( $sql );
 	}
 
+	public function actualizarGravedad( int $id, int $gravedad, string $campoTematico, ?string $campoGeografico ): void {
+		$this->wpdb->update(
+			$this->tabla(),
+			array(
+				'gravedad'         => $gravedad,
+				'campo_tematico'   => $campoTematico,
+				'campo_geografico' => $campoGeografico,
+			),
+			array( 'id' => $id ),
+			array( '%d', '%s', '%s' ),
+			array( '%d' )
+		);
+	}
+
+	public function obtenerGravedadMaximaRecientes( int $umbralGravedad, DateTimeImmutable $desde ): array {
+		$sql = $this->wpdb->prepare(
+			"SELECT id, campo_tematico, campo_geografico FROM {$this->tabla()} WHERE gravedad >= %d AND detectada_en >= %s ORDER BY detectada_en ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type
+			$umbralGravedad,
+			$desde->format( 'Y-m-d H:i:s' )
+		);
+		assert( null !== $sql );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql ya se construyó con $wpdb->prepare() arriba.
+		$filas = $this->wpdb->get_results( $sql, ARRAY_A );
+
+		if ( ! is_array( $filas ) ) {
+			return array();
+		}
+
+		return array_map(
+			static fn ( array $fila ): array => array(
+				'id'              => (int) $fila['id'],
+				'campoTematico'   => (string) $fila['campo_tematico'],
+				'campoGeografico' => null !== $fila['campo_geografico'] ? (string) $fila['campo_geografico'] : null,
+			),
+			$filas
+		);
+	}
+
 	public function actualizarEstadoTendencia( int $id, EstadoTendencia $estado ): bool {
 		$actualizadas = $this->wpdb->update(
 			$this->tabla(),

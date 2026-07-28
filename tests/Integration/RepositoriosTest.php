@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Pluma\Tests\Integration;
 
+use Pluma\Compuertas\ActivadorModoRespeto;
 use Pluma\Compuertas\DiagnosticoCalidad;
 use Pluma\Compuertas\DiagnosticoOriginalidad;
 use Pluma\Compuertas\DiagnosticoRiesgo;
 use Pluma\Compuertas\ModoOperacion;
 use Pluma\Compuertas\ResultadoEvaluacion;
 use Pluma\Datos\RepositorioBitacora;
+use Pluma\Datos\RepositorioModoRespeto;
 use Pluma\Datos\RepositorioPiezas;
 use Pluma\Datos\RepositorioTendencias;
 use Pluma\Investigacion\Expediente;
@@ -37,6 +39,7 @@ use WP_UnitTestCase;
  * @covers \Pluma\Datos\RepositorioPiezas
  * @covers \Pluma\Datos\RepositorioTendencias
  * @covers \Pluma\Datos\RepositorioBitacora
+ * @covers \Pluma\Datos\RepositorioModoRespeto
  */
 final class RepositoriosTest extends WP_UnitTestCase {
 
@@ -70,6 +73,73 @@ final class RepositoriosTest extends WP_UnitTestCase {
 		self::assertNotNull( $datos );
 		self::assertSame( 'una tendencia', $datos['termino'] );
 		self::assertSame( 'Example', $datos['articulosRelacionados'][0]['fuente'] );
+	}
+
+	/**
+	 * Nivel Dos F.1-F.2: `actualizarGravedad()` persiste la clasificación, y
+	 * `obtenerGravedadMaximaRecientes()` — el material crudo del disparador
+	 * automático del modo respeto — filtra por umbral y ventana de tiempo
+	 * real usando el nuevo índice `gravedad`.
+	 */
+	public function test_actualizar_y_consultar_gravedad_de_tendencias_recientes(): void {
+		global $wpdb;
+		$repo  = new RepositorioTendencias( $wpdb );
+		$reloj = new RelojSistema();
+
+		$idGrave = $repo->guardar(
+			new TendenciaDetectada( 'tendencia grave', PuntuacionOportunidad::calcular( 70, 70 ), $reloj->ahora(), array(), 'google_trends' ),
+			$reloj->ahora()
+		);
+		$idLeve  = $repo->guardar(
+			new TendenciaDetectada( 'tendencia leve', PuntuacionOportunidad::calcular( 70, 70 ), $reloj->ahora(), array(), 'google_trends' ),
+			$reloj->ahora()
+		);
+
+		self::assertSame( array(), $repo->obtenerGravedadMaximaRecientes( 90, $reloj->ahora()->modify( '-1 hour' ) ) );
+
+		$repo->actualizarGravedad( $idGrave, 95, 'atentado', 'Francia' );
+		$repo->actualizarGravedad( $idLeve, 10, 'cultura_viral', null );
+
+		$recientes = $repo->obtenerGravedadMaximaRecientes( 90, $reloj->ahora()->modify( '-1 hour' ) );
+
+		self::assertCount( 1, $recientes );
+		self::assertSame( $idGrave, $recientes[0]['id'] );
+		self::assertSame( 'atentado', $recientes[0]['campoTematico'] );
+		self::assertSame( 'Francia', $recientes[0]['campoGeografico'] );
+
+		self::assertSame( array(), $repo->obtenerGravedadMaximaRecientes( 90, $reloj->ahora()->modify( '+1 hour' ) ) );
+	}
+
+	/**
+	 * Nivel Dos F.1-F.3: el registro histórico append-only — el estado
+	 * actual es siempre la fila más reciente sin `desactivado_en`, y
+	 * `desactivar()` la cierra sin tocar activaciones ya cerradas.
+	 */
+	public function test_modo_respeto_activa_y_desactiva_contra_datos_reales(): void {
+		global $wpdb;
+		$repo  = new RepositorioModoRespeto( $wpdb );
+		$reloj = new RelojSistema();
+
+		self::assertFalse( $repo->estadoActual()->activo );
+		self::assertFalse( $repo->desactivar( $reloj->ahora() ) );
+
+		$repo->activar( ActivadorModoRespeto::Automatico, 'disparador automático', 6.0, $reloj->ahora() );
+
+		$estado = $repo->estadoActual();
+		self::assertTrue( $estado->activo );
+		self::assertSame( ActivadorModoRespeto::Automatico, $estado->activadoPor );
+		self::assertSame( 'disparador automático', $estado->motivo );
+		self::assertNotNull( $estado->puedeDesactivarseDesde );
+
+		self::assertTrue( $repo->desactivar( $reloj->ahora() ) );
+		self::assertFalse( $repo->estadoActual()->activo );
+
+		// Reactivar tras desactivar deja un segundo registro histórico
+		// independiente — la vieja fila cerrada no interfiere.
+		$repo->activar( ActivadorModoRespeto::Manual, 'reactivado por el editor', 1.0, $reloj->ahora() );
+		$estado2 = $repo->estadoActual();
+		self::assertTrue( $estado2->activo );
+		self::assertSame( ActivadorModoRespeto::Manual, $estado2->activadoPor );
 	}
 
 	public function test_crear_pieza_y_avanzarla_por_el_grafo_con_candado_optimista(): void {

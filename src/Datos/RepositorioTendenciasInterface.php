@@ -75,4 +75,21 @@ interface RepositorioTendenciasInterface {
 	 * (Libro Cap. 14, Etapa 5: informes editoriales semanales).
 	 */
 	public function contarPorEstadoEntre( EstadoTendencia $estado, DateTimeImmutable $desde, DateTimeImmutable $hasta ): int;
+
+	/**
+	 * Persiste la clasificación de `Pluma\Compuertas\ClasificadorGravedadTendencia`
+	 * (Nivel Dos F.1-F.2) — se llama una sola vez, justo cuando la tendencia
+	 * entra al pipeline.
+	 */
+	public function actualizarGravedad( int $id, int $gravedad, string $campoTematico, ?string $campoGeografico ): void;
+
+	/**
+	 * Tendencias de gravedad máxima (`>= $umbralGravedad`) detectadas desde
+	 * `$desde` — el material crudo del disparador automático del modo
+	 * respeto (F.2): agrupar por `campoTematico`/`campoGeografico` y contar
+	 * es responsabilidad del llamador, no de esta consulta.
+	 *
+	 * @return list<array{id: int, campoTematico: string, campoGeografico: ?string}>
+	 */
+	public function obtenerGravedadMaximaRecientes( int $umbralGravedad, DateTimeImmutable $desde ): array;
 }

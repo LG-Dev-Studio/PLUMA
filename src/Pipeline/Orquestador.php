@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pluma\Pipeline;
 
+use Pluma\Compuertas\ClasificadorGravedadTendencia;
 use Pluma\Compuertas\EvaluadorCompuertas;
+use Pluma\Compuertas\GestorModoRespeto;
 use Pluma\Compuertas\ModoOperacion;
 use Pluma\Datos\CandadoGlobalInterface;
 use Pluma\Datos\RepositorioBitacoraInterface;
@@ -96,6 +98,8 @@ final class Orquestador {
 		private readonly RelojInterface $reloj,
 		private readonly ResolutorDisputas $resolutorDisputas,
 		private readonly DetectorHuecos $detectorHuecos,
+		private readonly ClasificadorGravedadTendencia $clasificadorGravedad,
+		private readonly GestorModoRespeto $gestorModoRespeto,
 	) {
 	}
 
@@ -120,6 +124,7 @@ final class Orquestador {
 
 		try {
 			$errores = array( ...$errores, ...$this->detectarTendencias() );
+			$errores = array( ...$errores, ...$this->evaluarModoRespeto() );
 
 			[$avanzados, $erroresPipeline] = $this->avanzarPipeline( $inicio, $presupuestoSegundos );
 			$lotesProcesados               = $avanzados;
@@ -180,6 +185,35 @@ final class Orquestador {
 
 			$tendenciaId = $this->tendencias->guardar( $detectada, $this->reloj->ahora() );
 			$this->piezas->crear( $tendenciaId, $this->reloj->ahora() );
+
+			try {
+				$gravedad = $this->clasificadorGravedad->clasificar( $detectada );
+				$this->tendencias->actualizarGravedad( $tendenciaId, $gravedad->gravedad, $gravedad->campoTematico, $gravedad->campoGeografico );
+			} catch ( Throwable $errorClasificacion ) {
+				// La clasificación de gravedad (Nivel Dos F.1-F.2) es una capa
+				// de seguridad adicional, no un requisito para que la Pieza
+				// avance: si falla, la tendencia sigue su camino normal sin
+				// gravedad clasificada — el disparador automático del modo
+				// respeto simplemente no la contará, nunca bloquea el pipeline.
+				unset( $errorClasificacion );
+			}
+		}
+
+		return array();
+	}
+
+	/**
+	 * Nivel Dos F.2, disparador automático: una capa de seguridad adicional,
+	 * no un requisito para que el resto del pipeline avance — un fallo aquí
+	 * se registra y el tick sigue, igual que un Sensor caído.
+	 *
+	 * @return list<string>
+	 */
+	private function evaluarModoRespeto(): array {
+		try {
+			$this->gestorModoRespeto->evaluarDisparadorAutomatico( $this->reloj->ahora() );
+		} catch ( Throwable $e ) {
+			return array( 'modo respeto (disparador automático): ' . $e->getMessage() );
 		}
 
 		return array();
