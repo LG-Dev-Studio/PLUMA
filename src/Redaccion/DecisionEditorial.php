@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pluma\Redaccion;
 
+use Pluma\Compuertas\GestorModoRespeto;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
@@ -29,6 +30,7 @@ final class DecisionEditorial {
 		private readonly RepositorioPiezasInterface $repoPiezas,
 		private readonly RelojInterface $reloj,
 		private readonly VerificadorFalseabilidad $verificadorFalseabilidad,
+		private readonly GestorModoRespeto $gestorModoRespeto,
 	) {
 	}
 
@@ -135,9 +137,16 @@ final class DecisionEditorial {
 			break;
 		}
 
-		$filaMatriz    = $periodista->conductaActual->matrizTonos->paraTipo( $clasificacion->tipoNoticia );
-		$tonoDominante = $filaMatriz->tonoDominante;
-		$tonoApoyo     = $filaMatriz->tonoApoyo;
+		// Nivel Dos F.3, modo respeto: mientras esté activo, TODA pieza en
+		// EN_REDACCION o anterior se re-evalúa contra la matriz de tono con
+		// el tipo de noticia forzado hacia Tragedia, independientemente de
+		// su clasificación real — el sitio entero baja el registro, no solo
+		// la pieza sobre el evento. `$clasificacion` (la real) sigue
+		// guardándose sin tocar; solo la búsqueda de tono se fuerza.
+		$tipoNoticiaParaTono = $this->gestorModoRespeto->estadoActual()->activo ? TipoNoticia::Tragedia : $clasificacion->tipoNoticia;
+		$filaMatriz          = $periodista->conductaActual->matrizTonos->paraTipo( $tipoNoticiaParaTono );
+		$tonoDominante       = $filaMatriz->tonoDominante;
+		$tonoApoyo           = $filaMatriz->tonoApoyo;
 
 		$esqueleto = $this->generadorEsqueleto->generar( $expediente, $tesisElegida, $tonoDominante, $tonoApoyo, $tensionFalseabilidad );
 

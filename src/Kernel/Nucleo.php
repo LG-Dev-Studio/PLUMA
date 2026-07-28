@@ -368,7 +368,8 @@ final class Nucleo {
 				$c->obtener( RepositorioMemoriaEditorialInterface::class ),
 				$c->obtener( RepositorioPiezasInterface::class ),
 				$c->obtener( RelojInterface::class ),
-				$c->obtener( VerificadorFalseabilidad::class )
+				$c->obtener( VerificadorFalseabilidad::class ),
+				$c->obtener( GestorModoRespeto::class )
 			)
 		);
 

@@ -6,9 +6,14 @@ namespace Pluma\Tests\Unit\Redaccion;
 
 use Brain\Monkey\Functions;
 use DateTimeImmutable;
+use Pluma\Compuertas\ActivadorModoRespeto;
+use Pluma\Compuertas\EstadoModoRespeto;
+use Pluma\Compuertas\GestorModoRespeto;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
+use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
+use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\NivelVerificacion;
@@ -82,7 +87,18 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 		);
 	}
 
-	private function construirDecision( ProveedorLenguajeSecuencial $proveedor, Periodista $periodista ): DecisionEditorial {
+	private function gestorModoRespeto( bool $activo = false ): GestorModoRespeto {
+		$repoModoRespeto = $this->createMock( RepositorioModoRespetoInterface::class );
+		$repoModoRespeto->method( 'estadoActual' )->willReturn(
+			$activo
+				? new EstadoModoRespeto( true, new DateTimeImmutable( '2026-07-27T12:00:00+00:00' ), ActivadorModoRespeto::Manual, 'evento grave', new DateTimeImmutable( '2026-07-27T18:00:00+00:00' ) )
+				: EstadoModoRespeto::inactivo()
+		);
+
+		return new GestorModoRespeto( $repoModoRespeto, $this->createMock( RepositorioTendenciasInterface::class ) );
+	}
+
+	private function construirDecision( ProveedorLenguajeSecuencial $proveedor, Periodista $periodista, bool $modoRespetoActivo = false ): DecisionEditorial {
 		$repoPeriodistas = $this->createMock( RepositorioPeriodistasInterface::class );
 		$repoPeriodistas->method( 'obtenerActivos' )->willReturn( array( $periodista ) );
 
@@ -103,7 +119,8 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 			$repoMemoria,
 			$repoPiezas,
 			new RelojFijo(),
-			new VerificadorFalseabilidad( $proveedor )
+			new VerificadorFalseabilidad( $proveedor ),
+			$this->gestorModoRespeto( $modoRespetoActivo )
 		);
 	}
 
@@ -192,7 +209,8 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 			$repoMemoria,
 			$repoPiezas,
 			new RelojFijo(),
-			new VerificadorFalseabilidad( $proveedor )
+			new VerificadorFalseabilidad( $proveedor ),
+			$this->gestorModoRespeto()
 		);
 
 		$resultado = $decision->decidir( $this->expediente(), 99 );
@@ -344,7 +362,8 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 			$repoMemoria,
 			$repoPiezas,
 			new RelojFijo(),
-			new VerificadorFalseabilidad( $proveedor )
+			new VerificadorFalseabilidad( $proveedor ),
+			$this->gestorModoRespeto()
 		);
 
 		$decision->decidir( $this->expediente() );
@@ -378,11 +397,59 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 			$repoMemoria,
 			$repoPiezas,
 			new RelojFijo(),
-			new VerificadorFalseabilidad( $proveedor )
+			new VerificadorFalseabilidad( $proveedor ),
+			$this->gestorModoRespeto()
 		);
 
 		$this->expectException( DecisionEditorialException::class );
 
 		$decision->decidir( $this->expediente() );
+	}
+
+	/**
+	 * Nivel Dos F.3: con el modo respeto activo, toda pieza en EN_REDACCION
+	 * se re-evalúa contra la matriz de tono forzada a Tragedia —
+	 * independientemente de su clasificación real (aquí, "dato_economico").
+	 * `Pluma\Redaccion\MatrizTonos::filaSistemaTragedia()` fuerza
+	 * InformativoEmpatico/Analitico/sátira bloqueada, sin importar lo que
+	 * tenga configurado el periodista para dato_economico.
+	 */
+	public function test_con_modo_respeto_activo_fuerza_el_tono_de_tragedia(): void {
+		$proveedor = new ProveedorLenguajeSecuencial(
+			array(
+				'{"tema": "economia", "gravedad": 30, "polaridad": "x", "novedad": "primicia", "potencialConversacional": 50, "tipoNoticia": "dato_economico"}',
+				'{"candidatos": [{"tesis": "x", "puntuacionOriginalidad": 80, "puntuacionCompatibilidadLinea": 80, "puntuacionSustento": 80, "puntuacionConversacional": 80}]}',
+				'{"casoEnContra": "caso débil", "fuerzaSustento": 5}',
+				'{"gancho": "g", "hechosEsencialesConAtribucion": "h", "movimientosArgumentales": ["m1", "m2"], "contraargumentoReconocido": "c", "remate": "r"}',
+			)
+		);
+
+		$resultado = $this->construirDecision( $proveedor, $this->periodista(), modoRespetoActivo: true )->decidir( $this->expediente() );
+
+		self::assertSame( Tono::InformativoEmpatico, $resultado['ficha']->tonoDominante );
+		self::assertSame( Tono::Analitico, $resultado['ficha']->tonoApoyo );
+		// La clasificación real guardada en la ficha NO se altera — solo el tono buscado.
+		self::assertSame( 'dato_economico', $resultado['ficha']->clasificacion->tipoNoticia->value );
+	}
+
+	/**
+	 * Contraprueba: sin modo respeto, la misma pieza usa el tono real
+	 * configurado para "dato_economico" (Analítico/Persuasivo, ver
+	 * `periodista()`), no el de Tragedia.
+	 */
+	public function test_sin_modo_respeto_usa_el_tono_real_de_la_clasificacion(): void {
+		$proveedor = new ProveedorLenguajeSecuencial(
+			array(
+				'{"tema": "economia", "gravedad": 30, "polaridad": "x", "novedad": "primicia", "potencialConversacional": 50, "tipoNoticia": "dato_economico"}',
+				'{"candidatos": [{"tesis": "x", "puntuacionOriginalidad": 80, "puntuacionCompatibilidadLinea": 80, "puntuacionSustento": 80, "puntuacionConversacional": 80}]}',
+				'{"casoEnContra": "caso débil", "fuerzaSustento": 5}',
+				'{"gancho": "g", "hechosEsencialesConAtribucion": "h", "movimientosArgumentales": ["m1", "m2"], "contraargumentoReconocido": "c", "remate": "r"}',
+			)
+		);
+
+		$resultado = $this->construirDecision( $proveedor, $this->periodista(), modoRespetoActivo: false )->decidir( $this->expediente() );
+
+		self::assertSame( Tono::Analitico, $resultado['ficha']->tonoDominante );
+		self::assertSame( Tono::Persuasivo, $resultado['ficha']->tonoApoyo );
 	}
 }

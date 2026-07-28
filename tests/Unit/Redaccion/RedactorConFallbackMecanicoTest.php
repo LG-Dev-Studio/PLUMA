@@ -7,10 +7,14 @@ namespace Pluma\Tests\Unit\Redaccion;
 use Brain\Monkey\Functions;
 use DateTimeImmutable;
 use Mockery;
+use Pluma\Compuertas\EstadoModoRespeto;
+use Pluma\Compuertas\GestorModoRespeto;
 use Pluma\Datos\RepositorioBorradoresInterface;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
+use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
+use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\NivelVerificacion;
@@ -64,6 +68,13 @@ use RuntimeException;
  * @covers \Pluma\Redaccion\RedactorConFallbackMecanico
  */
 final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
+
+	private function gestorModoRespeto(): GestorModoRespeto {
+		$repoModoRespeto = $this->createMock( RepositorioModoRespetoInterface::class );
+		$repoModoRespeto->method( 'estadoActual' )->willReturn( EstadoModoRespeto::inactivo() );
+
+		return new GestorModoRespeto( $repoModoRespeto, $this->createMock( RepositorioTendenciasInterface::class ) );
+	}
 
 	private function periodista(): Periodista {
 		$diales   = new Diales( 80, 55, 40, 55, 75, 60, 60, 65 );
@@ -152,7 +163,8 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 				$repoMemoria,
 				$repoPiezas,
 				new RelojFijo(),
-				new VerificadorFalseabilidad( $proveedor )
+				new VerificadorFalseabilidad( $proveedor ),
+				$this->gestorModoRespeto()
 			),
 			new RedactorSintetico(
 				$proveedor,
@@ -254,7 +266,8 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 				$repoMemoria,
 				$repoPiezas,
 				new RelojFijo(),
-				new VerificadorFalseabilidad( $proveedor )
+				new VerificadorFalseabilidad( $proveedor ),
+				$this->gestorModoRespeto()
 			),
 			new RedactorSintetico(
 				$proveedor,
@@ -319,7 +332,8 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 				$repoMemoria,
 				$repoPiezas,
 				new RelojFijo(),
-				new VerificadorFalseabilidad( $proveedor )
+				new VerificadorFalseabilidad( $proveedor ),
+				$this->gestorModoRespeto()
 			),
 			new RedactorSintetico(
 				$proveedor,

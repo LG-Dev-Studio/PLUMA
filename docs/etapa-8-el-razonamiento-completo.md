@@ -225,6 +225,38 @@ Documentación completa de la funcionalidad diferida — qué es, por qué impor
 | `npm run build` | real, verificado |
 | `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
 
-## Porciones 7b-10
+## Porción 7b — Modo respeto: forzar tono de Tragedia en todo el sitio (Nivel Dos F.3, primera mitad)
+
+**Diagnóstico del texto fuente (F.3)**: "no solo se bloquea sátira en la pieza sobre el evento grave: se degrada el registro de TODO lo que el sitio publique mientras el modo esté activo, incluyendo piezas de verticales no relacionados — el contexto del sitio entero es lo que un lector percibe, no el tema pieza por pieza." Dado el tamaño de F.3 completo (forzar tono + pausar cola con jitter + piso de duración ya construido en 7a), esta porción se dividió en 7b (forzar tono, esta) y 7c (pausar/reactivar la cola) — decisión de ejecución, mismo criterio que la Porción 1a/1b y 7a/7b.
+
+**Qué se agregó:**
+
+- **`Pluma\Redaccion\DecisionEditorial`** gana la dependencia `Pluma\Compuertas\GestorModoRespeto` (10º parámetro del constructor). En el Paso 4 (arquitectura de la pieza), la búsqueda de la fila de tono cambia de:
+  ```php
+  $filaMatriz = $periodista->conductaActual->matrizTonos->paraTipo( $clasificacion->tipoNoticia );
+  ```
+  a:
+  ```php
+  $tipoNoticiaParaTono = $this->gestorModoRespeto->estadoActual()->activo ? TipoNoticia::Tragedia : $clasificacion->tipoNoticia;
+  $filaMatriz = $periodista->conductaActual->matrizTonos->paraTipo( $tipoNoticiaParaTono );
+  ```
+  Reutiliza `MatrizTonos::filaSistemaTragedia()` (Etapa 2, Libro Cap. 5.3) — la fila de sistema ya fuerza `Tono::InformativoEmpatico`/`Tono::Analitico`/sátira bloqueada para CUALQUIER periodista, sin excepción; F.3 solo necesitaba una forma de dirigir CUALQUIER pieza hacia esa fila cuando el modo respeto está activo, sin importar su vertical o clasificación real. Cero lógica nueva de tono — el punto de apalancamiento correcto ya existía.
+  - **Deliberado**: `$clasificacion` (la real, con su `tipoNoticia` genuino) se sigue guardando sin tocar en la `FichaDecisionEditorial` — solo la variable local usada para la búsqueda de tono se fuerza. Esto preserva trazabilidad completa: después de desactivar el modo respeto, sigue siendo posible ver qué pieza se escribió bajo tono forzado y cuál era su clasificación original, sin necesidad de un campo nuevo ni de reescribir la Ficha.
+- **Compatibilidad**: `DecisionEditorial` gana una nueva dependencia — 8 call sites de test reparados (`Nucleo.php` en producción, 4 en `DecisionEditorialTest.php`, 3 en `RedactorConFallbackMecanicoTest.php`), todos con un doble `GestorModoRespeto` inactivo por defecto (mismo patrón que otros dobles: repositorio mockeado devolviendo `EstadoModoRespeto::inactivo()`).
+
+**Qué NO se tocó en esta porción**: la cola de publicación (`pluma_cola_publicacion`) sigue programándose y publicándose exactamente igual con el modo respeto activo — pausar las ranuras `Programada` no relacionadas con el evento, y reactivarlas con jitter recalculado al desactivar, es la Porción 7c. Sin cambios de esquema, sin endpoints REST, sin cambios de panel en esta porción — 100% backend en `Redaccion`.
+
+### Evidencia de gates — Porción 7b
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 524/524 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 178/178 (2 skipped esperados) |
+| `npx vitest run` / `tsc` / `build` / Playwright | sin cambios de panel — no aplica a esta porción |
+
+## Porciones 7c-10
 
 Pendientes. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); cada una abre su propio Mission Lock al comenzar.
