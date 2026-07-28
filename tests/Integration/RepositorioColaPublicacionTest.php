@@ -150,9 +150,12 @@ final class RepositorioColaPublicacionTest extends WP_UnitTestCase {
 		self::assertTrue( $repo->reprogramar( $id, $nuevaHora ) );
 
 		self::assertNotContains( $id, array_map( static fn ( $r ) => $r->id, $repo->obtenerPausadas() ) );
-		$hoy    = $reloj->ahora()->setTime( 0, 0 );
-		$manana = $hoy->modify( '+1 day' );
-		$ranura = current( array_filter( $repo->obtenerEntre( $hoy, $manana ), static fn ( $r ) => $r->id === $id ) );
+		// Ventana de 2 días (no solo "hoy"): `$nuevaHora` es "ahora + 2 horas",
+		// que cruza medianoche si el test corre tarde en el día UTC — una
+		// ventana de un solo día haría el test dependiente de la hora real.
+		$hoy          = $reloj->ahora()->setTime( 0, 0 );
+		$pasadoManana = $hoy->modify( '+2 days' );
+		$ranura       = current( array_filter( $repo->obtenerEntre( $hoy, $pasadoManana ), static fn ( $r ) => $r->id === $id ) );
 		self::assertNotFalse( $ranura );
 		self::assertSame( EstadoColaPublicacion::Programada, $ranura->estado );
 		self::assertEquals( $nuevaHora->format( 'Y-m-d H:i' ), $ranura->horaProgramada->format( 'Y-m-d H:i' ) );

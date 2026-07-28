@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AsistenteOnboarding, type TextosOnboarding } from './AsistenteOnboarding';
 import { BarraEstado } from './BarraEstado';
+import { PantallaCalendarioEditorial, type TextosCalendarioEditorial } from './PantallaCalendarioEditorial';
 import { PantallaBancoPeriodistas, type TextosBancoPeriodistas } from './PantallaBancoPeriodistas';
 import { PantallaComentarios, type TextosComentarios } from './PantallaComentarios';
 import { PantallaEstudioSeo, type TextosEstudioSeo } from './PantallaEstudioSeo';
@@ -17,6 +18,7 @@ export interface DatosPlumaPanel {
     salud: DatosSalud;
     textosPortada: TextosPortada;
     textosTendencias: TextosTendencias;
+    textosCalendarioEditorial: TextosCalendarioEditorial;
     textosMesaEditorial: TextosMesaEditorial;
     textosBancoPeriodistas: TextosBancoPeriodistas;
     textosSalaRevision: TextosSalaRevision;
@@ -32,7 +34,17 @@ interface Props {
     datos: DatosPlumaPanel;
 }
 
-type Ruta = 'portada' | 'tendencias' | 'mesa-editorial' | 'periodistas' | 'revision' | 'estudio-seo' | 'comentarios' | 'informes' | 'salud';
+type Ruta =
+    | 'portada'
+    | 'tendencias'
+    | 'calendario-editorial'
+    | 'mesa-editorial'
+    | 'periodistas'
+    | 'revision'
+    | 'estudio-seo'
+    | 'comentarios'
+    | 'informes'
+    | 'salud';
 
 const INTERVALO_REFRESCO_MS = 60_000;
 
@@ -43,6 +55,10 @@ function leerRuta(): Ruta {
 
     if ('#/tendencias' === window.location.hash) {
         return 'tendencias';
+    }
+
+    if ('#/calendario-editorial' === window.location.hash) {
+        return 'calendario-editorial';
     }
 
     if ('#/mesa-editorial' === window.location.hash) {
@@ -154,6 +170,12 @@ export function Aplicacion({ datos }: Props) {
                     {datos.textosTendencias.titulo}
                 </a>
                 <a
+                    href="#/calendario-editorial"
+                    className={'calendario-editorial' === ruta ? 'pluma-panel__nav-enlace pluma-panel__nav-enlace--activo' : 'pluma-panel__nav-enlace'}
+                >
+                    {datos.textosCalendarioEditorial.titulo}
+                </a>
+                <a
                     href="#/mesa-editorial"
                     className={'mesa-editorial' === ruta ? 'pluma-panel__nav-enlace pluma-panel__nav-enlace--activo' : 'pluma-panel__nav-enlace'}
                 >
@@ -197,6 +219,9 @@ export function Aplicacion({ datos }: Props) {
             <main className="pluma-panel__contenido">
                 {'portada' === ruta && <PantallaPortada datos={portada} error={error} textos={datos.textosPortada} />}
                 {'tendencias' === ruta && <PantallaTendencias restUrl={datos.restUrl} nonce={datos.nonce} textos={datos.textosTendencias} />}
+                {'calendario-editorial' === ruta && (
+                    <PantallaCalendarioEditorial restUrl={datos.restUrl} nonce={datos.nonce} textos={datos.textosCalendarioEditorial} />
+                )}
                 {'mesa-editorial' === ruta && (
                     <PantallaMesaEditorial restUrl={datos.restUrl} nonce={datos.nonce} textos={datos.textosMesaEditorial} />
                 )}

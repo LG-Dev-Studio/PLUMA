@@ -119,20 +119,21 @@ final class PantallaPanel {
 	 */
 	private function datosParaElPanel(): array {
 		return array(
-			'restUrl'                => esc_url_raw( rest_url() ),
-			'nonce'                  => wp_create_nonce( 'wp_rest' ),
-			'salud'                  => $this->datosSalud(),
-			'textosPortada'          => $this->textosPortada(),
-			'textosTendencias'       => $this->textosTendencias(),
-			'textosMesaEditorial'    => $this->textosMesaEditorial(),
-			'textosBancoPeriodistas' => $this->textosBancoPeriodistas(),
-			'textosSalaRevision'     => $this->textosSalaRevision(),
-			'textosSalaMaquinas'     => $this->textosSalaMaquinas(),
-			'textosEstudioSeo'       => $this->textosEstudioSeo(),
-			'textosComentarios'      => $this->textosComentarios(),
-			'textosInformes'         => $this->textosInformesEditoriales(),
-			'onboardingCompletado'   => (bool) get_option( RestOnboarding::OPCION_COMPLETADO, false ),
-			'textosOnboarding'       => $this->textosOnboarding(),
+			'restUrl'                   => esc_url_raw( rest_url() ),
+			'nonce'                     => wp_create_nonce( 'wp_rest' ),
+			'salud'                     => $this->datosSalud(),
+			'textosPortada'             => $this->textosPortada(),
+			'textosTendencias'          => $this->textosTendencias(),
+			'textosCalendarioEditorial' => $this->textosCalendarioEditorial(),
+			'textosMesaEditorial'       => $this->textosMesaEditorial(),
+			'textosBancoPeriodistas'    => $this->textosBancoPeriodistas(),
+			'textosSalaRevision'        => $this->textosSalaRevision(),
+			'textosSalaMaquinas'        => $this->textosSalaMaquinas(),
+			'textosEstudioSeo'          => $this->textosEstudioSeo(),
+			'textosComentarios'         => $this->textosComentarios(),
+			'textosInformes'            => $this->textosInformesEditoriales(),
+			'onboardingCompletado'      => (bool) get_option( RestOnboarding::OPCION_COMPLETADO, false ),
+			'textosOnboarding'          => $this->textosOnboarding(),
 		);
 	}
 
@@ -304,6 +305,36 @@ final class PantallaPanel {
 			'vigilar'                    => __( 'Vigilar', 'pluma-engine' ),
 			'posibleActualizacion'       => __( 'Posible actualización de una historia ya cubierta', 'pluma-engine' ),
 			'cubrirActualizacion'        => __( 'Cubrir como actualización', 'pluma-engine' ),
+		);
+	}
+
+	/**
+	 * @return array<string, string>
+	 */
+	private function textosCalendarioEditorial(): array {
+		return array(
+			'titulo'               => __( 'Calendario Editorial', 'pluma-engine' ),
+			'cargando'             => __( 'Cargando…', 'pluma-engine' ),
+			'errorCarga'           => __( 'No se pudo cargar el Calendario Editorial. Reintenta en unos segundos.', 'pluma-engine' ),
+			'errorAccion'          => __( 'La acción no se pudo completar. Reintenta en unos segundos.', 'pluma-engine' ),
+			'vacio'                => __( 'todavía no hay eventos programados', 'pluma-engine' ),
+			'nuevoTitulo'          => __( 'Título', 'pluma-engine' ),
+			'nuevoVertical'        => __( 'Vertical', 'pluma-engine' ),
+			'nuevaFecha'           => __( 'Fecha esperada', 'pluma-engine' ),
+			'crear'                => __( 'Añadir a la agenda', 'pluma-engine' ),
+			'estadoPrevisto'       => __( 'Previsto', 'pluma-engine' ),
+			'estadoPreparado'      => __( 'Preparado', 'pluma-engine' ),
+			'estadoEnCurso'        => __( 'En curso', 'pluma-engine' ),
+			'estadoCubierto'       => __( 'Cubierto', 'pluma-engine' ),
+			'prepararCobertura'    => __( 'Preparar cobertura', 'pluma-engine' ),
+			'fuenteTitulo'         => __( 'Título del artículo', 'pluma-engine' ),
+			'fuenteUrl'            => __( 'URL', 'pluma-engine' ),
+			'fuenteNombre'         => __( 'Fuente', 'pluma-engine' ),
+			'anadirFuente'         => __( 'Añadir otra fuente', 'pluma-engine' ),
+			'confirmarPreparacion' => __( 'Confirmar preparación', 'pluma-engine' ),
+			'marcarEnCurso'        => __( 'Marcar en curso', 'pluma-engine' ),
+			'marcarCubierto'       => __( 'Marcar cubierto', 'pluma-engine' ),
+			'necesitaFuentes'      => __( 'Añade al menos una fuente real (título y URL) antes de preparar la cobertura.', 'pluma-engine' ),
 		);
 	}
 

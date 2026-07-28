@@ -31,7 +31,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		$rol->expects( 'add_cap' )->times( 3 );
 		Functions\expect( 'get_role' )->once()->with( 'administrator' )->andReturn( $rol );
 
-		Functions\expect( 'dbDelta' )->times( 15 )->andReturn( array() );
+		Functions\expect( 'dbDelta' )->times( 16 )->andReturn( array() );
 		Functions\expect( 'get_option' )->once()->with( 'pluma_db_version', '0.0.0' )->andReturn( '0.0.0' );
 		Functions\expect( 'update_option' )->once()->with( 'pluma_db_version', '0.1.0', false )->andReturn( true );
 
@@ -72,7 +72,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		$rol = Mockery::mock( 'WP_Role' );
 		$rol->expects( 'add_cap' )->times( 3 );
 		Functions\expect( 'get_role' )->once()->andReturn( $rol );
-		Functions\expect( 'dbDelta' )->times( 15 )->andReturn( array() );
+		Functions\expect( 'dbDelta' )->times( 16 )->andReturn( array() );
 		Functions\expect( 'get_option' )->once()->andReturn( '0.1.0' );
 		Functions\expect( 'wp_generate_password' )->once()->andReturn( 'token-de-prueba' );
 		Functions\expect( 'add_option' )->times( 3 )->andReturn( true );
@@ -92,7 +92,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		$rol = Mockery::mock( 'WP_Role' );
 		$rol->expects( 'add_cap' )->times( 6 ); // 3 capacidades × 2 sitios
 		Functions\expect( 'get_role' )->twice()->andReturn( $rol );
-		Functions\expect( 'dbDelta' )->times( 30 )->andReturn( array() ); // 15 tablas × 2 sitios
+		Functions\expect( 'dbDelta' )->times( 32 )->andReturn( array() ); // 16 tablas × 2 sitios
 		Functions\expect( 'get_option' )->twice()->andReturn( '0.1.0' );
 		Functions\expect( 'wp_generate_password' )->twice()->andReturn( 'token-de-prueba' );
 		Functions\expect( 'add_option' )->times( 6 )->andReturn( true ); // 3 opciones × 2 sitios
@@ -127,7 +127,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		$rol->expects( 'add_cap' )->times( 3 );
 		Functions\expect( 'get_role' )->once()->with( 'administrator' )->andReturn( $rol );
 
-		Functions\expect( 'dbDelta' )->times( 15 )->andReturn( array() );
+		Functions\expect( 'dbDelta' )->times( 16 )->andReturn( array() );
 		Functions\expect( 'update_option' )->once()->with( 'pluma_db_version', '0.9.0', false )->andReturn( true );
 
 		Functions\expect( 'add_option' )->times( 3 )->andReturn( true );

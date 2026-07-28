@@ -1,6 +1,6 @@
 # Etapa 9 — El medio real (Nivel Cuatro Parte II, territorio nuevo, TIER 3)
 
-**Estado: EN CURSO.** Porción 1 (Historia como entidad, U.1-U.2+U.4) y Porción 2 (Comunidad mínima viable, X.1+Y.1) completas. Orden interno confirmado por `docs/PLAN-MAESTRO-EVOLUCION.md` §6 (N4-III.1): Historia primero porque toca esquema y grafo — se hace temprano para no migrar dos veces; el resto llega con el primer tráfico real.
+**Estado: EN CURSO.** Porción 1 (Historia como entidad, U.1-U.2+U.4), Porción 2 (Comunidad mínima viable, X.1+Y.1) y Porción 3 (Iniciativa editorial, V.1-V.2) completas. Orden interno confirmado por `docs/PLAN-MAESTRO-EVOLUCION.md` §6 (N4-III.1): Historia primero porque toca esquema y grafo — se hace temprano para no migrar dos veces; el resto llega con el primer tráfico real.
 
 ## Objetivo y criterio de salida (`docs/PLAN-MAESTRO-EVOLUCION.md` §6)
 
@@ -78,6 +78,45 @@
 | `composer test:integration` (wp-env real) | 204/204 (2 skipped esperados, preexistentes; +4 nuevos: `tests/Integration/CompuertaComentariosTest.php`, hooks reales `pre_comment_approved`/`comment_post`/`comment_class` vía `wp_new_comment()`) |
 | `npx vitest run` / `tsc` / `build` / Playwright | sin cambios de panel — no aplica a esta porción |
 
-## Porciones 3-5
+## Porción 3 — Iniciativa editorial (Nivel Cuatro V.1 + V.2)
 
-Pendientes. Orden: Iniciativa editorial (V.1-V.2) → Canal propio (W.1-W.3) → Confianza y negocio (X.2-X.4+Y.2-Y.3+Z).
+**Texto fuente** (`docs/PLUMA_Engine_Nivel_Cuatro.md`, Cap. V.1-V.2): "el Radar es 100% reactivo... la mitad del calendario noticioso se conoce con semanas de anticipación... un sistema que espera a que el evento sea tendencia llega estructuralmente tarde". V.1 pide una entidad `EventoProgramado` con estado propio y sensores de calendario nuevos por vertical (económico, electoral, deportivo, de lanzamientos, "mismo contrato `SensorInterface`") además de carga manual del editor. V.2 pide que, para eventos previstos de peso, el sistema construya el expediente CON ANTELACIÓN y opcionalmente produzca una previa publicable y un esqueleto condicional, enlazados vía Historia.
+
+**Decisión de alcance del propietario (2026-07-28)**: los 4 sensores de calendario automáticos requieren elegir e integrar un proveedor externo real por vertical — misma clase de decisión ya diferida en la Etapa 8 (`PLUMA-E8-1`, `PLUMA-E8-6`, `PLUMA-E8-7`). Se construye el núcleo (entidad, máquina de estados, carga manual del editor, y V.2 completo salvo el esqueleto condicional) y se difieren los sensores automáticos y el esqueleto condicional como deuda explícita (`PLUMA-E9-2`, `PLUMA-E9-3`), nunca inventados.
+
+**V.1 — el Calendario Editorial:**
+
+- **`Pluma\Pipeline\EventoProgramado`** (DTO) + **`EstadoEventoProgramado`** (`Previsto → Preparado → EnCurso → Cubierto`) — mismo ciclo de vida literal del texto fuente. `EnCurso`/`Cubierto` son transiciones manuales del editor: el sistema no puede saber por sí solo que un evento del mundo real ya ocurrió.
+- **`Pluma\Pipeline\GestorCalendarioEditorial::crear()`**: carga manual del editor (la única fuente de agenda que esta porción implementa; los sensores automáticos quedan en `PLUMA-E9-2`).
+- **Esquema `0.18.0 → 0.19.0`**: tabla nueva `pluma_eventos_programados` (título, vertical, fecha esperada, periodista asignado, estado, `historia_id`/`tendencia_id` nulos hasta que se prepara la cobertura). Reversa registrada.
+
+**V.2 — la pieza preparada, sin duplicar el pipeline:**
+
+- **Decisión de arquitectura clave**: en vez de construir un segundo camino de investigación/redacción/compuertas paralelo al que ya existe para tendencias reales, `GestorCalendarioEditorial::prepararCobertura()` crea una **tendencia sintética** (`fuente_senal = 'calendario_editorial'`, puntuación honesta al máximo vía `PuntuacionOportunidad::calcular(100.0, 100.0)` — documentada en el propio código como "no es medición orgánica, el editor ya decidió cubrir esto") a partir del evento y de las fuentes que el editor ya reunió (mismo formato `{titulo, url, fuente}` que cualquier Sensor entrega). Esa tendencia entra al pipeline normal (Orquestador → Investigación → Redacción → Compuertas → Publicador) exactamente igual que cualquier tendencia detectada por el Radar — cero lógica de generación de contenido duplicada.
+- **`TipoPieza::Previa`** (nuevo case, aditivo): la Pieza que produce el pipeline queda marcada `Previa`, enlazada a la Historia del evento (la misma que enlazará después la crónica y el análisis del día siguiente, "las tres piezas se enlazan vía Historia" — literal V.2). Si el evento no tenía Historia todavía, se crea en el mismo paso.
+- **Fuentes reales, nunca inventadas**: `prepararCobertura()` exige al menos un artículo relacionado real (`EventoProgramadoSinFuentesException` si viene vacío) — el "expediente construido con antelación" de V.2 se nutre de fuentes que el editor efectivamente reunió, igual que un Sensor automático se las entregaría al Investigador; no se inventa ni se busca automáticamente (misma limitación que `PLUMA-E8-1`, sin proveedor de búsqueda web).
+- **`Pluma\Admin\RestCalendarioEditorial`**: `GET`/`POST /calendario-editorial`, `POST /calendario-editorial/{id}/preparar` (con las fuentes), `POST .../marcar-en-curso`, `POST .../marcar-cubierto` — capacidad `pluma_aprobar_piezas` (planificar y disparar cobertura es decisión editorial, igual que la Sala de Tendencias, nunca `manage_options`).
+- **Panel**: `panel/src/PantallaCalendarioEditorial.tsx` — lista de eventos, formulario de alta manual, formulario de fuentes reunidas para "Preparar cobertura", y los botones de transición manual. Nueva entrada de navegación en el shell del panel.
+- **Esqueleto condicional** (V.2, "si sube/si baja/si sorprende"): NO construido — no encaja en el modelo actual de Pieza (un borrador, una redacción) sin inventar una plantilla de contenido ramificada que ningún texto fuente especifica con el detalle necesario. Registrado como `PLUMA-E9-3`.
+
+**Deuda pagada**: ninguna deuda previa cerraba V.1/V.2 directamente. Nueva deuda: `PLUMA-E9-2` (sensores de calendario por vertical + sugerencia automática desde Historia), `PLUMA-E9-3` (esqueleto condicional).
+
+**Corrección lateral, no relacionada con V.1/V.2**: al correr la suite de integración completa contra wp-env real se descubrió `tests/Integration/RepositorioColaPublicacionTest::test_reprogramar_reactiva_una_ranura_pausada_con_nueva_hora` fallando por dependencia de la hora del reloj real (la ventana de consulta `[hoy, mañana)` no contenía `ahora()+2h` cuando el test corre después de las 22:00 UTC, porque esa suma cruza medianoche). Bug preexistente de la Etapa 8, descubierto y corregido aquí (ventana ampliada a 2 días) porque el `/goal` exige que todos los tests existentes sigan en verde al cierre de cada porción — no se dejó pasar por no ser de esta porción.
+
+### Evidencia de gates — Porción 3
+
+| Gate | Resultado |
+|---|---|
+| PHPCS (repo completo) | 0 errores, 475/475 archivos |
+| PHPStan L8 (repo completo, `--memory-limit=2G`) | 0 errores |
+| `composer test:unit` | 606/606 |
+| `composer test:invariantes` | 23/23 |
+| `composer test:integration` (wp-env real, migración 0.18.0→0.19.0) | 213/213 (2 skipped esperados, preexistentes) |
+| `npx vitest run` | 104/104 (20 archivos) |
+| `npx tsc --noEmit` | limpio |
+| `npm run build` | build de producción real verificado |
+| `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
+
+## Porciones 4-5
+
+Pendientes. Orden: Canal propio (W.1-W.3) → Confianza y negocio (X.2-X.4+Y.2-Y.3+Z).

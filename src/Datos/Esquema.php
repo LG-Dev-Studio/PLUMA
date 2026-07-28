@@ -145,6 +145,27 @@ final class Esquema {
                 KEY estado (estado),
                 KEY periodista_titular_id (periodista_titular_id)
             ) {$charset};",
+			// Etapa 9, porción 3 (Nivel Cuatro V.1): Calendario Editorial —
+			// `tendencia_id`/`historia_id` quedan NULL hasta que el editor
+			// dispara `prepararCobertura()` (V.2); antes de eso el evento
+			// es solo agenda, sin expediente ni pieza todavía.
+			"CREATE TABLE {$prefijo}eventos_programados (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                titulo VARCHAR(191) NOT NULL,
+                vertical VARCHAR(50) NOT NULL,
+                fecha_esperada DATETIME NOT NULL,
+                estado VARCHAR(20) NOT NULL DEFAULT 'previsto',
+                periodista_asignado_id BIGINT UNSIGNED NULL,
+                historia_id BIGINT UNSIGNED NULL,
+                tendencia_id BIGINT UNSIGNED NULL,
+                creado_en DATETIME NOT NULL,
+                actualizado_en DATETIME NOT NULL,
+                PRIMARY KEY  (id),
+                KEY estado (estado),
+                KEY fecha_esperada (fecha_esperada),
+                KEY historia_id (historia_id),
+                KEY tendencia_id (tendencia_id)
+            ) {$charset};",
 			// Etapa 8, porción 10 (Nivel Tres Q.1): locale_editorial —
 			// determina qué catálogo localizado (vocabulario prohibido,
 			// ejemplos-ancla) aplica al compilar directrices. Campo desde
@@ -377,6 +398,7 @@ final class Esquema {
 			$prefijo . 'respuestas_comentarios',
 			$prefijo . 'modo_respeto',
 			$prefijo . 'historias',
+			$prefijo . 'eventos_programados',
 		);
 	}
 
@@ -413,6 +435,9 @@ final class Esquema {
 		$prefijo = $wpdb->prefix . 'pluma_';
 
 		return match ( $versionOrigen . '->' . $versionDestino ) {
+			'0.19.0->0.18.0' => array(
+				"DROP TABLE IF EXISTS {$prefijo}eventos_programados;",
+			),
 			'0.18.0->0.17.0' => array(
 				"ALTER TABLE {$prefijo}piezas DROP COLUMN historia_id, DROP COLUMN tipo;",
 				"DROP TABLE IF EXISTS {$prefijo}historias;",

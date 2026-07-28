@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pluma\Kernel;
 
 use Pluma\Admin\NotificadorRevision;
+use Pluma\Admin\RestCalendarioEditorial;
 use Pluma\Admin\NotificadorSinPeriodistaIdoneo;
 use Pluma\Admin\PantallaPanel;
 use Pluma\Admin\RestBancoPeriodistas;
@@ -45,6 +46,8 @@ use Pluma\Datos\RepositorioBorradores;
 use Pluma\Datos\RepositorioBorradoresInterface;
 use Pluma\Datos\RepositorioColaPublicacion;
 use Pluma\Datos\RepositorioColaPublicacionInterface;
+use Pluma\Datos\RepositorioEventosProgramados;
+use Pluma\Datos\RepositorioEventosProgramadosInterface;
 use Pluma\Datos\RepositorioHistorias;
 use Pluma\Datos\RepositorioHistoriasInterface;
 use Pluma\Datos\RepositorioMemoriaEditorial;
@@ -70,6 +73,7 @@ use Pluma\Investigacion\InvestigadorMecanico;
 use Pluma\Investigacion\ResolutorDisputas;
 use Pluma\Investigacion\SelectorImagenPorAutoridad;
 use Pluma\Investigacion\VerificadorProcedenciaDeclaracion;
+use Pluma\Pipeline\GestorCalendarioEditorial;
 use Pluma\Pipeline\GestorHistorias;
 use Pluma\Pipeline\GestorRespuestasComentarios;
 use Pluma\Pipeline\GestorSalaRevision;
@@ -208,6 +212,10 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			RepositorioModoRespetoInterface::class,
 			fn ( Contenedor $c ): RepositorioModoRespeto => new RepositorioModoRespeto( $c->obtener( 'wpdb' ) )
+		);
+		$this->contenedor->registrar(
+			RepositorioEventosProgramadosInterface::class,
+			fn ( Contenedor $c ): RepositorioEventosProgramados => new RepositorioEventosProgramados( $c->obtener( 'wpdb' ) )
 		);
 		$this->contenedor->registrar(
 			RepositorioBitacoraInterface::class,
@@ -681,6 +689,20 @@ final class Nucleo {
 			)
 		);
 		$this->contenedor->registrar(
+			GestorCalendarioEditorial::class,
+			fn ( Contenedor $c ): GestorCalendarioEditorial => new GestorCalendarioEditorial(
+				$c->obtener( RepositorioEventosProgramadosInterface::class ),
+				$c->obtener( RepositorioTendenciasInterface::class ),
+				$c->obtener( RepositorioPiezasInterface::class ),
+				$c->obtener( RepositorioHistoriasInterface::class ),
+				$c->obtener( RelojInterface::class )
+			)
+		);
+		$this->contenedor->registrar(
+			RestCalendarioEditorial::class,
+			fn ( Contenedor $c ): RestCalendarioEditorial => new RestCalendarioEditorial( $c->obtener( GestorCalendarioEditorial::class ) )
+		);
+		$this->contenedor->registrar(
 			RestSalaTendencias::class,
 			fn ( Contenedor $c ): RestSalaTendencias => new RestSalaTendencias( $c->obtener( GestorSalaTendencias::class ) )
 		);
@@ -869,6 +891,7 @@ final class Nucleo {
 		$this->contenedor->obtener( NotificadorSinPeriodistaIdoneo::class )->registrar();
 		$this->contenedor->obtener( RestPortada::class )->registrar();
 		$this->contenedor->obtener( RestSalaTendencias::class )->registrar();
+		$this->contenedor->obtener( RestCalendarioEditorial::class )->registrar();
 		$this->contenedor->obtener( RestMesaEditorial::class )->registrar();
 		$this->contenedor->obtener( RestPeriodistas::class )->registrar();
 		$this->contenedor->obtener( RestSalaMaquinas::class )->registrar();
