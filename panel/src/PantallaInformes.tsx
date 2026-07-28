@@ -21,6 +21,7 @@ export interface DatosInformeEditorial {
         posibleActualizacion: number;
         ignoradas: number;
         vigiladas: number;
+        sospechaManipulacion: number;
     };
     motor: {
         ejecuciones: number;
@@ -58,6 +59,7 @@ export interface TextosInformes {
         posibleActualizacion: string;
         ignoradas: string;
         vigiladas: string;
+        sospechaManipulacion: string;
     };
     motor: {
         titulo: string;
@@ -192,6 +194,10 @@ export function PantallaInformes({ restUrl, nonce, textos }: Props) {
                     <div>
                         <dt>{textos.tendencias.vigiladas}</dt>
                         <dd>{informe.tendencias.vigiladas}</dd>
+                    </div>
+                    <div>
+                        <dt>{textos.tendencias.sospechaManipulacion}</dt>
+                        <dd>{informe.tendencias.sospechaManipulacion}</dd>
                     </div>
                 </dl>
             </section>

@@ -45,6 +45,7 @@ use Pluma\Redaccion\GeneradorRespuestaComentario;
 use Pluma\Redaccion\RedactorInterface;
 use Pluma\Redaccion\VerificadorComentarioSustantivo;
 use Pluma\Sensores\ComparadorHistorias;
+use Pluma\Sensores\EvaluadorLegitimidadInsumo;
 use Pluma\Sensores\SensorInterface;
 use Pluma\Seo\AuditorCanibalizacion;
 use Pluma\Seo\DetectorPluginSeo;
@@ -164,7 +165,8 @@ final class EscasezHonestaInvarianteTest extends CasoDePruebaUnitario {
 				new ProgramadorCadencia( new AzarFijo( 0 ) ),
 				new LectorConfiguracionCadencia()
 			),
-			Mockery::mock( AsignadorImagenDestacadaInterface::class )->allows( 'asignar' )->getMock()
+			Mockery::mock( AsignadorImagenDestacadaInterface::class )->allows( 'asignar' )->getMock(),
+			new EvaluadorLegitimidadInsumo()
 		);
 
 		$resultado = $orquestador->ejecutarTick();

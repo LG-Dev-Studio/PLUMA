@@ -133,6 +133,7 @@ use Pluma\Seo\GeneradorMetadatosSeo;
 use Pluma\Seo\MotorSeo;
 use Pluma\Seo\PaginaAutorPeriodista;
 use Pluma\Sensores\ComparadorHistorias;
+use Pluma\Sensores\EvaluadorLegitimidadInsumo;
 use Pluma\Sensores\SensorGoogleTrends;
 use Pluma\Sensores\SensorInterface;
 use Pluma\Taxonomia\AsignadorCategoria;
@@ -282,6 +283,10 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			ClasificadorGravedadTendencia::class,
 			fn ( Contenedor $c ): ClasificadorGravedadTendencia => new ClasificadorGravedadTendencia( $c->obtener( LenguajeInterface::class ) )
+		);
+		$this->contenedor->registrar(
+			EvaluadorLegitimidadInsumo::class,
+			static fn (): EvaluadorLegitimidadInsumo => new EvaluadorLegitimidadInsumo()
 		);
 		$this->contenedor->registrar(
 			GestorModoRespeto::class,
@@ -590,7 +595,8 @@ final class Nucleo {
 				$c->obtener( DetectorHuecos::class ),
 				$c->obtener( ClasificadorGravedadTendencia::class ),
 				$c->obtener( GestorModoRespeto::class ),
-				$c->obtener( AsignadorImagenDestacadaInterface::class )
+				$c->obtener( AsignadorImagenDestacadaInterface::class ),
+				$c->obtener( EvaluadorLegitimidadInsumo::class )
 			)
 		);
 

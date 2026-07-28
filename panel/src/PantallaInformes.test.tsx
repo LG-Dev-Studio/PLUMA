@@ -25,6 +25,7 @@ function textosDeEjemplo(): TextosInformes {
             posibleActualizacion: 'Posibles actualizaciones detectadas',
             ignoradas: 'Ignoradas',
             vigiladas: 'En vigilancia',
+            sospechaManipulacion: 'Con sospecha de manipulación',
         },
         motor: {
             titulo: 'Salud del motor esta semana',
@@ -57,7 +58,7 @@ function informeDeEjemplo(sobrescribir: Partial<DatosInformeEditorial> = {}): Da
             retenidas: [],
             fallidas: [],
         },
-        tendencias: { enPipeline: 3, posibleActualizacion: 1, ignoradas: 2, vigiladas: 0 },
+        tendencias: { enPipeline: 3, posibleActualizacion: 1, ignoradas: 2, vigiladas: 0, sospechaManipulacion: 0 },
         motor: { ejecuciones: 10, lotesProcesados: 20, ejecucionesConErrores: 1 },
         audiencia: {
             comentariosProcesados: 8,

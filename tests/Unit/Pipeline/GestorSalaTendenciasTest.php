@@ -76,6 +76,28 @@ final class GestorSalaTendenciasTest extends CasoDePruebaUnitario {
 		$this->expectNotToPerformAssertions();
 	}
 
+	/**
+	 * Nivel Dos G.1 (Etapa 8, Porción 9): una tendencia con
+	 * SOSPECHA_MANIPULACION nunca crea Pieza en `detectarTendencias()` — a
+	 * diferencia de una tendencia VIGILADA (que descarta una Pieza ya
+	 * existente), aquí `obtenerUltimaPorTendencia()` devuelve `null` porque
+	 * la Pieza nunca llegó a existir. "Cubrir ahora" debe manejar esa rama
+	 * igual de bien que la de "Descartada".
+	 */
+	public function test_cubrir_ahora_crea_una_pieza_nueva_prioritaria_si_nunca_hubo_pieza(): void {
+		$tendencias = Mockery::mock( RepositorioTendenciasInterface::class );
+		$tendencias->expects( 'actualizarEstadoTendencia' )->with( 9, EstadoTendencia::EnPipeline )->andReturn( true );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->expects( 'obtenerUltimaPorTendencia' )->with( 9 )->andReturn( null );
+		$piezas->expects( 'crear' )->with( 9, Mockery::any() )->andReturn( 43 );
+		$piezas->expects( 'priorizar' )->with( 43, Mockery::any() )->andReturn( true );
+
+		$this->construir( $tendencias, $piezas )->cubrirAhora( 9 );
+
+		$this->expectNotToPerformAssertions();
+	}
+
 	public function test_vigilar_descarta_la_pieza_en_curso_y_marca_la_tendencia(): void {
 		Functions\when( 'do_action' )->justReturn( null );
 

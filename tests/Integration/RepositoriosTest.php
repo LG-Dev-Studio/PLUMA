@@ -25,6 +25,7 @@ use Pluma\Seo\MetadatosSeo;
 use Pluma\Seo\PalabrasClave;
 use Pluma\Seo\TipoEsquemaArticulo;
 use Pluma\Seo\TipoPluginSeo;
+use Pluma\Sensores\DiagnosticoLegitimidadInsumo;
 use Pluma\Sensores\EstadoTendencia;
 use Pluma\Sensores\PuntuacionOportunidad;
 use Pluma\Sensores\TendenciaDetectada;
@@ -408,6 +409,36 @@ final class RepositoriosTest extends WP_UnitTestCase {
 		self::assertNotNull( $tarjeta );
 		self::assertSame( EstadoTendencia::PosibleActualizacion, $tarjeta['estado'] );
 		self::assertSame( $tendenciaOriginalId, $tarjeta['tendenciaOriginalId'] );
+	}
+
+	public function test_guardar_con_sospecha_legitimidad_persiste_el_diagnostico_y_no_crea_pieza(): void {
+		global $wpdb;
+		$repo  = new RepositorioTendencias( $wpdb );
+		$reloj = new RelojSistema();
+
+		$diagnostico = new DiagnosticoLegitimidadInsumo( 3, 1, 0.33, false, 'Concentración de fuente: 3 artículos de 1 fuente.' );
+
+		$tendenciaId = $repo->guardarConSospechaLegitimidad(
+			new TendenciaDetectada( 'tendencia sospechosa ' . uniqid(), PuntuacionOportunidad::calcular( 70, 70 ), $reloj->ahora(), array(), 'google_trends' ),
+			$diagnostico,
+			$reloj->ahora()
+		);
+
+		$tarjeta = null;
+		foreach ( $repo->obtenerParaSala( 100 ) as $candidata ) {
+			if ( $candidata['id'] === $tendenciaId ) {
+				$tarjeta = $candidata;
+			}
+		}
+
+		self::assertNotNull( $tarjeta );
+		self::assertSame( EstadoTendencia::SospechaDeManipulacion, $tarjeta['estado'] );
+
+		$fila = $wpdb->get_row( $wpdb->prepare( "SELECT diversidad_fuente, motivo_legitimidad FROM {$wpdb->prefix}pluma_tendencias WHERE id = %d", $tendenciaId ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna del plugin, prefijo de $wpdb.
+
+		self::assertNotNull( $fila );
+		self::assertEqualsWithDelta( 0.33, (float) $fila['diversidad_fuente'], 0.001 );
+		self::assertSame( $diagnostico->motivo, $fila['motivo_legitimidad'] );
 	}
 
 	public function test_obtener_tendencia_original_es_nulo_sin_vinculo(): void {

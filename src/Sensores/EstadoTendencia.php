@@ -20,11 +20,18 @@ namespace Pluma\Sensores;
  *   2026-07-23: NO se crea Pieza automáticamente, el editor confirma desde
  *   la Sala de Tendencias ("Cubrir como actualización") antes de gastar
  *   investigación/redacción.
+ * - SOSPECHA_MANIPULACION: `Pluma\Sensores\EvaluadorLegitimidadInsumo`
+ *   (Nivel Dos G.1, Etapa 8 Porción 9) detectó concentración de fuente
+ *   anómala — NO se crea Pieza automáticamente. Igual que VIGILADA: la
+ *   heurística es imperfecta por diseño, nunca un bloqueo silencioso
+ *   permanente; el editor la revierte con "Cubrir ahora" si juzga que es
+ *   un falso positivo.
  */
 enum EstadoTendencia: string {
 
-	case EnPipeline           = 'en_pipeline';
-	case Ignorada             = 'ignorada';
-	case Vigilada             = 'vigilada';
-	case PosibleActualizacion = 'posible_actualizacion';
+	case EnPipeline             = 'en_pipeline';
+	case Ignorada               = 'ignorada';
+	case Vigilada               = 'vigilada';
+	case PosibleActualizacion   = 'posible_actualizacion';
+	case SospechaDeManipulacion = 'sospecha_manipulacion';
 }

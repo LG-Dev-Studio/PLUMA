@@ -88,6 +88,7 @@ use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\TratamientoLector;
 use Pluma\Redaccion\VerificadorComentarioSustantivo;
 use Pluma\Sensores\ComparadorHistorias;
+use Pluma\Sensores\EvaluadorLegitimidadInsumo;
 use Pluma\Sensores\PuntuacionOportunidad;
 use Pluma\Sensores\SensorInterface;
 use Pluma\Sensores\TendenciaDetectada;
@@ -352,7 +353,8 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 				$programadorCadencia,
 				$lectorCadencia
 			),
-			$overrides['asignadorImagenDestacada'] ?? Mockery::mock( AsignadorImagenDestacadaInterface::class )->allows( 'asignar' )->getMock()
+			$overrides['asignadorImagenDestacada'] ?? Mockery::mock( AsignadorImagenDestacadaInterface::class )->allows( 'asignar' )->getMock(),
+			$overrides['evaluadorLegitimidad'] ?? new EvaluadorLegitimidadInsumo()
 		);
 	}
 
@@ -445,6 +447,48 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 
 		$sensor = Mockery::mock( SensorInterface::class );
 		$sensor->expects( 'detectar' )->andReturn( array( $tendencia ) );
+
+		$this->construir(
+			array(
+				'piezas'     => $piezas,
+				'tendencias' => $tendencias,
+				'sensor'     => $sensor,
+			)
+		)->ejecutarTick();
+
+		$this->expectNotToPerformAssertions();
+	}
+
+	public function test_tendencia_con_concentracion_de_fuente_sospechosa_no_crea_pieza(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+
+		$articulo = static fn ( string $fuente ): array => array(
+			'titulo' => 'titulo',
+			'url'    => 'https://example.com/' . $fuente,
+			'fuente' => $fuente,
+		);
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
+		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
+		$piezas->expects( 'crear' )->never();
+
+		$tendencia = new TendenciaDetectada(
+			'tendencia sospechosa',
+			PuntuacionOportunidad::calcular( 80, 80 ),
+			new DateTimeImmutable(),
+			array( $articulo( 'Reuters' ), $articulo( 'Reuters' ), $articulo( 'Reuters' ) ),
+			'google_trends'
+		);
+
+		$tendencias = Mockery::mock( RepositorioTendenciasInterface::class );
+		$tendencias->expects( 'existePorTermino' )->andReturn( false );
+		$tendencias->allows( 'obtenerRecientesConPiezaViva' )->andReturn( array() );
+		$tendencias->expects( 'guardar' )->never();
+		$tendencias->expects( 'guardarConSospechaLegitimidad' )->once()->andReturn( 99 );
+
+		$sensor = Mockery::mock( SensorInterface::class );
+		$sensor->expects( 'detectar' )->once()->andReturn( array( $tendencia ) );
 
 		$this->construir(
 			array(

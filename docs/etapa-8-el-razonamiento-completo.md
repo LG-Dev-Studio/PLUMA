@@ -1,6 +1,6 @@
 # Etapa 8 — El razonamiento completo (retrofit de mecanismo, TIER 1)
 
-**Estado: EN CURSO.** Porciones 1 (1a+1b), 2 y 3 completas. Roadmap completo de 10 porciones en `C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md` (aprobado); las Porciones 4-10 abren su propio Mission Lock cuando llegue su turno.
+**Estado: EN CURSO.** Porciones 1 (1a+1b), 2, 3, 4, 5 (diferida, ADR 0004), 6, 7 (7a+7b+7c), 8 (diferida, ADR 0005 + alternativa del propietario, ADR 0006) y 9 completas. Roadmap completo de 10 porciones en `C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md` (aprobado); la Porción 10 abre su propio Mission Lock a continuación.
 
 ## Objetivo y criterio de salida (`docs/PLAN-MAESTRO-EVOLUCION.md` §6)
 
@@ -328,6 +328,38 @@ Paga parcialmente `PLUMA-E3-2` (la necesidad de producto queda cubierta; la nece
 | `npm run build` | build de producción real, verificado |
 | `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
 
-## Porciones 9-10
+## Porción 9 — Legitimidad del insumo (Nivel Dos G.1)
 
-Pendientes. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); cada una abre su propio Mission Lock al comenzar.
+**Texto fuente** (`docs/PLUMA_Engine_Nivel_Dos.md`, Cap. G.1): "antes de que una tendencia entre a la cola editorial... necesita una verificación de naturalidad de la señal — patrones de crecimiento consistentes con difusión orgánica... versus... amplificación coordinada (pico sincronizado desde cuentas o fuentes con poca huella previa, concentración geográfica o de red anómala)". El propio texto admite el límite: "heurística mínima defendible (concentración de fuente, novedad de las cuentas de origen **donde el sensor lo exponga**)".
+
+**Límite de datos verificado antes de escribir código**: `Pluma\Proveedores\TendenciaCruda`/`Pluma\Sensores\TendenciaDetectada` solo exponen, por artículo relacionado, `titulo`/`url`/`fuente` (nombre de fuente en texto libre, tal como lo reporta el feed de Google Trends) — ningún timestamp por artículo, ninguna geografía, ninguna señal de novedad de cuenta (mismo límite ya formalizado para L.2 en `PLUMA-E8-3`). Se implementa únicamente la pieza de G.1 que el dato actual permite sin inventar precisión que no existe: **concentración de fuente**.
+
+**Qué se construyó:**
+
+- **`Pluma\Sensores\EvaluadorLegitimidadInsumo`** (nuevo): calcula `diversidadFuente = fuentesUnicas / totalArticulos` sobre los artículos relacionados de una tendencia. Con menos artículos que el umbral configurado (`pluma_legitimidad_articulos_minimo`, default 3) la muestra se declara insuficiente y la tendencia se trata como legítima — nunca se declara ilegítima una tendencia por tener pocos artículos, podría ser cobertura temprana de un evento real. Con muestra suficiente, `diversidad < pluma_legitimidad_diversidad_minima` (default 0.34, ~1 de cada 3 artículos de fuente distinta) marca la tendencia como sospechosa.
+- **`Pluma\Sensores\DiagnosticoLegitimidadInsumo`** (nuevo, DTO readonly): resultado con `totalArticulos`, `fuentesUnicas`, `diversidadFuente`, `legitimo`, `motivo`.
+- **`EstadoTendencia::SospechaDeManipulacion`** (nuevo caso): mismo tratamiento que `Vigilada` — reversible por el editor con "Cubrir ahora" desde la Sala de Tendencias, nunca un bloqueo silencioso permanente (la heurística es imperfecta por diseño).
+- **`RepositorioTendencias::guardarConSospechaLegitimidad()`** (nuevo, espejo de `guardarComoPosibleActualizacion`): persiste la tendencia con el diagnóstico (columnas nuevas `diversidad_fuente`/`motivo_legitimidad`) sin crear Pieza.
+- **`Orquestador::detectarTendencias()`**: nueva evaluación entre la deduplicación por huella semántica y `tendencias->guardar()` — si `!legitimo`, guarda con sospecha y `continue` sin crear Pieza. Sin `try/catch`: el evaluador no hace I/O, no puede fallar de forma transitoria (igual que `ComparadorHistorias`).
+- **Esquema `0.15.0 → 0.16.0`**: `pluma_tendencias` gana `diversidad_fuente DECIMAL(4,2) NULL` y `motivo_legitimidad VARCHAR(500) NULL` — auditoría y calibración futura del umbral, honesto per `PLUMA-EV-3`. Reversa registrada.
+- **Panel**: nueva insignia "Sospecha de manipulación" en la Sala de Tendencias (`PantallaTendencias.tsx`), nuevo contador `sospechaManipulacion` en el Informe Editorial semanal (`RestInformesEditoriales`/`PantallaInformes.tsx`). Verificado contra el código real que `EstadoTendencia` no se renderiza genéricamente (cada caso es texto/JSX hardcodeado) — el panel SÍ requería estos cuatro archivos, no era gratis. Cero rutas REST nuevas: `GestorSalaTendencias::cubrirAhora()` ya es genérico por estado (comprueba si la Pieza es `null`/`Descartada`, y aquí siempre es `null` porque nunca se creó).
+
+Paga parcialmente `PLUMA-EV-4` (concentración de fuente); novedad de cuentas de origen y concentración geográfica/de red siguen bloqueadas por el mismo límite de Sensor que `PLUMA-E8-3`, documentado explícitamente en el docblock de `EvaluadorLegitimidadInsumo`.
+
+### Evidencia de gates — Porción 9
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 554/554 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 188/188 (2 skipped esperados) |
+| `npx vitest run` | 96/96 |
+| `npx tsc --noEmit` | 0 errores |
+| `npm run build` | build de producción real, verificado |
+| `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
+
+## Porción 10
+
+Pendiente. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); abre su propio Mission Lock a continuación.

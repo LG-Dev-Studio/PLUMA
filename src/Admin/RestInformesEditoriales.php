@@ -155,6 +155,7 @@ final class RestInformesEditoriales {
 			'posibleActualizacion' => $this->tendencias->contarPorEstadoEntre( EstadoTendencia::PosibleActualizacion, $desde, $hasta ),
 			'ignoradas'            => $this->tendencias->contarPorEstadoEntre( EstadoTendencia::Ignorada, $desde, $hasta ),
 			'vigiladas'            => $this->tendencias->contarPorEstadoEntre( EstadoTendencia::Vigilada, $desde, $hasta ),
+			'sospechaManipulacion' => $this->tendencias->contarPorEstadoEntre( EstadoTendencia::SospechaDeManipulacion, $desde, $hasta ),
 		);
 	}
 

@@ -7,7 +7,7 @@ export interface TarjetaTendencia {
     velocidad: number;
     afinidad: number;
     puntuacionTotal: number;
-    estado: 'en_pipeline' | 'ignorada' | 'vigilada' | 'posible_actualizacion';
+    estado: 'en_pipeline' | 'ignorada' | 'vigilada' | 'posible_actualizacion' | 'sospecha_manipulacion';
     articulosRelacionados: { titulo: string; url: string; fuente: string }[];
     detectadaEn: string;
     tendenciaOriginalId: number | null;
@@ -26,6 +26,7 @@ export interface TextosTendencias {
     quienCubre: string;
     nadieCubre: string;
     estadoVigilada: string;
+    estadoSospechaManipulacion: string;
     cubrirAhora: string;
     ignorar: string;
     vigilar: string;
@@ -111,6 +112,11 @@ export function PantallaTendencias({ restUrl, nonce, textos }: Props) {
                                 <h2>{tarjeta.termino}</h2>
                                 {'vigilada' === tarjeta.estado && (
                                     <span className="pluma-tendencias__insignia">{textos.estadoVigilada}</span>
+                                )}
+                                {'sospecha_manipulacion' === tarjeta.estado && (
+                                    <span className="pluma-tendencias__insignia pluma-tendencias__insignia--sospecha">
+                                        {textos.estadoSospechaManipulacion}
+                                    </span>
                                 )}
                                 {'posible_actualizacion' === tarjeta.estado && (
                                     <span className="pluma-tendencias__insignia pluma-tendencias__insignia--actualizacion">

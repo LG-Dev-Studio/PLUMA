@@ -61,6 +61,7 @@ use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\VerificadorComentarioSustantivo;
 use Pluma\Sensores\ComparadorHistorias;
+use Pluma\Sensores\EvaluadorLegitimidadInsumo;
 use Pluma\Sensores\SensorInterface;
 use Pluma\Seo\AuditorCanibalizacion;
 use Pluma\Seo\DetectorPluginSeo;
@@ -234,7 +235,8 @@ final class RegistroDiagnosticoCompuertasInvarianteTest extends CasoDePruebaUnit
 				new ProgramadorCadencia( new AzarFijo( 0 ) ),
 				new LectorConfiguracionCadencia()
 			),
-			Mockery::mock( AsignadorImagenDestacadaInterface::class )->allows( 'asignar' )->getMock()
+			Mockery::mock( AsignadorImagenDestacadaInterface::class )->allows( 'asignar' )->getMock(),
+			new EvaluadorLegitimidadInsumo()
 		);
 
 		$orquestador->ejecutarTick();

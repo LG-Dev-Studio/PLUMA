@@ -143,6 +143,7 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
             quienCubre: 'Quién la está cubriendo ya',
             nadieCubre: 'sin cobertura detectada en las señales',
             estadoVigilada: 'En vigilancia',
+            estadoSospechaManipulacion: 'Sospecha de manipulación',
             cubrirAhora: 'Cubrir ahora',
             ignorar: 'Ignorar',
             vigilar: 'Vigilar',
@@ -514,6 +515,7 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
                 posibleActualizacion: 'Posibles actualizaciones detectadas',
                 ignoradas: 'Ignoradas',
                 vigiladas: 'En vigilancia',
+                sospechaManipulacion: 'Con sospecha de manipulación',
             },
             motor: {
                 titulo: 'Salud del motor esta semana',

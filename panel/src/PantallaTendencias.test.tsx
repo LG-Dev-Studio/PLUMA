@@ -17,6 +17,7 @@ function textosDeEjemplo(): TextosTendencias {
         quienCubre: 'Quién la está cubriendo ya',
         nadieCubre: 'sin cobertura detectada en las señales',
         estadoVigilada: 'En vigilancia',
+        estadoSospechaManipulacion: 'Sospecha de manipulación (concentración de fuente) — heurística, no un veredicto',
         cubrirAhora: 'Cubrir ahora',
         ignorar: 'Ignorar',
         vigilar: 'Vigilar',
@@ -73,6 +74,16 @@ describe('PantallaTendencias', () => {
 
         expect(await screen.findByText('En vigilancia')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Vigilar' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Cubrir ahora' })).toBeEnabled();
+    });
+
+    it('muestra la insignia de sospecha de manipulación (Nivel Dos G.1) sin desactivar Vigilar', async () => {
+        stubFetchConTarjetas([tarjetaDeEjemplo({ estado: 'sospecha_manipulacion' })]);
+
+        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+
+        expect(await screen.findByText('Sospecha de manipulación (concentración de fuente) — heurística, no un veredicto')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Vigilar' })).toBeEnabled();
         expect(screen.getByRole('button', { name: 'Cubrir ahora' })).toBeEnabled();
     });
 

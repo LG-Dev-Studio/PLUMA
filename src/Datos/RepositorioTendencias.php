@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pluma\Datos;
 
 use DateTimeImmutable;
+use Pluma\Sensores\DiagnosticoLegitimidadInsumo;
 use Pluma\Sensores\EstadoTendencia;
 use Pluma\Sensores\TendenciaDetectada;
 use wpdb;
@@ -67,6 +68,28 @@ final class RepositorioTendencias implements RepositorioTendenciasInterface {
 				'creada_en'              => $ahora->format( 'Y-m-d H:i:s' ),
 			),
 			array( '%s', '%s', '%f', '%f', '%f', '%s', '%s', '%d', '%s', '%s' )
+		);
+
+		return (int) $this->wpdb->insert_id;
+	}
+
+	public function guardarConSospechaLegitimidad( TendenciaDetectada $tendencia, DiagnosticoLegitimidadInsumo $diagnostico, DateTimeImmutable $ahora ): int {
+		$this->wpdb->insert(
+			$this->tabla(),
+			array(
+				'termino'                => mb_strtolower( trim( $tendencia->termino ) ),
+				'fuente_senal'           => $tendencia->fuenteSenal,
+				'puntuacion_velocidad'   => $tendencia->puntuacion->velocidad,
+				'puntuacion_afinidad'    => $tendencia->puntuacion->afinidad,
+				'puntuacion_total'       => $tendencia->puntuacion->total,
+				'articulos_relacionados' => wp_json_encode( $tendencia->articulosRelacionados ),
+				'estado'                 => EstadoTendencia::SospechaDeManipulacion->value,
+				'diversidad_fuente'      => $diagnostico->diversidadFuente,
+				'motivo_legitimidad'     => $diagnostico->motivo,
+				'detectada_en'           => $tendencia->detectadaEn->format( 'Y-m-d H:i:s' ),
+				'creada_en'              => $ahora->format( 'Y-m-d H:i:s' ),
+			),
+			array( '%s', '%s', '%f', '%f', '%f', '%s', '%s', '%f', '%s', '%s', '%s' )
 		);
 
 		return (int) $this->wpdb->insert_id;

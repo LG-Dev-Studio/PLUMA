@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pluma\Datos;
 
 use DateTimeImmutable;
+use Pluma\Sensores\DiagnosticoLegitimidadInsumo;
 use Pluma\Sensores\EstadoTendencia;
 use Pluma\Sensores\TendenciaDetectada;
 
@@ -25,6 +26,14 @@ interface RepositorioTendenciasInterface {
 	 * Tendencias antes de gastar investigación/redacción.
 	 */
 	public function guardarComoPosibleActualizacion( TendenciaDetectada $tendencia, int $tendenciaOriginalId, DateTimeImmutable $ahora ): int;
+
+	/**
+	 * Guarda una tendencia detectada con `SOSPECHA_MANIPULACION` (Nivel Dos
+	 * G.1) — `EvaluadorLegitimidadInsumo` detectó concentración de fuente
+	 * anómala. NO crea Pieza; el editor confirma desde la Sala de
+	 * Tendencias ("Cubrir ahora") si juzga que es un falso positivo.
+	 */
+	public function guardarConSospechaLegitimidad( TendenciaDetectada $tendencia, DiagnosticoLegitimidadInsumo $diagnostico, DateTimeImmutable $ahora ): int;
 
 	/**
 	 * Candidatas reales para la huella semántica (`ComparadorHistorias`):

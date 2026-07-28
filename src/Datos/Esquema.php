@@ -45,6 +45,11 @@ final class Esquema {
 			// NO compuesto con `detectada_en` por una limitación conocida de
 			// `dbDelta` detectando claves multi-columna en migraciones
 			// repetidas (verificado empíricamente contra wp-env real).
+			// Etapa 8, porción 9 (Nivel Dos G.1, legitimidad del insumo):
+			// diversidad_fuente y motivo_legitimidad — diagnóstico de
+			// `Pluma\Sensores\EvaluadorLegitimidadInsumo` cuando el estado es
+			// SOSPECHA_MANIPULACION, guardado para auditoría y calibración
+			// futura del umbral (nulos en el caso normal).
 			"CREATE TABLE {$prefijo}tendencias (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 termino VARCHAR(191) NOT NULL,
@@ -58,6 +63,8 @@ final class Esquema {
                 gravedad TINYINT UNSIGNED NULL,
                 campo_tematico VARCHAR(191) NULL,
                 campo_geografico VARCHAR(191) NULL,
+                diversidad_fuente DECIMAL(4,2) NULL,
+                motivo_legitimidad VARCHAR(500) NULL,
                 detectada_en DATETIME NOT NULL,
                 creada_en DATETIME NOT NULL,
                 PRIMARY KEY  (id),
@@ -374,6 +381,9 @@ final class Esquema {
 		$prefijo = $wpdb->prefix . 'pluma_';
 
 		return match ( $versionOrigen . '->' . $versionDestino ) {
+			'0.16.0->0.15.0' => array(
+				"ALTER TABLE {$prefijo}tendencias DROP COLUMN diversidad_fuente, DROP COLUMN motivo_legitimidad;",
+			),
 			'0.15.0->0.14.0' => array(
 				"ALTER TABLE {$prefijo}tendencias DROP COLUMN gravedad, DROP COLUMN campo_tematico, DROP COLUMN campo_geografico;",
 				"DROP TABLE IF EXISTS {$prefijo}modo_respeto;",

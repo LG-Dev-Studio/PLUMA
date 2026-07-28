@@ -35,6 +35,7 @@ use Pluma\Redaccion\RedactorInterface;
 use Pluma\Redaccion\TipoMemoria;
 use Pluma\Redaccion\VerificadorComentarioSustantivo;
 use Pluma\Sensores\ComparadorHistorias;
+use Pluma\Sensores\EvaluadorLegitimidadInsumo;
 use Pluma\Sensores\RelacionHistoria;
 use Pluma\Sensores\SensorInterface;
 use Pluma\Seo\MetadatosSeo;
@@ -102,6 +103,7 @@ final class Orquestador {
 		private readonly ClasificadorGravedadTendencia $clasificadorGravedad,
 		private readonly GestorModoRespeto $gestorModoRespeto,
 		private readonly AsignadorImagenDestacadaInterface $asignadorImagenDestacada,
+		private readonly EvaluadorLegitimidadInsumo $evaluadorLegitimidad,
 	) {
 	}
 
@@ -182,6 +184,17 @@ final class Orquestador {
 				// confirma desde la Sala de Tendencias (decisión del
 				// propietario, 2026-07-23).
 				$this->tendencias->guardarComoPosibleActualizacion( $detectada, $resultado->tendenciaRelacionadaId, $this->reloj->ahora() );
+				continue;
+			}
+
+			$diagnosticoLegitimidad = $this->evaluadorLegitimidad->evaluar( $detectada );
+
+			if ( ! $diagnosticoLegitimidad->legitimo ) {
+				// Nivel Dos G.1: "antes de que una tendencia entre a la cola
+				// editorial" — NO se crea Pieza. El editor revierte con
+				// "Cubrir ahora" desde la Sala de Tendencias si juzga que es
+				// un falso positivo (la heurística es imperfecta por diseño).
+				$this->tendencias->guardarConSospechaLegitimidad( $detectada, $diagnosticoLegitimidad, $this->reloj->ahora() );
 				continue;
 			}
 
