@@ -25,8 +25,10 @@ use Pluma\Admin\RestImagenDestacada;
 use Pluma\Admin\RestModoRespeto;
 use Pluma\Admin\RestRiesgoLegal;
 use Pluma\Admin\RestTransparencia;
+use Pluma\Compuertas\ClasificadorComentarios;
 use Pluma\Compuertas\ClasificadorGravedadTendencia;
 use Pluma\Compuertas\CompuertaCalidad;
+use Pluma\Compuertas\CompuertaComentarios;
 use Pluma\Compuertas\CompuertaOriginalidad;
 use Pluma\Compuertas\CompuertaRiesgo;
 use Pluma\Compuertas\EvaluadorCompuertas;
@@ -525,6 +527,17 @@ final class Nucleo {
 		$this->contenedor->registrar( CompuertaOriginalidad::class, static fn (): CompuertaOriginalidad => new CompuertaOriginalidad() );
 		$this->contenedor->registrar( GestorDegradacion::class, static fn (): GestorDegradacion => new GestorDegradacion() );
 		$this->contenedor->registrar(
+			ClasificadorComentarios::class,
+			fn ( Contenedor $c ): ClasificadorComentarios => new ClasificadorComentarios(
+				$c->obtener( LenguajeInterface::class ),
+				$c->obtener( PresupuestoLenguaje::class )
+			)
+		);
+		$this->contenedor->registrar(
+			CompuertaComentarios::class,
+			fn ( Contenedor $c ): CompuertaComentarios => new CompuertaComentarios( $c->obtener( ClasificadorComentarios::class ) )
+		);
+		$this->contenedor->registrar(
 			EvaluadorCompuertas::class,
 			fn ( Contenedor $c ): EvaluadorCompuertas => new EvaluadorCompuertas(
 				$c->obtener( CompuertaCalidad::class ),
@@ -870,5 +883,6 @@ final class Nucleo {
 		$this->contenedor->obtener( EmisorEsquemaFrontend::class )->registrar();
 		$this->contenedor->obtener( PaginaAutorPeriodista::class )->registrar();
 		$this->contenedor->obtener( HistoriaHub::class )->registrar();
+		$this->contenedor->obtener( CompuertaComentarios::class )->registrar();
 	}
 }

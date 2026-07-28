@@ -51,12 +51,19 @@ enum PropositoLenguaje: string {
 	 * deliberadamente barato: económico, no premium.
 	 */
 	case Falsear = 'falsear';
+	/**
+	 * Compuertas de comentarios (Nivel Cuatro X.1, Etapa 9): "la misma
+	 * filosofía del Capítulo 8, aplicada a la entrada" — clasifica cada
+	 * comentario entrante en tiempo real, síncrono con el envío del
+	 * visitante. Económico y determinista, mismo criterio que `Clasificar`.
+	 */
+	case ClasificarComentario = 'clasificar_comentario';
 
 	public function esPremium(): bool {
 		// phpcs:ignore PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext -- falso positivo: $this en un método de enum (PHP 8.1) es válido; el sniff aún no reconoce enums.
 		return match ( $this ) {
 			self::Redactar, self::Corregir, self::BloqueEditor, self::RespuestaComentario => true,
-			self::Clasificar, self::Angulos, self::Titulares, self::VistaPrevia, self::CompararHistorias, self::AnalizarAudiencia, self::Falsear => false,
+			self::Clasificar, self::Angulos, self::Titulares, self::VistaPrevia, self::CompararHistorias, self::AnalizarAudiencia, self::Falsear, self::ClasificarComentario => false,
 		};
 	}
 
@@ -68,7 +75,7 @@ enum PropositoLenguaje: string {
 	public function temperatura(): float {
 		// phpcs:ignore PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext -- falso positivo: $this en un método de enum (PHP 8.1) es válido; el sniff aún no reconoce enums.
 		return match ( $this ) {
-			self::Clasificar, self::CompararHistorias, self::AnalizarAudiencia => 0.0,
+			self::Clasificar, self::CompararHistorias, self::AnalizarAudiencia, self::ClasificarComentario => 0.0,
 			self::Corregir, self::Falsear => 0.2,
 			self::Angulos, self::Titulares => 0.8,
 			self::Redactar, self::BloqueEditor, self::VistaPrevia, self::RespuestaComentario => 0.7,
