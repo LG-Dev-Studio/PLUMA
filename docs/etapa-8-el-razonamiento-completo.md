@@ -283,6 +283,16 @@ Documentación completa de la funcionalidad diferida — qué es, por qué impor
 | `composer test:integration` (wp-env real) | 180/180 (2 skipped esperados) |
 | `npx vitest run` / `tsc` / `build` / Playwright | sin cambios de panel — no aplica a esta porción |
 
-## Porciones 8-10
+## Porción 8 — Imagen destacada (D.1-D.3 + N.2 + G.2) — DIFERIDA A VERSIÓN POSTERIOR AL LANZAMIENTO
+
+**Decisión explícita del propietario (`ADR 0005`, 2026-07-27)**: PLUMA no tiene hoy ningún proveedor de generación de imágenes ni de banco de stock con licencia integrado — elegir uno implica costo recurrente y términos de licencia comercial que el propietario decidió no resolver bajo presión de continuar la Etapa 8, el mismo tratamiento ya dado al proveedor de búsqueda web (`PLUMA-E8-1`) y a la réplica dirigida (`PLUMA-E8-6`/`ADR 0004`).
+
+Se difiere la Porción 8 completa: D.1 (bifurcación generación IA vs. banco de stock), D.2 (Compuerta de Originalidad Visual — lista de bloqueo de marca/IP/artista vivo, registro de procedencia, consistencia visual por periodista), D.3 (fallback de tarjeta editorial tipográfica — técnicamente independiente de proveedor externo, pero diferido junto con el resto para no fragmentar la porción), N.2 (derechos de personalidad, extensión directa de D.2) y G.2 (`SatiricalArticle` en schema.org, agrupado en el plan por pertenecer al mismo módulo `Seo`).
+
+Documentación completa de la funcionalidad diferida — qué es, por qué importa, diseño de referencia para cuando se retome — en `docs/funcionalidad-imagen-destacada-d1-d3.md`. Deuda registrada como `PLUMA-E8-7`, paga parcialmente `PLUMA-E3-2` (deuda preexistente desde la Etapa 3).
+
+Ninguna porción posterior de la Etapa 8 depende de la imagen destacada — el roadmap continúa sin bloqueo con la Porción 9.
+
+## Porciones 9-10
 
 Pendientes. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); cada una abre su propio Mission Lock al comenzar.
