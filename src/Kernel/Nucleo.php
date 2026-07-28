@@ -21,6 +21,7 @@ use Pluma\Admin\RestSalaRevision;
 use Pluma\Admin\RestSalaTendencias;
 use Pluma\Admin\RestSearchConsole;
 use Pluma\Admin\RestModeloVerificador;
+use Pluma\Admin\RestImagenDestacada;
 use Pluma\Admin\RestModoRespeto;
 use Pluma\Admin\RestRiesgoLegal;
 use Pluma\Admin\RestTransparencia;
@@ -58,10 +59,12 @@ use Pluma\Datos\RepositorioTendencias;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabulario;
 use Pluma\Datos\RepositorioVocabularioInterface;
+use Pluma\Investigacion\ClasificadorNivelFuente;
 use Pluma\Investigacion\DetectorHuecos;
 use Pluma\Investigacion\InvestigadorInterface;
 use Pluma\Investigacion\InvestigadorMecanico;
 use Pluma\Investigacion\ResolutorDisputas;
+use Pluma\Investigacion\SelectorImagenPorAutoridad;
 use Pluma\Investigacion\VerificadorProcedenciaDeclaracion;
 use Pluma\Pipeline\GestorRespuestasComentarios;
 use Pluma\Pipeline\GestorSalaRevision;
@@ -72,6 +75,8 @@ use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Pipeline\Transicionador;
 use Pluma\Proveedores\EmbeddingsInterface;
 use Pluma\Proveedores\EnrutadorModelos;
+use Pluma\Proveedores\ExtractorImagenFuente;
+use Pluma\Proveedores\ExtractorImagenFuenteInterface;
 use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Proveedores\ProveedorGoogleTrends;
@@ -81,6 +86,8 @@ use Pluma\Proveedores\ProveedorSearchConsoleInterface;
 use Pluma\Proveedores\ProveedorTelemetria;
 use Pluma\Proveedores\ProveedorTendenciasInterface;
 use Pluma\Proveedores\TelemetriaInterface;
+use Pluma\Publicacion\AsignadorImagenDestacada;
+use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
 use Pluma\Publicacion\AsignadorTaxonomiaWp;
 use Pluma\Publicacion\CreadorBorrador;
 use Pluma\Publicacion\CreadorBorradorInterface;
@@ -285,6 +292,20 @@ final class Nucleo {
 				$c->obtener( ProgramadorCadencia::class ),
 				$c->obtener( LectorConfiguracionCadencia::class )
 			)
+		);
+		// Imagen destacada por autoridad de fuente (ADR 0006).
+		$this->contenedor->registrar( ClasificadorNivelFuente::class, static fn (): ClasificadorNivelFuente => new ClasificadorNivelFuente() );
+		$this->contenedor->registrar( ExtractorImagenFuenteInterface::class, static fn (): ExtractorImagenFuente => new ExtractorImagenFuente() );
+		$this->contenedor->registrar(
+			SelectorImagenPorAutoridad::class,
+			fn ( Contenedor $c ): SelectorImagenPorAutoridad => new SelectorImagenPorAutoridad(
+				$c->obtener( ClasificadorNivelFuente::class ),
+				$c->obtener( ExtractorImagenFuenteInterface::class )
+			)
+		);
+		$this->contenedor->registrar(
+			AsignadorImagenDestacadaInterface::class,
+			fn ( Contenedor $c ): AsignadorImagenDestacada => new AsignadorImagenDestacada( $c->obtener( SelectorImagenPorAutoridad::class ) )
 		);
 		$this->contenedor->registrar(
 			InvestigadorInterface::class,
@@ -568,7 +589,8 @@ final class Nucleo {
 				$c->obtener( ResolutorDisputas::class ),
 				$c->obtener( DetectorHuecos::class ),
 				$c->obtener( ClasificadorGravedadTendencia::class ),
-				$c->obtener( GestorModoRespeto::class )
+				$c->obtener( GestorModoRespeto::class ),
+				$c->obtener( AsignadorImagenDestacadaInterface::class )
 			)
 		);
 
@@ -584,6 +606,8 @@ final class Nucleo {
 				$c->obtener( RelojInterface::class )
 			)
 		);
+
+		$this->contenedor->registrar( RestImagenDestacada::class, static fn (): RestImagenDestacada => new RestImagenDestacada() );
 
 		$this->contenedor->registrar(
 			GestorSalaRevision::class,
@@ -794,6 +818,7 @@ final class Nucleo {
 		( new PantallaPanel( $this->contenedor->obtener( DetectorEntorno::class ) ) )->registrar();
 		$this->contenedor->obtener( RestOrquestador::class )->registrar();
 		$this->contenedor->obtener( RestModoRespeto::class )->registrar();
+		$this->contenedor->obtener( RestImagenDestacada::class )->registrar();
 		$this->contenedor->obtener( RestBancoPeriodistas::class )->registrar();
 		$this->contenedor->obtener( RestSalaRevision::class )->registrar();
 		$this->contenedor->obtener( NotificadorRevision::class )->registrar();

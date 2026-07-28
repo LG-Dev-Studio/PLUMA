@@ -293,6 +293,41 @@ Documentación completa de la funcionalidad diferida — qué es, por qué impor
 
 Ninguna porción posterior de la Etapa 8 depende de la imagen destacada — el roadmap continúa sin bloqueo con la Porción 9.
 
+## Imagen destacada por autoridad de fuente — alternativa del propietario a la Porción 8 (`ADR 0006`)
+
+Con la Porción 8 original ya diferida (`ADR 0005`), el propietario pidió un mecanismo distinto para la misma necesidad de producto — transferir la imagen del sitio fuente de mayor autoridad en vez de generar/comprar una:
+
+> "ahora quiero que el sistema transfiera la imagen del sitio donde se cogieron las noticias y la suba con la noticia nuestra, la calificación de la portada dependerá de cuál fuente tiene mayor autoridad"
+
+Esto es una **desviación deliberada** del principio establecido desde la Etapa 1 en `Pluma\Investigacion\HechoFuente` ("citar y enlazar, jamás reproducir") — el agente señaló el riesgo legal (posible infracción de derechos de autor incluso citando la fuente) antes de construir nada; el propietario, informado del riesgo, decidió proceder. Registro completo del razonamiento, la mitigación y la arquitectura en `ADR 0006`.
+
+**Qué se construyó:**
+
+- **`Pluma\Proveedores\ExtractorImagenFuenteInterface`/`ExtractorImagenFuente`** (nuevo): descarga la página del artículo fuente (`wp_remote_get`, timeout 8s), extrae `og:image`/`twitter:image` por regex, valida tanto la URL del artículo como la de la imagen con `Pluma\Proveedores\ValidadorUrl::esSegura()` (anti-SSRF, ya existente desde la Etapa 1) antes de usar ninguna.
+- **`Pluma\Investigacion\SelectorImagenPorAutoridad`** (nuevo): ordena los hechos del expediente por `NivelFuente::pesoBase()` descendente (A > B > C, `Pluma\Investigacion\ClasificadorNivelFuente`, construido en la Etapa 8 Porción 2 pero nunca antes registrado en `Nucleo.php` — se registra por primera vez en esta porción), prueba cada host una sola vez hasta encontrar imagen.
+- **`Pluma\Publicacion\ModoImagenDestacada`** (enum: `Ninguna`/`Enlazada`/`Descargada`) + **`Pluma\Publicacion\AsignadorImagenDestacada`**: modo `Enlazada` incrusta `<img>` apuntando a la URL original (nunca copia el archivo); modo `Descargada` usa `media_sideload_image()` + `set_post_thumbnail()` para una copia real en la biblioteca de medios del cliente. **`Ninguna` es el valor de fábrica** — ningún cliente queda expuesto al riesgo sin activarlo. Crédito a la fuente configurable de forma independiente del modo (visible por defecto), con aviso legal persistente en el propio texto del panel: ocultar el crédito no reduce el riesgo, y el texto lo dice explícitamente.
+- **`Orquestador::procesarRedaccionYBorrador()`**: la asignación de imagen es mejor esfuerzo, envuelta en su propio `try/catch` que registra en `$errores` sin bloquear la Pieza — mismo patrón de resiliencia que `evaluarModoRespeto()` (Porción 7).
+- **Panel**: nueva pestaña `imagenDestacada` en la Sala de Máquinas (`BloqueImagenDestacada.tsx`) — selector de modo, interruptor de crédito visible, aviso legal permanente (`role="alert"`).
+- **`Pluma\Admin\RestImagenDestacada`**: `GET`/`POST /pluma/v1/motor/imagen-destacada`, capacidad `pluma_configurar_motor`.
+
+**Cobertura de test y una limitación de herramientas documentada**: el modo `Descargada` no se pudo probar en la suite Unit — `vendor/php-stubs/wordpress-stubs` ya declara `media_sideload_image()` como función global real (para PHPStan), lo que bloquea a Brain\Monkey/Patchwork de interceptarla (solo puede shimear funciones genuinamente indefinidas). Se movió esa cobertura a `tests/Integration/AsignadorImagenDestacadaTest.php` contra WordPress real, donde la función existe de verdad. Esa misma suite de integración usa `pre_http_request` (no red real, GOVERNANCE §4.4) con una IP literal como host de prueba (`8.8.8.8`) en vez de un dominio `*.example.com` — `ValidadorUrl::esSegura()` hace una resolución DNS real (`gethostbyname()`) cuando el host no es ya una IP, así que un dominio de prueba forzaría tráfico de red real durante los tests.
+
+Paga parcialmente `PLUMA-E3-2` (la necesidad de producto queda cubierta; la necesidad literal del Libro — imagen con licencia propia — sigue abierta). Nueva deuda registrada: `PLUMA-E8-8` (sin circuit breaker en `ExtractorImagenFuente`; ninguna verificación automática de licencia es posible).
+
+### Evidencia de gates
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 546/546 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 187/187 (2 skipped esperados) |
+| `npx vitest run` | 95/95 |
+| `npx tsc --noEmit` | 0 errores |
+| `npm run build` | build de producción real, verificado |
+| `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
+
 ## Porciones 9-10
 
 Pendientes. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); cada una abre su propio Mission Lock al comenzar.

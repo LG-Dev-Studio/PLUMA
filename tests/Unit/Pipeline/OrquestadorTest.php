@@ -53,6 +53,7 @@ use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Proveedores\ProveedorLenguajeException;
 use Pluma\Proveedores\ProveedorTendenciasException;
+use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
 use Pluma\Publicacion\ComentarioWordPress;
 use Pluma\Publicacion\CreadorBorradorInterface;
 use Pluma\Publicacion\LectorComentariosInterface;
@@ -350,7 +351,8 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 				$colaPublicacion,
 				$programadorCadencia,
 				$lectorCadencia
-			)
+			),
+			$overrides['asignadorImagenDestacada'] ?? Mockery::mock( AsignadorImagenDestacadaInterface::class )->allows( 'asignar' )->getMock()
 		);
 	}
 

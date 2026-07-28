@@ -4,6 +4,7 @@ import { BloqueModeloVerificador, type TextosModeloVerificador } from './BloqueM
 import { BloqueSearchConsole, type TextosSearchConsole } from './BloqueSearchConsole';
 import { BloqueRiesgoLegal, type TextosRiesgoLegal } from './BloqueRiesgoLegal';
 import { BloqueModoRespeto, type TextosModoRespeto } from './BloqueModoRespeto';
+import { BloqueImagenDestacada, type TextosImagenDestacada } from './BloqueImagenDestacada';
 import { BloqueTransparencia, type TextosTransparencia } from './BloqueTransparencia';
 
 export interface DatosSalud {
@@ -101,6 +102,7 @@ export interface TextosSalaMaquinas {
     riesgoLegal: TextosRiesgoLegal;
     modeloVerificador: TextosModeloVerificador;
     modoRespeto: TextosModoRespeto;
+    imagenDestacada: TextosImagenDestacada;
     telemetria: {
         titulo: string;
         explicacion: string;
@@ -347,6 +349,8 @@ function SeccionesMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: st
             <BloqueModeloVerificador restUrl={restUrl} nonce={nonce} textos={textos.modeloVerificador} />
 
             <BloqueModoRespeto restUrl={restUrl} nonce={nonce} textos={textos.modoRespeto} />
+
+            <BloqueImagenDestacada restUrl={restUrl} nonce={nonce} textos={textos.imagenDestacada} />
 
             <section className="pluma-maquinas__seccion">
                 <h2>{textos.telemetria.titulo}</h2>

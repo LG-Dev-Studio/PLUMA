@@ -160,6 +160,21 @@ function textosDeEjemplo(): TextosSalaMaquinas {
             errorAccion: 'No se pudo completar la acción.',
             aunNoDesactivable: 'Todavía no puede desactivarse.',
         },
+        imagenDestacada: {
+            titulo: 'Imagen destacada por autoridad de fuente',
+            explicacion: 'Toma la imagen del artículo de mayor confianza.',
+            avisoRiesgo: 'Aviso legal: asumes el riesgo.',
+            etiquetaModo: 'Modo',
+            modoNinguna: 'Ninguna',
+            modoEnlazada: 'Enlazada',
+            modoDescargada: 'Descargada',
+            etiquetaCredito: 'Mostrar crédito visible',
+            notaCredito: 'El crédito no reduce el riesgo legal.',
+            guardar: 'Guardar',
+            guardado: 'Ajustes actualizados',
+            errorCarga: 'No se pudo cargar la configuración de imagen destacada.',
+            errorAccion: 'No se pudo guardar.',
+        },
         telemetria: {
             titulo: 'Telemetría',
             explicacion: 'Opcional y anónima.',
@@ -223,6 +238,9 @@ function stubFetch(bitacora: EjecucionBitacora[], estado: EstadoMotor, telemetri
                 ok: true,
                 json: () => Promise.resolve({ activo: false, activadoEn: null, activadoPor: null, motivo: null, puedeDesactivarseDesde: null }),
             });
+        }
+        if (url.endsWith('/motor/imagen-destacada')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({ modo: 'ninguna', creditoVisible: true }) });
         }
         if (url.endsWith('/motor/diagnostico')) {
             return Promise.resolve({ ok: true, json: () => Promise.resolve({ version: '1.0', entorno: {} }) });

@@ -36,6 +36,7 @@ use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Pipeline\Transicionador;
 use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
+use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
 use Pluma\Publicacion\CreadorBorradorInterface;
 use Pluma\Publicacion\LectorComentariosInterface;
 use Pluma\Publicacion\PublicadorInterface;
@@ -162,7 +163,8 @@ final class EscasezHonestaInvarianteTest extends CasoDePruebaUnitario {
 				$colaPublicacion,
 				new ProgramadorCadencia( new AzarFijo( 0 ) ),
 				new LectorConfiguracionCadencia()
-			)
+			),
+			Mockery::mock( AsignadorImagenDestacadaInterface::class )->allows( 'asignar' )->getMock()
 		);
 
 		$resultado = $orquestador->ejecutarTick();

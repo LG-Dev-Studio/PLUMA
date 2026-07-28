@@ -22,6 +22,7 @@ use Pluma\Investigacion\InvestigadorInterface;
 use Pluma\Investigacion\ResolutorDisputas;
 use Pluma\Kernel\RelojInterface;
 use Pluma\Proveedores\ProveedorTendenciasException;
+use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
 use Pluma\Publicacion\ComentarioWordPress;
 use Pluma\Publicacion\CreadorBorradorInterface;
 use Pluma\Publicacion\LectorComentariosInterface;
@@ -100,6 +101,7 @@ final class Orquestador {
 		private readonly DetectorHuecos $detectorHuecos,
 		private readonly ClasificadorGravedadTendencia $clasificadorGravedad,
 		private readonly GestorModoRespeto $gestorModoRespeto,
+		private readonly AsignadorImagenDestacadaInterface $asignadorImagenDestacada,
 	) {
 	}
 
@@ -353,6 +355,14 @@ final class Orquestador {
 
 			$postId = $this->creadorBorrador->crear( $resultado->titulo, $resultado->cuerpoHtml );
 			$this->piezas->actualizarPostId( $pieza->id, $postId, $this->reloj->ahora() );
+
+			// Imagen destacada por autoridad de fuente (ADR 0006): mejor
+			// esfuerzo, nunca bloquea la Pieza — si falla, sigue sin imagen.
+			try {
+				$this->asignadorImagenDestacada->asignar( $postId, $transitada->expediente );
+			} catch ( Throwable $errorImagen ) {
+				$errores[] = "pieza {$pieza->id} (imagen destacada, no bloqueante): " . $errorImagen->getMessage();
+			}
 		} catch ( Throwable $e ) {
 			$this->marcarFallida( $pieza->id, $e, $errores );
 		}
