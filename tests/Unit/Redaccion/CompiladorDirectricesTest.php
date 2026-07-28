@@ -207,4 +207,51 @@ final class CompiladorDirectricesTest extends CasoDePruebaUnitario {
 
 		self::assertStringNotContainsString( 'Combinación', $directrices );
 	}
+
+	/**
+	 * Nivel Tres Q.1: `localeEditorial` por defecto es `'es-ES'` — un
+	 * periodista sin locale explícito produce exactamente el mismo texto
+	 * que antes de esta porción (el catálogo movido bajo la clave `es-ES`
+	 * no cambia una sola palabra).
+	 */
+	public function test_periodista_sin_locale_explicito_usa_es_es_por_defecto(): void {
+		$directrices = ( new CompiladorDirectrices() )->compilar(
+			$this->periodista( 40 ),
+			Tono::Analitico,
+			Tono::Critico,
+			NivelSatiraPermitida::No
+		);
+
+		self::assertStringContainsString( 'Una nota de ironía puntual', $directrices );
+	}
+
+	/**
+	 * Nivel Tres Q.1: un locale sin catálogo curado todavía cae al catálogo
+	 * de `es-ES` — nunca a una traducción automática ni a un ancla vacía.
+	 */
+	public function test_locale_sin_catalogo_curado_cae_al_catalogo_es_es(): void {
+		$diales     = new Diales( 80, 55, 55, 55, 75, 60, 60, 65 );
+		$reglas     = new ReglasConducta( 'Escéptica del poder.', array(), array(), array(), TratamientoLector::Tu, '¿Y tú qué opinas?' );
+		$matriz     = MatrizTonos::desdeFilas(
+			array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) )
+		);
+		$conducta   = new ConductaVersion( 1, 1, $diales, $reglas, $matriz, false, new DateTimeImmutable( '2026-07-22T12:00:00+00:00' ) );
+		$periodista = new Periodista(
+			1,
+			'Periodista sin catálogo curado',
+			null,
+			'Bio.',
+			RolPeriodista::Columnista,
+			array(),
+			EstadoPeriodista::Activo,
+			$conducta,
+			new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ),
+			new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ),
+			'fr-FR'
+		);
+
+		$directrices = ( new CompiladorDirectrices() )->compilar( $periodista, Tono::Analitico, Tono::Critico, NivelSatiraPermitida::No );
+
+		self::assertStringContainsString( 'Una nota de ironía puntual', $directrices );
+	}
 }

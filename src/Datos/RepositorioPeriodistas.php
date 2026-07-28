@@ -47,7 +47,8 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 		Diales $diales,
 		ReglasConducta $reglas,
 		MatrizTonos $matrizTonos,
-		DateTimeImmutable $ahora
+		DateTimeImmutable $ahora,
+		string $localeEditorial = 'es-ES'
 	): int {
 		$this->wpdb->insert(
 			$this->tablaPeriodistas(),
@@ -59,10 +60,11 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 				'especialidades'             => wp_json_encode( array_map( static fn ( Especialidad $e ): array => $e->aArray(), $especialidades ) ),
 				'estado'                     => $estado->value,
 				'version_conducta_actual_id' => 0,
+				'locale_editorial'           => $localeEditorial,
 				'creado_en'                  => $ahora->format( 'Y-m-d H:i:s' ),
 				'actualizado_en'             => $ahora->format( 'Y-m-d H:i:s' ),
 			),
-			array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s' )
+			array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
 		);
 
 		$periodistaId = (int) $this->wpdb->insert_id;
@@ -212,7 +214,8 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 			EstadoPeriodista::from( (string) $fila['estado'] ),
 			$conductaActual,
 			new DateTimeImmutable( (string) $fila['creado_en'] ),
-			new DateTimeImmutable( (string) $fila['actualizado_en'] )
+			new DateTimeImmutable( (string) $fila['actualizado_en'] ),
+			isset( $fila['locale_editorial'] ) && is_string( $fila['locale_editorial'] ) ? $fila['locale_editorial'] : 'es-ES'
 		);
 	}
 

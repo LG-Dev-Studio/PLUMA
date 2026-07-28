@@ -89,10 +89,14 @@ final class ImportadorBancoPeriodistas {
 			array_values( $periodistaCrudo['versionesConducta'] )
 		);
 
-		$ahora        = $this->reloj->ahora();
-		$primera      = $versiones[0];
-		$avatarUrl    = isset( $periodistaCrudo['avatarUrl'] ) && is_string( $periodistaCrudo['avatarUrl'] ) ? $periodistaCrudo['avatarUrl'] : null;
-		$periodistaId = $this->repoPeriodistas->crear(
+		$ahora     = $this->reloj->ahora();
+		$primera   = $versiones[0];
+		$avatarUrl = isset( $periodistaCrudo['avatarUrl'] ) && is_string( $periodistaCrudo['avatarUrl'] ) ? $periodistaCrudo['avatarUrl'] : null;
+		// Ausente en exportaciones previas a la Etapa 8 Porción 10 (mismo
+		// VERSION_FORMATO '1.0', campo añadido de forma retrocompatible):
+		// por defecto 'es-ES', igual que un periodista nuevo.
+		$localeEditorial = isset( $periodistaCrudo['localeEditorial'] ) && is_string( $periodistaCrudo['localeEditorial'] ) ? $periodistaCrudo['localeEditorial'] : 'es-ES';
+		$periodistaId    = $this->repoPeriodistas->crear(
 			$periodistaCrudo['nombre'],
 			$avatarUrl,
 			$periodistaCrudo['biografia'],
@@ -102,7 +106,8 @@ final class ImportadorBancoPeriodistas {
 			$primera['diales'],
 			$primera['reglasConducta'],
 			$primera['matrizTonos'],
-			$ahora
+			$ahora,
+			$localeEditorial
 		);
 
 		// La primera versión creada por `crear()` siempre arranca con las

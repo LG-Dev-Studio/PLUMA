@@ -31,3 +31,14 @@ El propio Nivel Dos es explícito: esta verificación es un juicio humano ("un p
 2. Un editor humano (el propietario, o quien delegue en Piloto) debe poder identificar cuál de las 3 piezas es la nueva, o confirmar que las 3 son indistinguibles en voz.
 3. Repetir para cada periodista sembrado.
 4. Registrar el resultado (aprobado/observaciones) en la bitácora de release — sin bloquear el release por defecto (es una señal de calidad, no una compuerta dura), salvo que el editor identifique una discrepancia clara de voz, en cuyo caso se trata como bug de regresión antes de publicar.
+
+## Cadencia mensual independiente de release (Nivel Tres P.3)
+
+Las tres verificaciones de arriba se disparan "antes de cualquier release que toque..." — pero un periodista puede llevar meses sin que nadie toque su plantilla y aun así derivar, porque el proveedor detrás de `LenguajeInterface`/`EmbeddingsInterface` puede actualizar silenciosamente los pesos del modelo bajo el mismo alias de API, sin que ninguna línea de código cambie. El corpus, tal como está definido arriba, nunca se ejecuta si lo que cambió fue el modelo y no el prompt.
+
+**Corrección (Etapa 8, Porción 10)**: además del disparador por release, el corpus de regresión de voz se ejecuta en un calendario **independiente**, mensual como mínimo:
+
+1. Ejecutar `composer test:voz` (aísla, vía `@group voz`, exactamente los dos archivos de esta cadencia: `CorpusVozFixturesTest.php` — verificación 1 — y `VerificadorRegresionVozTest.php` — mecanismo de la verificación 2, con dobles; para la verificación 2 contra el proveedor real, repetir los pasos 1-4 de la sección "Deriva semántica" arriba, en este calendario mensual, no solo antes de release).
+2. Registrar el resultado (y cualquier verdicto de la auditoría editorial por periodista) en `docs/bitacora-auditoria-periodistas.md`.
+
+Esta cadencia no depende de infraestructura nueva — reutiliza el mismo corpus y el mismo mecanismo de A.5, solo cambia cuándo se dispara.

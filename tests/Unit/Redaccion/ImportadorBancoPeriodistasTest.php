@@ -84,7 +84,8 @@ final class ImportadorBancoPeriodistasTest extends CasoDePruebaUnitario {
 				self::callback( static fn ( Diales $d ): bool => 80 === $d->agudezaCritica ),
 				self::isInstanceOf( ReglasConducta::class ),
 				self::isInstanceOf( MatrizTonos::class ),
-				self::isInstanceOf( DateTimeImmutable::class )
+				self::isInstanceOf( DateTimeImmutable::class ),
+				'es-ES'
 			)
 			->willReturn( 55 );
 		$repoPeriodistas->expects( self::once() )->method( 'nuevaVersionConducta' )
@@ -102,6 +103,43 @@ final class ImportadorBancoPeriodistasTest extends CasoDePruebaUnitario {
 		);
 
 		self::assertSame( 1, $importados );
+	}
+
+	/**
+	 * Nivel Tres Q.1: `localeEditorial` es un campo opcional añadido de
+	 * forma retrocompatible (mismo `VERSION_FORMATO` '1.0') — una
+	 * exportación que sí lo trae debe respetarlo, no defaultear a 'es-ES'.
+	 */
+	public function test_importa_el_locale_editorial_cuando_la_exportacion_lo_trae(): void {
+		$periodista                    = $this->periodistaValido();
+		$periodista['localeEditorial'] = 'fr-FR';
+
+		$repoPeriodistas = $this->createMock( RepositorioPeriodistasInterface::class );
+		$repoPeriodistas->expects( self::once() )->method( 'crear' )
+			->with(
+				self::anything(),
+				self::anything(),
+				self::anything(),
+				self::anything(),
+				self::anything(),
+				self::anything(),
+				self::anything(),
+				self::anything(),
+				self::anything(),
+				self::anything(),
+				'fr-FR'
+			)
+			->willReturn( 55 );
+
+		$repoMemoria = $this->createMock( RepositorioMemoriaEditorialInterface::class );
+		$repoMemoria->method( 'registrar' );
+
+		( new ImportadorBancoPeriodistas( $repoPeriodistas, $repoMemoria, new RelojFijo() ) )->importar(
+			array(
+				'version'     => '1.0',
+				'periodistas' => array( $periodista ),
+			)
+		);
 	}
 
 	public function test_lanza_excepcion_si_la_version_de_formato_no_es_compatible(): void {

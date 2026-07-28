@@ -47,6 +47,7 @@
         "test": "phpunit",
         "test:unit": "phpunit --testsuite=Unit",
         "test:invariantes": "phpunit --testsuite=Invariantes",
+        "test:voz": "phpunit --testsuite=Unit --group voz",
         "test:integration": "phpunit -c phpunit-integration.xml.dist"
     }
 }

@@ -27,6 +27,13 @@ final readonly class Periodista {
 		public ConductaVersion $conductaActual,
 		public DateTimeImmutable $creadoEn,
 		public DateTimeImmutable $actualizadoEn,
+		// Nivel Tres Q.1 (Etapa 8, Porción 10): "los catálogos de
+		// vocabulario prohibido y ejemplos-ancla son artefactos
+		// localizados, no traducidos" — determina qué catálogo aplica al
+		// compilar directrices. Con valor por defecto para no romper
+		// ningún constructor posicional existente ("un solo locale
+		// poblado inicialmente es aceptable").
+		public string $localeEditorial = 'es-ES',
 	) {
 	}
 

@@ -119,6 +119,10 @@ final class Esquema {
                 KEY keyword_principal (keyword_principal(100)),
                 KEY pieza_original_id (pieza_original_id)
             ) {$charset};",
+			// Etapa 8, porción 10 (Nivel Tres Q.1): locale_editorial —
+			// determina qué catálogo localizado (vocabulario prohibido,
+			// ejemplos-ancla) aplica al compilar directrices. Campo desde
+			// ya para no migrar el banco completo después.
 			"CREATE TABLE {$prefijo}periodistas (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 nombre VARCHAR(191) NOT NULL,
@@ -128,6 +132,7 @@ final class Esquema {
                 especialidades LONGTEXT NOT NULL,
                 estado VARCHAR(20) NOT NULL,
                 version_conducta_actual_id BIGINT UNSIGNED NOT NULL,
+                locale_editorial VARCHAR(10) NOT NULL DEFAULT 'es-ES',
                 creado_en DATETIME NOT NULL,
                 actualizado_en DATETIME NOT NULL,
                 PRIMARY KEY  (id),
@@ -381,6 +386,9 @@ final class Esquema {
 		$prefijo = $wpdb->prefix . 'pluma_';
 
 		return match ( $versionOrigen . '->' . $versionDestino ) {
+			'0.17.0->0.16.0' => array(
+				"ALTER TABLE {$prefijo}periodistas DROP COLUMN locale_editorial;",
+			),
 			'0.16.0->0.15.0' => array(
 				"ALTER TABLE {$prefijo}tendencias DROP COLUMN diversidad_fuente, DROP COLUMN motivo_legitimidad;",
 			),

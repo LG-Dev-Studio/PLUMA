@@ -24,37 +24,44 @@ final class CompiladorDirectrices {
 	private const VERSION_PLANTILLA = 1;
 
 	/**
-	 * @var array<string, array{etiqueta: string, bajo: array{directriz: string, parrafoAncla: string}, medio: array{directriz: string, parrafoAncla: string}, alto: array{directriz: string, parrafoAncla: string}}>|null
+	 * @var array<string, array<string, array{etiqueta: string, bajo: array{directriz: string, parrafoAncla: string}, medio: array{directriz: string, parrafoAncla: string}, alto: array{directriz: string, parrafoAncla: string}}>>|null
 	 */
 	private static ?array $anclasCongeladas = null;
 
+	private const LOCALE_DEFECTO = 'es-ES';
+
 	/**
-	 * Nivel Dos A.3: anclas de 3 tramos (`[0,33) / [33,67) / [67,100]`) por
-	 * dial continuo — cada tramo con su directriz y un párrafo ancla real
-	 * (ejemplo de prosa en ese registro), congeladas en `references/`.
+	 * Nivel Dos A.3 + Nivel Tres Q.1: anclas de 3 tramos (`[0,33) / [33,67) /
+	 * [67,100]`) por dial continuo, curadas por locale — cada tramo con su
+	 * directriz y un párrafo ancla real (ejemplo de prosa en ese registro),
+	 * congeladas en `references/`. Si el locale del periodista todavía no
+	 * tiene catálogo curado, cae al locale por defecto (`es-ES`) — nunca a
+	 * una traducción automática.
 	 *
 	 * @return array{etiqueta: string, bajo: array{directriz: string, parrafoAncla: string}, medio: array{directriz: string, parrafoAncla: string}, alto: array{directriz: string, parrafoAncla: string}}
 	 */
-	private function ancla( string $dial ): array {
+	private function ancla( string $dial, string $locale ): array {
 		if ( null === self::$anclasCongeladas ) {
 			self::$anclasCongeladas = require __DIR__ . '/references/anclas-diales.php';
 		}
 
-		return self::$anclasCongeladas[ $dial ] ?? array(
-			'etiqueta' => $dial,
-			'bajo'     => array(
-				'directriz'    => '',
-				'parrafoAncla' => '',
-			),
-			'medio'    => array(
-				'directriz'    => '',
-				'parrafoAncla' => '',
-			),
-			'alto'     => array(
-				'directriz'    => '',
-				'parrafoAncla' => '',
-			),
-		);
+		return self::$anclasCongeladas[ $locale ][ $dial ]
+			?? self::$anclasCongeladas[ self::LOCALE_DEFECTO ][ $dial ]
+			?? array(
+				'etiqueta' => $dial,
+				'bajo'     => array(
+					'directriz'    => '',
+					'parrafoAncla' => '',
+				),
+				'medio'    => array(
+					'directriz'    => '',
+					'parrafoAncla' => '',
+				),
+				'alto'     => array(
+					'directriz'    => '',
+					'parrafoAncla' => '',
+				),
+			);
 	}
 
 	/**
@@ -68,8 +75,8 @@ final class CompiladorDirectrices {
 		};
 	}
 
-	private function lineaDial( string $dial, int $valor ): string {
-		$ancla = $this->ancla( $dial );
+	private function lineaDial( string $dial, int $valor, string $locale ): string {
+		$ancla = $this->ancla( $dial, $locale );
 		$tramo = $ancla[ $this->tramoDe( $valor ) ];
 
 		return sprintf(
@@ -99,13 +106,14 @@ final class CompiladorDirectrices {
 		$conducta = $periodista->conductaActual;
 		$diales   = $conducta->diales;
 		$reglas   = $conducta->reglas;
+		$locale   = $periodista->localeEditorial;
 
 		$seccionesFijas = array(
 			sprintf( 'Eres %s, %s de la redacción. %s', $periodista->nombre, $periodista->rol->value, $periodista->biografia ),
 			'Línea editorial (filtro de toda tesis que defiendas): ' . $reglas->lineaEditorial,
 			'REGLA DE ORO CONTRA LA ALUCINACIÓN (invariante de sistema, ningún dial la modifica): no puedes afirmar nada que no exista en el expediente adjunto.',
 			'Vocabulario y frases PROHIBIDAS (nunca las uses, ni variaciones cercanas): '
-				. implode( ', ', VocabularioProhibidoGlobal::combinarCon( $reglas->vocabularioProhibido ) ),
+				. implode( ', ', VocabularioProhibidoGlobal::combinarCon( $reglas->vocabularioProhibido, $locale ) ),
 		);
 
 		$seccionesParametrizadas = array(
@@ -113,12 +121,12 @@ final class CompiladorDirectrices {
 				"\n",
 				array(
 					'Diales de temperamento:',
-					$this->lineaDial( 'agudezaCritica', $diales->agudezaCritica ),
-					$this->lineaDial( 'humor', $diales->humor ),
-					$this->lineaDial( 'formalidad', $diales->formalidad ),
-					$this->lineaDial( 'vehemencia', $diales->vehemencia ),
-					$this->lineaDial( 'empatia', $diales->empatia ),
-					$this->lineaDial( 'densidadDatos', $diales->densidadDatos ),
+					$this->lineaDial( 'agudezaCritica', $diales->agudezaCritica, $locale ),
+					$this->lineaDial( 'humor', $diales->humor, $locale ),
+					$this->lineaDial( 'formalidad', $diales->formalidad, $locale ),
+					$this->lineaDial( 'vehemencia', $diales->vehemencia, $locale ),
+					$this->lineaDial( 'empatia', $diales->empatia, $locale ),
+					$this->lineaDial( 'densidadDatos', $diales->densidadDatos, $locale ),
 				)
 			),
 		);

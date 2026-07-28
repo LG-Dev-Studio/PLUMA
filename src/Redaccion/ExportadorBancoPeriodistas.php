@@ -17,6 +17,12 @@ use Pluma\Kernel\RelojInterface;
  */
 final class ExportadorBancoPeriodistas {
 
+	// Campos nuevos y opcionales (p. ej. `respuestasHabilitadas` en la Etapa
+	// 5, `localeEditorial` en la Etapa 8 Porción 10) se añaden de forma
+	// retrocompatible SIN bumpear esta versión — `ImportadorBancoPeriodistas`
+	// defaultea el campo ausente en exportaciones antiguas, nunca falla el
+	// import por su ausencia. Bumpear rompería la importación de todo
+	// archivo exportado antes del cambio.
 	public const VERSION_FORMATO = '1.0';
 
 	public function __construct(
@@ -27,7 +33,7 @@ final class ExportadorBancoPeriodistas {
 	}
 
 	/**
-	 * @return array{version: string, exportadoEn: string, periodistas: list<array{nombre: string, avatarUrl: ?string, biografia: string, rol: string, especialidades: list<array{vertical: string, nivelDominio: int}>, estado: string, versionesConducta: list<array{diales: array<string, mixed>, reglasConducta: array<string, mixed>, matrizTonos: array<string, mixed>, respuestasHabilitadas: bool}>, memoria: list<array{tipo: string, tema: string, contenido: array<string, mixed>}>}>}
+	 * @return array{version: string, exportadoEn: string, periodistas: list<array{nombre: string, avatarUrl: ?string, biografia: string, rol: string, especialidades: list<array{vertical: string, nivelDominio: int}>, estado: string, localeEditorial: string, versionesConducta: list<array{diales: array<string, mixed>, reglasConducta: array<string, mixed>, matrizTonos: array<string, mixed>, respuestasHabilitadas: bool}>, memoria: list<array{tipo: string, tema: string, contenido: array<string, mixed>}>}>}
 	 */
 	public function exportar(): array {
 		$periodistas = array();
@@ -59,6 +65,7 @@ final class ExportadorBancoPeriodistas {
 				'rol'               => $periodista->rol->value,
 				'especialidades'    => array_map( static fn ( Especialidad $e ): array => $e->aArray(), $periodista->especialidades ),
 				'estado'            => $periodista->estado->value,
+				'localeEditorial'   => $periodista->localeEditorial,
 				'versionesConducta' => $versiones,
 				'memoria'           => $memoria,
 			);

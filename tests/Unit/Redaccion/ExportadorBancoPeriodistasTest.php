@@ -74,6 +74,7 @@ final class ExportadorBancoPeriodistasTest extends CasoDePruebaUnitario {
 
 		$exportado = $exportacion['periodistas'][0];
 		self::assertSame( 'Valentina Ruiz', $exportado['nombre'] );
+		self::assertSame( 'es-ES', $exportado['localeEditorial'] );
 		self::assertSame( 'economia', $exportado['especialidades'][0]['vertical'] );
 		self::assertCount( 1, $exportado['versionesConducta'] );
 		self::assertSame( 80, $exportado['versionesConducta'][0]['diales']['agudezaCritica'] );

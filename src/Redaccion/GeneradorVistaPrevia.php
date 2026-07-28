@@ -69,7 +69,8 @@ final class GeneradorVistaPrevia {
 			$periodista->estado,
 			new ConductaVersion( 0, $periodista->id, $dialesCandidatos, $reglasCandidatas, $matrizCandidata, false, new DateTimeImmutable() ),
 			$periodista->creadoEn,
-			$periodista->actualizadoEn
+			$periodista->actualizadoEn,
+			$periodista->localeEditorial
 		);
 
 		$directrices = ( new CompiladorDirectrices() )->compilar(

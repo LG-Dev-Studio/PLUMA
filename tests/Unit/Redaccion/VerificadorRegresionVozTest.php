@@ -12,7 +12,13 @@ use Pluma\Tests\Unit\Dobles\EmbeddingsFalso;
 /**
  * Nivel Dos A.5, verificación 2 de 3 (deriva semántica).
  *
+ * Nivel Tres P.3 (Etapa 8, Porción 10): invocable de forma aislada vía
+ * `composer test:voz`, además de correr en cada `composer test:unit`/CI —
+ * cadencia mensual independiente del ciclo de releases
+ * (`docs/protocolo-corpus-voz.md`).
+ *
  * @covers \Pluma\Redaccion\VerificadorRegresionVoz
+ * @group voz
  */
 final class VerificadorRegresionVozTest extends CasoDePruebaUnitario {
 

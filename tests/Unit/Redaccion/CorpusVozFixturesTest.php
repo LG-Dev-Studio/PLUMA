@@ -21,7 +21,13 @@ use Pluma\Tests\Unit\CasoDePruebaUnitario;
  * `PlantillasSiembra` con al menos 2 piezas cada uno, y ninguna contiene
  * vocabulario prohibido (global o propio) de ese periodista.
  *
+ * Nivel Tres P.3 (Etapa 8, Porción 10): además de correr en cada
+ * `composer test:unit`/CI, este test es invocable de forma aislada vía
+ * `composer test:voz` — cadencia mensual independiente del ciclo de
+ * releases (`docs/protocolo-corpus-voz.md`).
+ *
  * @covers \Pluma\Redaccion\VerificadorVoz
+ * @group voz
  */
 final class CorpusVozFixturesTest extends CasoDePruebaUnitario {
 

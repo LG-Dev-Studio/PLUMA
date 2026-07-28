@@ -37,7 +37,8 @@ interface RepositorioPeriodistasInterface {
 		Diales $diales,
 		ReglasConducta $reglas,
 		MatrizTonos $matrizTonos,
-		DateTimeImmutable $ahora
+		DateTimeImmutable $ahora,
+		string $localeEditorial = 'es-ES'
 	): int;
 
 	public function obtenerPorId( int $id ): ?Periodista;

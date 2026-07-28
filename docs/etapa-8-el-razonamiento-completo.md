@@ -1,6 +1,6 @@
 # Etapa 8 — El razonamiento completo (retrofit de mecanismo, TIER 1)
 
-**Estado: EN CURSO.** Porciones 1 (1a+1b), 2, 3, 4, 5 (diferida, ADR 0004), 6, 7 (7a+7b+7c), 8 (diferida, ADR 0005 + alternativa del propietario, ADR 0006) y 9 completas. Roadmap completo de 10 porciones en `C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md` (aprobado); la Porción 10 abre su propio Mission Lock a continuación.
+**Estado: CERRADA.** Porciones 1 (1a+1b), 2, 3, 4, 5 (diferida, ADR 0004), 6, 7 (7a+7b+7c), 8 (diferida, ADR 0005 + alternativa del propietario, ADR 0006), 9 y 10 completas — las 10 porciones del roadmap aprobado en `C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md` están cerradas.
 
 ## Objetivo y criterio de salida (`docs/PLAN-MAESTRO-EVOLUCION.md` §6)
 
@@ -360,6 +360,46 @@ Paga parcialmente `PLUMA-EV-4` (concentración de fuente); novedad de cuentas de
 | `npm run build` | build de producción real, verificado |
 | `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
 
-## Porción 10
+## Porción 10 — Disciplina de activo (Nivel Tres P.3 + Q.1) — CIERRA LA ETAPA 8
 
-Pendiente. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); abre su propio Mission Lock a continuación.
+### Q.1 — `localeEditorial`
+
+**Texto fuente** (`docs/PLUMA_Engine_Nivel_Tres.md`, Cap. Q): "los catálogos de vocabulario prohibido, los ejemplos-ancla de A.3 y el corpus de regresión de A.5 son artefactos localizados, no traducidos... la Configuración de Periodista necesita un campo de primera clase, `locale_editorial`". Tabla de ubicación: "Etapa 2, campo de la Configuración de Periodista — añadirlo después obliga a migrar todo el banco existente".
+
+**Hallazgo que mejoró el diseño respecto al plan original**: `Periodista::__construct()` tiene 10 parámetros posicionales sin un solo call site con argumentos nombrados (26 ocurrencias verificadas en 20 archivos antes de tocar nada). El plan original asumía que añadir el campo "rompe todos los call sites". Verificado que **no es así**: PHP permite un 11º parámetro final **con valor por defecto** (`public string $localeEditorial = 'es-ES'`) sin romper ningún caller existente — solo los tests que necesiten ejercitar un locale explícito lo pasan. Mismo patrón aplicado a `RepositorioPeriodistas::crear()`.
+
+**Qué se construyó:**
+
+- `Periodista::$localeEditorial` (nuevo, default `'es-ES'`).
+- `src/Redaccion/references/anclas-diales.php` reestructurado de `array<dial, {...}>` a `array<locale, array<dial, {...}>>` — el contenido existente se movió sin cambiar una sola palabra bajo la clave `'es-ES'`.
+- `CompiladorDirectrices::ancla()`/`lineaDial()` ganan un parámetro `$locale`: `$anclasCongeladas[$locale][$dial] ?? $anclasCongeladas['es-ES'][$dial] ?? <tramo vacío>` — tres niveles de fallback, nunca una traducción automática.
+- `VocabularioProhibidoGlobal::muletillasDeTextoIa(string $locale = 'es-ES')`/`combinarCon()` — mismo patrón, un solo `match` con un único caso poblado hoy.
+- `RepositorioPeriodistas`/`Esquema` (`pluma_periodistas` gana `locale_editorial VARCHAR(10) NOT NULL DEFAULT 'es-ES'`, esquema `0.16.0 → 0.17.0`, reversa registrada) + `filaAPeriodista()` con fallback defensivo.
+- `GeneradorVistaPrevia` (el Estudio de Conducta): se descubrió que clonaba `Periodista` sin propagar `localeEditorial` — hubiera perdido la fidelidad del locale real del periodista en cada vista previa. Corregido antes de que fuera un bug en producción.
+- `ExportadorBancoPeriodistas`/`ImportadorBancoPeriodistas`: `localeEditorial` se añade como campo **opcional y retrocompatible**, sin bumpear `VERSION_FORMATO` (que se mantiene en `'1.0'`) — siguiendo el precedente exacto ya establecido en el propio `ImportadorBancoPeriodistas` para `respuestasHabilitadas` (Etapa 5): bumpear la versión habría roto la importación de cualquier exportación hecha antes de este cambio. El importador defaultea a `'es-ES'` cuando el campo está ausente.
+- **Sin pantalla de panel para editar el locale** en esta porción — decisión de alcance explícita del propio texto fuente ("un solo locale poblado inicialmente es aceptable... para no migrar el banco después").
+
+### P.3 — Auditoría de periodista y deriva de modelo, cadencia mensual
+
+**Texto fuente** (`docs/PLUMA_Engine_Nivel_Tres.md`, Cap. P.3): un periodista puede llevar meses sin que nadie toque su plantilla y aun así derivar, porque el proveedor detrás de `LenguajeInterface`/`EmbeddingsInterface` puede actualizar silenciosamente los pesos del modelo bajo el mismo alias de API. El corpus de regresión de voz (A.5, Etapa 8 Porción 1b), tal como estaba definido, solo se ejecutaba "antes de cualquier release que toque..." — nunca capturaría esta deriva silenciosa. Tabla de ubicación: **"no depende de infraestructura nueva, solo de calendario"** — mandato explícito de cero esquema/tabla nueva.
+
+**Qué se construyó:**
+
+- `CorpusVozFixturesTest.php`/`VerificadorRegresionVozTest.php` ganan la anotación `@group voz` — siguen corriendo en `composer test:unit`/CI normal (cero regresión de cobertura), y además se vuelven invocables de forma aislada.
+- Nuevo script `composer test:voz` (`phpunit --testsuite=Unit --group voz`) — verificado que aísla exactamente los 6 tests de esos dos archivos.
+- `docs/protocolo-corpus-voz.md`: nueva sección "Cadencia mensual independiente de release".
+- `docs/bitacora-auditoria-periodistas.md` (nuevo): checklist mensual — resultado de `composer test:voz` + auditoría editorial ligera por cada periodista de `RepositorioPeriodistasInterface::obtenerActivos()` (el banco real de la instalación, no solo los 3 periodistas de siembra), con veredicto explícito (Conforme / Deriva detectada / Requiere ajuste) en una tabla markdown append-only. Sin tabla nueva, sin endpoint REST, sin pantalla de panel — tal como el texto fuente exige.
+
+Cierra la Etapa 8 completa: las 10 porciones del roadmap están cerradas (Porciones 5 y 8 diferidas explícitamente por decisión del propietario, con ADR propio cada una).
+
+### Evidencia de gates — Porción 10
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 558/558 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:voz` (nuevo) | 6/6, aísla exactamente los 2 archivos anotados |
+| `composer test:integration` (wp-env real, migración 0.16.0→0.17.0) | 190/190 (2 skipped esperados) |
+| `npx vitest run` / `tsc` / `build` / Playwright | sin cambios de panel — no aplica a esta porción |

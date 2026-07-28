@@ -43,6 +43,17 @@ final class EsquemaTest extends CasoDePruebaUnitario {
 		);
 	}
 
+	public function test_sentencias_reversa_desde_0_17_0_a_0_16_0_elimina_locale_editorial(): void {
+		$sentencias = Esquema::sentenciasReversaDesde( new wpdb(), '0.17.0', '0.16.0' );
+
+		self::assertSame(
+			array(
+				'ALTER TABLE wp_pluma_periodistas DROP COLUMN locale_editorial;',
+			),
+			$sentencias
+		);
+	}
+
 	public function test_sentencias_reversa_desde_0_15_0_a_0_14_0_elimina_gravedad_y_modo_respeto(): void {
 		$sentencias = Esquema::sentenciasReversaDesde( new wpdb(), '0.15.0', '0.14.0' );
 
