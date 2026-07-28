@@ -10,6 +10,7 @@ use Mockery;
 use Pluma\Compuertas\EstadoModoRespeto;
 use Pluma\Compuertas\GestorModoRespeto;
 use Pluma\Datos\RepositorioBorradoresInterface;
+use Pluma\Datos\RepositorioColaPublicacionInterface;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
@@ -19,7 +20,9 @@ use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\NivelVerificacion;
 use Pluma\Pipeline\EstadoPieza;
+use Pluma\Pipeline\LectorConfiguracionCadencia;
 use Pluma\Pipeline\Pieza;
+use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\ProveedorLenguajeException;
 use Pluma\Redaccion\AsignadorPeriodista;
@@ -73,7 +76,13 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 		$repoModoRespeto = $this->createMock( RepositorioModoRespetoInterface::class );
 		$repoModoRespeto->method( 'estadoActual' )->willReturn( EstadoModoRespeto::inactivo() );
 
-		return new GestorModoRespeto( $repoModoRespeto, $this->createMock( RepositorioTendenciasInterface::class ) );
+		return new GestorModoRespeto(
+			$repoModoRespeto,
+			$this->createMock( RepositorioTendenciasInterface::class ),
+			$this->createMock( RepositorioColaPublicacionInterface::class ),
+			new ProgramadorCadencia( new AzarFijo( 0 ) ),
+			new LectorConfiguracionCadencia()
+		);
 	}
 
 	private function periodista(): Periodista {

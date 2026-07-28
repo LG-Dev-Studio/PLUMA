@@ -9,6 +9,7 @@ use DateTimeImmutable;
 use Pluma\Compuertas\ActivadorModoRespeto;
 use Pluma\Compuertas\EstadoModoRespeto;
 use Pluma\Compuertas\GestorModoRespeto;
+use Pluma\Datos\RepositorioColaPublicacionInterface;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
@@ -18,7 +19,9 @@ use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\NivelVerificacion;
 use Pluma\Pipeline\EstadoPieza;
+use Pluma\Pipeline\LectorConfiguracionCadencia;
 use Pluma\Pipeline\Pieza;
+use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Redaccion\AsignadorPeriodista;
 use Pluma\Redaccion\ClasificadorNoticia;
 use Pluma\Redaccion\ConductaVersion;
@@ -95,7 +98,13 @@ final class DecisionEditorialTest extends CasoDePruebaUnitario {
 				: EstadoModoRespeto::inactivo()
 		);
 
-		return new GestorModoRespeto( $repoModoRespeto, $this->createMock( RepositorioTendenciasInterface::class ) );
+		return new GestorModoRespeto(
+			$repoModoRespeto,
+			$this->createMock( RepositorioTendenciasInterface::class ),
+			$this->createMock( RepositorioColaPublicacionInterface::class ),
+			new ProgramadorCadencia( new AzarFijo( 0 ) ),
+			new LectorConfiguracionCadencia()
+		);
 	}
 
 	private function construirDecision( ProveedorLenguajeSecuencial $proveedor, Periodista $periodista, bool $modoRespetoActivo = false ): DecisionEditorial {

@@ -112,4 +112,49 @@ final class RepositorioColaPublicacionTest extends WP_UnitTestCase {
 		self::assertSame( 7, $ranura->periodistaId );
 		self::assertSame( EstadoColaPublicacion::Programada, $ranura->estado );
 	}
+
+	/**
+	 * Nivel Dos F.3, modo respeto: pausar TODAS las ranuras `programada` —
+	 * nunca las descarta — y que `obtenerVencidas()` deje de verlas
+	 * mientras estén pausadas.
+	 */
+	public function test_pausar_programadas_las_saca_de_vencidas_y_las_deja_en_obtener_pausadas(): void {
+		global $wpdb;
+		$repo  = new RepositorioColaPublicacion( $wpdb );
+		$reloj = new RelojSistema();
+
+		$id = $repo->programar( 2001, 'economia', 5, $reloj->ahora()->modify( '-1 hour' ), $reloj->ahora() );
+		self::assertContains( $id, array_map( static fn ( $r ) => $r->id, $repo->obtenerVencidas( $reloj->ahora() ) ) );
+
+		$afectadas = $repo->pausarProgramadas();
+
+		self::assertGreaterThanOrEqual( 1, $afectadas );
+		self::assertNotContains( $id, array_map( static fn ( $r ) => $r->id, $repo->obtenerVencidas( $reloj->ahora() ) ) );
+		self::assertContains( $id, array_map( static fn ( $r ) => $r->id, $repo->obtenerPausadas() ) );
+	}
+
+	/**
+	 * Nivel Dos F.3: `reprogramar()` reactiva una ranura pausada con una
+	 * hora nueva — vuelve a `programada` y desaparece de `obtenerPausadas()`.
+	 */
+	public function test_reprogramar_reactiva_una_ranura_pausada_con_nueva_hora(): void {
+		global $wpdb;
+		$repo  = new RepositorioColaPublicacion( $wpdb );
+		$reloj = new RelojSistema();
+
+		$id = $repo->programar( 2002, 'cultura', null, $reloj->ahora(), $reloj->ahora() );
+		$repo->pausarProgramadas();
+		self::assertContains( $id, array_map( static fn ( $r ) => $r->id, $repo->obtenerPausadas() ) );
+
+		$nuevaHora = $reloj->ahora()->modify( '+2 hours' );
+		self::assertTrue( $repo->reprogramar( $id, $nuevaHora ) );
+
+		self::assertNotContains( $id, array_map( static fn ( $r ) => $r->id, $repo->obtenerPausadas() ) );
+		$hoy    = $reloj->ahora()->setTime( 0, 0 );
+		$manana = $hoy->modify( '+1 day' );
+		$ranura = current( array_filter( $repo->obtenerEntre( $hoy, $manana ), static fn ( $r ) => $r->id === $id ) );
+		self::assertNotFalse( $ranura );
+		self::assertSame( EstadoColaPublicacion::Programada, $ranura->estado );
+		self::assertEquals( $nuevaHora->format( 'Y-m-d H:i' ), $ranura->horaProgramada->format( 'Y-m-d H:i' ) );
+	}
 }

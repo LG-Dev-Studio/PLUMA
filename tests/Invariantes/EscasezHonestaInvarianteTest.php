@@ -158,7 +158,10 @@ final class EscasezHonestaInvarianteTest extends CasoDePruebaUnitario {
 			new ClasificadorGravedadTendencia( Mockery::mock( LenguajeInterface::class ) ),
 			new GestorModoRespeto(
 				Mockery::mock( RepositorioModoRespetoInterface::class )->allows( 'estadoActual' )->andReturn( EstadoModoRespeto::inactivo() )->getMock(),
-				Mockery::mock( RepositorioTendenciasInterface::class )
+				Mockery::mock( RepositorioTendenciasInterface::class ),
+				$colaPublicacion,
+				new ProgramadorCadencia( new AzarFijo( 0 ) ),
+				new LectorConfiguracionCadencia()
 			)
 		);
 

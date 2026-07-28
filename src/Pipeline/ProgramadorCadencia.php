@@ -72,6 +72,21 @@ final class ProgramadorCadencia {
 		return $elegido->modify( "+{$jitter} minutes" );
 	}
 
+	/**
+	 * Modo respeto (Nivel Dos F.3): "la cola se reactiva completa... con el
+	 * jitter de horario recalculado desde cero". Conserva la franja horaria
+	 * ya asignada (evita rederivar cuota/ventanas/separación para todo el
+	 * lote reactivado a la vez) y solo redibuja el jitter dentro de esa
+	 * hora — publicar todo exactamente en el minuto pausado delataría
+	 * automatización tan claramente como publicar en punto.
+	 */
+	public function rejitter( ConfiguracionCadencia $config, DateTimeImmutable $horaProgramada ): DateTimeImmutable {
+		$horaBase = $horaProgramada->setTime( (int) $horaProgramada->format( 'H' ), 0 );
+		$jitter   = $config->jitterMaximoMinutos > 0 ? $this->azar->entero( 0, $config->jitterMaximoMinutos ) : 0;
+
+		return $horaBase->modify( "+{$jitter} minutes" );
+	}
+
 	private function topeAlcanzado( ?int $tope, int $usadas ): bool {
 		return null !== $tope && $usadas >= $tope;
 	}

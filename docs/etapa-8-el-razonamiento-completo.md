@@ -257,6 +257,32 @@ Documentación completa de la funcionalidad diferida — qué es, por qué impor
 | `composer test:integration` (wp-env real) | 178/178 (2 skipped esperados) |
 | `npx vitest run` / `tsc` / `build` / Playwright | sin cambios de panel — no aplica a esta porción |
 
-## Porciones 7c-10
+## Porción 7c — Modo respeto: pausar y reactivar la cola de publicación (Nivel Dos F.3, cierra F.3 completo)
+
+**Diagnóstico del texto fuente (F.3, último efecto pendiente)**: "Piezas ya PROGRAMADA que no sean sobre el evento en cuestión: pausadas, no descartadas — la cola se reactiva completa al desactivar el modo, con el jitter de horario recalculado desde cero (publicar seis piezas de golpe al reactivar delataría automatización tan claramente como publicarlas exactamente en punto)."
+
+**Decisión de alcance tomada al abrir esta porción**: el texto fuente no da un mecanismo para determinar "qué ranuras son sobre el evento en cuestión" — inventar un matching heurístico (por ejemplo, comparar el `vertical`/tema de la Pieza contra el campo temático/geográfico que disparó el modo respeto) violaría "cero invención" (CLAUDE.md): sería una regla de negocio no pedida por el texto fuente, con un modo de fallo real (falsos negativos que dejan pasar justo la pieza más sensible). Dado que una pieza *sobre* el evento que acaba de disparar el modo respeto casi nunca está ya en `Programada` en el momento de la activación (tiene que atravesar investigación→redacción→compuertas primero, y F.3 ya fuerza su tono a Tragedia desde la Porción 7b), la simplificación **pausar todas las ranuras `Programada` sin excepción** es defendible y segura por defecto — documentada aquí explícitamente como decisión de alcance, no como omisión silenciosa.
+
+**Qué se agregó:**
+
+- **`Pluma\Pipeline\EstadoColaPublicacion`** gana el caso `Pausada` — lateral y temporal, nunca un estado final; ninguna ranura pausada se descarta jamás por este mecanismo.
+- **`Pluma\Datos\RepositorioColaPublicacionInterface`** gana `pausarProgramadas()` (`UPDATE` masivo `programada → pausada`, devuelve cuántas), `obtenerPausadas()`, y `reprogramar( int $id, DateTimeImmutable $nuevaHora )` (`pausada → programada` con hora nueva). `obtenerVencidas()` no necesitó cambios — ya filtraba `estado = programada`, así que deja de ver las pausadas automáticamente.
+- **`Pluma\Pipeline\ProgramadorCadencia::rejitter()`** (nuevo método): conserva la franja horaria ya asignada a la ranura (misma hora, minutos a cero) y redibuja solo el jitter dentro de esa hora — deliberadamente NO rederiva cuota/ventanas/separación mínima para todo el lote reactivado a la vez (evitaría el problema de recomputar "quién cabía ese día" contra un conjunto de ranuras que ya estaban comprometidas antes de pausar); simplificación análoga a la ya aceptada y documentada en `siguienteRanura()` sobre el reparto proporcional por peso.
+- **`Pluma\Compuertas\GestorModoRespeto`**: al activarse (automático o manual), llama `colaPublicacion->pausarProgramadas()`; al desactivarse (una vez cumplido el piso de duración mínima ya construido en 7a), recorre `obtenerPausadas()` y llama `reprogramar()` con la hora que devuelve `rejitter()` para cada una. Gana tres dependencias nuevas (`RepositorioColaPublicacionInterface`, `ProgramadorCadencia`, `LectorConfiguracionCadencia`) — 8 call sites de test reparados (`Nucleo.php` + 7 en tests).
+
+**Cierra el Nivel Dos F.1-F.3 completo**: disparador de dos niveles (7a), forzar tono de Tragedia en todo el sitio (7b), pausar/reactivar la cola con jitter recalculado (7c), piso de duración mínima no editable a la baja (7a). Sin cambios de esquema en esta porción (`pausada` cabe en la columna `estado VARCHAR(20)` ya existente), sin endpoints REST nuevos, sin cambios de panel.
+
+### Evidencia de gates — Porción 7c
+
+| Gate | Resultado |
+|---|---|
+| PHPCS | 0 errores |
+| PHPStan L8 | 0 errores |
+| `composer test:unit` | 529/529 |
+| `composer test:invariantes` | 21/21 |
+| `composer test:integration` (wp-env real) | 180/180 (2 skipped esperados) |
+| `npx vitest run` / `tsc` / `build` / Playwright | sin cambios de panel — no aplica a esta porción |
+
+## Porciones 8-10
 
 Pendientes. Alcance fundamentado y fuente ya verificada literalmente en el plan aprobado (`C:\Users\PCMASTER-2\.claude\plans\eager-fluttering-widget.md`); cada una abre su propio Mission Lock al comenzar.

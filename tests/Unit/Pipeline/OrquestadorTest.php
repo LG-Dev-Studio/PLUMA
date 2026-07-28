@@ -305,7 +305,10 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			}
 		);
 
-		$piezas = $overrides['piezas'] ?? $this->piezasPermisivas();
+		$piezas              = $overrides['piezas'] ?? $this->piezasPermisivas();
+		$colaPublicacion     = $overrides['colaPublicacion'] ?? $this->coloPermisivo();
+		$lectorCadencia      = $overrides['lectorCadencia'] ?? new LectorConfiguracionCadencia();
+		$programadorCadencia = $overrides['programadorCadencia'] ?? new ProgramadorCadencia( new AzarFijo( 0 ) );
 
 		return new Orquestador(
 			$overrides['candado'] ?? $this->candadoPermisivo(),
@@ -313,7 +316,7 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			$piezas,
 			$overrides['tendencias'] ?? Mockery::mock( RepositorioTendenciasInterface::class ),
 			$overrides['borradores'] ?? $this->borradoresPermisivo(),
-			$overrides['colaPublicacion'] ?? $this->coloPermisivo(),
+			$colaPublicacion,
 			$overrides['transicionador'] ?? new Transicionador(
 				$piezas,
 				$this->auditoriaPermisiva(),
@@ -325,8 +328,8 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			$overrides['motorSeo'] ?? $this->motorSeoFalso(),
 			$overrides['taxonomo'] ?? $this->taxonomoFalso(),
 			$overrides['evaluadorCompuertas'] ?? $this->evaluadorCompuertasFalso(),
-			$overrides['lectorCadencia'] ?? new LectorConfiguracionCadencia(),
-			$overrides['programadorCadencia'] ?? new ProgramadorCadencia( new AzarFijo( 0 ) ),
+			$lectorCadencia,
+			$programadorCadencia,
 			$overrides['creadorBorrador'] ?? Mockery::mock( CreadorBorradorInterface::class ),
 			$overrides['publicador'] ?? Mockery::mock( PublicadorInterface::class ),
 			$overrides['comparadorHistorias'] ?? $this->comparadorHistoriasPermisivo(),
@@ -341,7 +344,13 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			$overrides['resolutorDisputas'] ?? new ResolutorDisputas( Mockery::mock( LenguajeInterface::class ) ),
 			$overrides['detectorHuecos'] ?? new DetectorHuecos( Mockery::mock( LenguajeInterface::class ) ),
 			$overrides['clasificadorGravedad'] ?? new ClasificadorGravedadTendencia( Mockery::mock( LenguajeInterface::class ) ),
-			$overrides['gestorModoRespeto'] ?? new GestorModoRespeto( $this->modoRespetoPermisivo(), Mockery::mock( RepositorioTendenciasInterface::class ) )
+			$overrides['gestorModoRespeto'] ?? new GestorModoRespeto(
+				$this->modoRespetoPermisivo(),
+				Mockery::mock( RepositorioTendenciasInterface::class ),
+				$colaPublicacion,
+				$programadorCadencia,
+				$lectorCadencia
+			)
 		);
 	}
 

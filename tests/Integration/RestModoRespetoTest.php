@@ -6,10 +6,14 @@ namespace Pluma\Tests\Integration;
 
 use Pluma\Admin\RestModoRespeto;
 use Pluma\Compuertas\GestorModoRespeto;
+use Pluma\Datos\RepositorioColaPublicacion;
 use Pluma\Datos\RepositorioModoRespeto;
 use Pluma\Datos\RepositorioTendencias;
 use Pluma\Kernel\Activador;
+use Pluma\Kernel\AzarSistema;
 use Pluma\Kernel\RelojSistema;
+use Pluma\Pipeline\LectorConfiguracionCadencia;
+use Pluma\Pipeline\ProgramadorCadencia;
 use WP_REST_Request;
 use WP_UnitTestCase;
 
@@ -24,7 +28,13 @@ final class RestModoRespetoTest extends WP_UnitTestCase {
 	private function registrarRutas(): RestModoRespeto {
 		global $wpdb;
 		$reloj       = new RelojSistema();
-		$gestor      = new GestorModoRespeto( new RepositorioModoRespeto( $wpdb ), new RepositorioTendencias( $wpdb ) );
+		$gestor      = new GestorModoRespeto(
+			new RepositorioModoRespeto( $wpdb ),
+			new RepositorioTendencias( $wpdb ),
+			new RepositorioColaPublicacion( $wpdb ),
+			new ProgramadorCadencia( new AzarSistema() ),
+			new LectorConfiguracionCadencia()
+		);
 		$controlador = new RestModoRespeto( $gestor, $reloj );
 		$controlador->registrar();
 		do_action( 'rest_api_init' );

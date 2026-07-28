@@ -103,6 +103,46 @@ final class RepositorioColaPublicacion implements RepositorioColaPublicacionInte
 		return $this->actualizarEstado( $id, EstadoColaPublicacion::Expirada );
 	}
 
+	public function pausarProgramadas(): int {
+		$afectadas = $this->wpdb->update(
+			$this->tabla(),
+			array( 'estado' => EstadoColaPublicacion::Pausada->value ),
+			array( 'estado' => EstadoColaPublicacion::Programada->value ),
+			array( '%s' ),
+			array( '%s' )
+		);
+
+		return false !== $afectadas ? $afectadas : 0;
+	}
+
+	public function obtenerPausadas(): array {
+		$sql = $this->wpdb->prepare(
+			"SELECT * FROM {$this->tabla()} WHERE estado = %s ORDER BY hora_programada ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type
+			EstadoColaPublicacion::Pausada->value
+		);
+		assert( null !== $sql );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql ya se construyó con $wpdb->prepare() arriba.
+		$filas = $this->wpdb->get_results( $sql, ARRAY_A );
+
+		return array_map( fn ( array $fila ): RanuraPublicacion => $this->filaARanura( $fila ), $filas ?? array() );
+	}
+
+	public function reprogramar( int $id, DateTimeImmutable $nuevaHora ): bool {
+		$filasAfectadas = $this->wpdb->update(
+			$this->tabla(),
+			array(
+				'estado'          => EstadoColaPublicacion::Programada->value,
+				'hora_programada' => $nuevaHora->format( 'Y-m-d H:i:s' ),
+			),
+			array( 'id' => $id ),
+			array( '%s', '%s' ),
+			array( '%d' )
+		);
+
+		return false !== $filasAfectadas;
+	}
+
 	public function marcarAprobacionActiva( int $id ): bool {
 		$filasAfectadas = $this->wpdb->update(
 			$this->tabla(),

@@ -280,7 +280,10 @@ final class Nucleo {
 			GestorModoRespeto::class,
 			fn ( Contenedor $c ): GestorModoRespeto => new GestorModoRespeto(
 				$c->obtener( RepositorioModoRespetoInterface::class ),
-				$c->obtener( RepositorioTendenciasInterface::class )
+				$c->obtener( RepositorioTendenciasInterface::class ),
+				$c->obtener( RepositorioColaPublicacionInterface::class ),
+				$c->obtener( ProgramadorCadencia::class ),
+				$c->obtener( LectorConfiguracionCadencia::class )
 			)
 		);
 		$this->contenedor->registrar(

@@ -56,4 +56,21 @@ interface RepositorioColaPublicacionInterface {
 	 * la ventana de veto).
 	 */
 	public function obtenerProgramadaPorPieza( int $piezaId ): ?RanuraPublicacion;
+
+	/**
+	 * Modo respeto (Nivel Dos F.3): pausa TODAS las ranuras `programada` —
+	 * nunca las descarta. Devuelve cuántas se pausaron.
+	 */
+	public function pausarProgramadas(): int;
+
+	/**
+	 * @return list<RanuraPublicacion>
+	 */
+	public function obtenerPausadas(): array;
+
+	/**
+	 * Reactiva una ranura pausada con una hora nueva (jitter recalculado,
+	 * Nivel Dos F.3) — vuelve a `programada`.
+	 */
+	public function reprogramar( int $id, DateTimeImmutable $nuevaHora ): bool;
 }

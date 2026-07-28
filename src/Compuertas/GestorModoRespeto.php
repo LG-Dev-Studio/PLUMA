@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Pluma\Compuertas;
 
 use DateTimeImmutable;
+use Pluma\Datos\RepositorioColaPublicacionInterface;
 use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
+use Pluma\Pipeline\LectorConfiguracionCadencia;
+use Pluma\Pipeline\ProgramadorCadencia;
 
 /**
  * Modo respeto (Nivel Dos F.1-F.3): "el momento en que un sitio sigue
@@ -23,6 +26,11 @@ use Pluma\Datos\RepositorioTendenciasInterface;
  * Asimetría deliberada (F.2): activar de más cuesta un chiste perdido,
  * desactivar de más cuesta un incidente — por eso solo el editor desactiva,
  * nunca el propio sistema, y solo tras el piso de duración mínima (F.3).
+ *
+ * F.3 (efectos, además de forzar el tono de Tragedia en `DecisionEditorial`):
+ * al activarse (automático o manual), pausa toda la cola de publicación
+ * `Programada` — nunca la descarta; al desactivarse, la reactiva completa
+ * con el jitter de horario recalculado desde cero.
  */
 final class GestorModoRespeto {
 
@@ -46,6 +54,9 @@ final class GestorModoRespeto {
 	public function __construct(
 		private readonly RepositorioModoRespetoInterface $repositorio,
 		private readonly RepositorioTendenciasInterface $tendencias,
+		private readonly RepositorioColaPublicacionInterface $colaPublicacion,
+		private readonly ProgramadorCadencia $programadorCadencia,
+		private readonly LectorConfiguracionCadencia $lectorCadencia,
 	) {
 	}
 
@@ -78,6 +89,7 @@ final class GestorModoRespeto {
 			$this->duracionMinimaHoras(),
 			$ahora
 		);
+		$this->colaPublicacion->pausarProgramadas();
 	}
 
 	/**
@@ -89,6 +101,7 @@ final class GestorModoRespeto {
 	public function activarManualmente( string $motivo, DateTimeImmutable $ahora ): EstadoModoRespeto {
 		if ( ! $this->repositorio->estadoActual()->activo ) {
 			$this->repositorio->activar( ActivadorModoRespeto::Manual, $motivo, $this->duracionMinimaHoras(), $ahora );
+			$this->colaPublicacion->pausarProgramadas();
 		}
 
 		return $this->repositorio->estadoActual();
@@ -110,6 +123,23 @@ final class GestorModoRespeto {
 		}
 
 		$this->repositorio->desactivar( $ahora );
+		$this->reactivarColaConNuevoJitter();
+	}
+
+	/**
+	 * F.3: "la cola se reactiva completa al desactivar el modo, con el
+	 * jitter de horario recalculado desde cero" — publicar todas las
+	 * piezas pausadas exactamente en su hora original delataría
+	 * automatización tan claramente como publicarlas en punto. Conserva la
+	 * franja horaria ya asignada a cada ranura ({@see ProgramadorCadencia::rejitter()}).
+	 */
+	private function reactivarColaConNuevoJitter(): void {
+		$config = $this->lectorCadencia->leer();
+
+		foreach ( $this->colaPublicacion->obtenerPausadas() as $ranura ) {
+			$nuevaHora = $this->programadorCadencia->rejitter( $config, $ranura->horaProgramada );
+			$this->colaPublicacion->reprogramar( $ranura->id, $nuevaHora );
+		}
 	}
 
 	/**
