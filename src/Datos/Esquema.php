@@ -93,6 +93,11 @@ final class Esquema {
 			// actualización" sobre una tendencia marcada POSIBLE_ACTUALIZACION,
 			// la Pieza nueva queda enlazada a la Pieza que actualiza ("dos
 			// golpes") — nulo para toda Pieza de cobertura original.
+			// Etapa 9, porción 1 (Nivel Cuatro U.1/U.4): historia_id agrupa
+			// la Pieza dentro de una saga (nulo — la mayoría de las Piezas
+			// nunca pertenecen a una); tipo distingue original/actualización/
+			// corrección/cierre dentro de esa saga (Libro Cap. 3.4 "dos
+			// golpes" formalizado como campo de primera clase).
 			"CREATE TABLE {$prefijo}piezas (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 tendencia_id BIGINT UNSIGNED NOT NULL,
@@ -109,6 +114,8 @@ final class Esquema {
                 resultado_taxonomia LONGTEXT NULL,
                 post_id BIGINT UNSIGNED NULL,
                 pieza_original_id BIGINT UNSIGNED NULL,
+                historia_id BIGINT UNSIGNED NULL,
+                tipo VARCHAR(20) NOT NULL DEFAULT 'original',
                 creada_en DATETIME NOT NULL,
                 actualizada_en DATETIME NOT NULL,
                 PRIMARY KEY  (id),
@@ -117,7 +124,26 @@ final class Esquema {
                 KEY tendencia_id (tendencia_id),
                 KEY periodista_id (periodista_id),
                 KEY keyword_principal (keyword_principal(100)),
-                KEY pieza_original_id (pieza_original_id)
+                KEY pieza_original_id (pieza_original_id),
+                KEY historia_id (historia_id)
+            ) {$charset};",
+			// Etapa 9, porción 1 (Nivel Cuatro U.1): la entidad Historia —
+			// agrupa Piezas de una misma saga, por encima de la Pieza
+			// individual. periodista_titular_id es quien la sigue (protege
+			// la coherencia narrativa que Nivel Dos C.2 ya cuida por Pieza).
+			// Sin columnas para el bloque "lo que sabemos/no sabemos": se
+			// calcula en caliente a partir de los expedientes de las Piezas
+			// asociadas (GestorHistorias), nunca se persiste duplicado.
+			"CREATE TABLE {$prefijo}historias (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                titulo VARCHAR(191) NOT NULL,
+                estado VARCHAR(20) NOT NULL DEFAULT 'abierta',
+                periodista_titular_id BIGINT UNSIGNED NULL,
+                creada_en DATETIME NOT NULL,
+                actualizada_en DATETIME NOT NULL,
+                PRIMARY KEY  (id),
+                KEY estado (estado),
+                KEY periodista_titular_id (periodista_titular_id)
             ) {$charset};",
 			// Etapa 8, porción 10 (Nivel Tres Q.1): locale_editorial —
 			// determina qué catálogo localizado (vocabulario prohibido,
@@ -350,6 +376,7 @@ final class Esquema {
 			$prefijo . 'metricas_search_console',
 			$prefijo . 'respuestas_comentarios',
 			$prefijo . 'modo_respeto',
+			$prefijo . 'historias',
 		);
 	}
 
@@ -386,6 +413,10 @@ final class Esquema {
 		$prefijo = $wpdb->prefix . 'pluma_';
 
 		return match ( $versionOrigen . '->' . $versionDestino ) {
+			'0.18.0->0.17.0' => array(
+				"ALTER TABLE {$prefijo}piezas DROP COLUMN historia_id, DROP COLUMN tipo;",
+				"DROP TABLE IF EXISTS {$prefijo}historias;",
+			),
 			'0.17.0->0.16.0' => array(
 				"ALTER TABLE {$prefijo}periodistas DROP COLUMN locale_editorial;",
 			),

@@ -24,6 +24,7 @@ final class GestorSalaTendencias {
 		private readonly RepositorioPiezasInterface $piezas,
 		private readonly Transicionador $transicionador,
 		private readonly RelojInterface $reloj,
+		private readonly GestorHistorias $gestorHistorias,
 	) {
 	}
 
@@ -79,9 +80,19 @@ final class GestorSalaTendencias {
 
 		$piezaOriginal = $this->piezas->obtenerUltimaPorTendencia( $tendenciaOriginalId );
 
-		$piezaId = null !== $piezaOriginal
-			? $this->piezas->crearComoActualizacion( $tendenciaId, $piezaOriginal->id, $this->reloj->ahora() )
-			: $this->piezas->crear( $tendenciaId, $this->reloj->ahora() );
+		if ( null !== $piezaOriginal ) {
+			$ahora   = $this->reloj->ahora();
+			$piezaId = $this->piezas->crearComoActualizacion( $tendenciaId, $piezaOriginal->id, $ahora );
+
+			// Nivel Cuatro U.1 (Etapa 9): "dos golpes" confirmado por el
+			// editor es el único momento en que dos Piezas se saben parte de
+			// la misma saga — se vinculan a una Historia aquí, nunca antes.
+			$tendenciaOriginal = $this->tendencias->obtenerPorId( $tendenciaOriginalId );
+			$tituloSaga        = $tendenciaOriginal['termino'] ?? '';
+			$this->gestorHistorias->vincularActualizacion( $piezaOriginal, $piezaId, $tituloSaga );
+		} else {
+			$piezaId = $this->piezas->crear( $tendenciaId, $this->reloj->ahora() );
+		}
 
 		$this->piezas->priorizar( $piezaId, $this->reloj->ahora() );
 	}

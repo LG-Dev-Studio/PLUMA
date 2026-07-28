@@ -61,6 +61,8 @@ use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\VerificadorComentarioSustantivo;
 use Pluma\Sensores\ComparadorHistorias;
+use Pluma\Datos\RepositorioHistoriasInterface;
+use Pluma\Pipeline\GestorHistorias;
 use Pluma\Sensores\EvaluadorLegitimidadInsumo;
 use Pluma\Sensores\SensorInterface;
 use Pluma\Seo\AuditorCanibalizacion;
@@ -236,7 +238,12 @@ final class RegistroDiagnosticoCompuertasInvarianteTest extends CasoDePruebaUnit
 				new LectorConfiguracionCadencia()
 			),
 			Mockery::mock( AsignadorImagenDestacadaInterface::class )->allows( 'asignar' )->getMock(),
-			new EvaluadorLegitimidadInsumo()
+			new EvaluadorLegitimidadInsumo(),
+			new GestorHistorias(
+				Mockery::mock( RepositorioHistoriasInterface::class )->allows( 'obtenerAbiertasSinActividadDesde' )->andReturn( array() )->getMock(),
+				$piezas,
+				new RelojFijo()
+			)
 		);
 
 		$orquestador->ejecutarTick();

@@ -34,6 +34,12 @@ final readonly class Pieza {
 		public ?DatosSeo $datosSeo = null,
 		public ?ResultadoTaxonomia $resultadoTaxonomia = null,
 		public ?int $piezaOriginalId = null,
+		// Nivel Cuatro U.1/U.4 (Etapa 9): agrupación en Historia (saga) +
+		// tipo de Pieza dentro de esa saga. `historiaId` nulo = la Pieza
+		// todavía no pertenece a ninguna Historia (caso normal, la mayoría
+		// de las Piezas nunca lo necesitan). `tipo` por defecto `Original`.
+		public ?int $historiaId = null,
+		public TipoPieza $tipo = TipoPieza::Original,
 	) {
 	}
 
@@ -52,6 +58,9 @@ final readonly class Pieza {
 			$this->resultadoCompuertas,
 			$this->datosSeo,
 			$this->resultadoTaxonomia,
+			$this->piezaOriginalId,
+			$this->historiaId,
+			$this->tipo
 		);
 	}
 
@@ -70,6 +79,9 @@ final readonly class Pieza {
 			$this->resultadoCompuertas,
 			$this->datosSeo,
 			$this->resultadoTaxonomia,
+			$this->piezaOriginalId,
+			$this->historiaId,
+			$this->tipo
 		);
 	}
 
@@ -88,6 +100,9 @@ final readonly class Pieza {
 			$this->resultadoCompuertas,
 			$this->datosSeo,
 			$this->resultadoTaxonomia,
+			$this->piezaOriginalId,
+			$this->historiaId,
+			$this->tipo
 		);
 	}
 
@@ -106,6 +121,9 @@ final readonly class Pieza {
 			$this->resultadoCompuertas,
 			$this->datosSeo,
 			$this->resultadoTaxonomia,
+			$this->piezaOriginalId,
+			$this->historiaId,
+			$this->tipo
 		);
 	}
 
@@ -124,6 +142,9 @@ final readonly class Pieza {
 			$this->resultadoCompuertas,
 			$this->datosSeo,
 			$this->resultadoTaxonomia,
+			$this->piezaOriginalId,
+			$this->historiaId,
+			$this->tipo
 		);
 	}
 
@@ -142,6 +163,9 @@ final readonly class Pieza {
 			$resultado,
 			$this->datosSeo,
 			$this->resultadoTaxonomia,
+			$this->piezaOriginalId,
+			$this->historiaId,
+			$this->tipo
 		);
 	}
 
@@ -160,6 +184,9 @@ final readonly class Pieza {
 			$this->resultadoCompuertas,
 			$datosSeo,
 			$this->resultadoTaxonomia,
+			$this->piezaOriginalId,
+			$this->historiaId,
+			$this->tipo
 		);
 	}
 
@@ -178,6 +205,35 @@ final readonly class Pieza {
 			$this->resultadoCompuertas,
 			$this->datosSeo,
 			$resultado,
+			$this->piezaOriginalId,
+			$this->historiaId,
+			$this->tipo
+		);
+	}
+
+	/**
+	 * Nivel Cuatro U.1 (Etapa 9): vincula la Pieza a una Historia — llamado
+	 * por `GestorHistorias` cuando se confirma que esta Pieza forma parte
+	 * de una saga (creación o actualización de una Historia existente).
+	 */
+	public function conHistoria( int $historiaId, TipoPieza $tipo, DateTimeImmutable $ahora ): self {
+		return new self(
+			$this->id,
+			$this->tendenciaId,
+			$this->estado,
+			$this->expediente,
+			$this->postId,
+			$this->creadaEn,
+			$ahora,
+			$this->periodistaId,
+			$this->periodistaVersionId,
+			$this->fichaDecisionEditorial,
+			$this->resultadoCompuertas,
+			$this->datosSeo,
+			$this->resultadoTaxonomia,
+			$this->piezaOriginalId,
+			$historiaId,
+			$tipo
 		);
 	}
 }

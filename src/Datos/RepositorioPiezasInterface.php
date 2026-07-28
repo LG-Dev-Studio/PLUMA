@@ -9,6 +9,7 @@ use Pluma\Compuertas\ResultadoEvaluacion;
 use Pluma\Investigacion\Expediente;
 use Pluma\Pipeline\EstadoPieza;
 use Pluma\Pipeline\Pieza;
+use Pluma\Pipeline\TipoPieza;
 use Pluma\Redaccion\FichaDecisionEditorial;
 use Pluma\Seo\DatosSeo;
 use Pluma\Taxonomia\ResultadoTaxonomia;
@@ -133,6 +134,21 @@ interface RepositorioPiezasInterface {
 	 * una pieza se detecte a sí misma al re-evaluarse.
 	 */
 	public function existePiezaPublicadaConKeyword( string $keywordPrincipal, int $excluirPiezaId ): bool;
+
+	/**
+	 * Nivel Cuatro U.1 (Etapa 9): vincula la Pieza a una Historia (saga) con
+	 * su tipo dentro de esa saga. Devuelve `false` si la Pieza no existe.
+	 */
+	public function vincularHistoria( int $id, int $historiaId, TipoPieza $tipo, DateTimeImmutable $ahora ): bool;
+
+	/**
+	 * Todas las Piezas de una Historia, en orden cronológico de creación
+	 * (Nivel Cuatro U.1: "piezas asociadas en orden" — U.2: cronología del
+	 * hub público).
+	 *
+	 * @return list<Pieza>
+	 */
+	public function obtenerPorHistoria( int $historiaId ): array;
 
 	/**
 	 * Persiste el resultado de `Pluma\Taxonomia\Taxonomo` (Libro Cap. 7): la

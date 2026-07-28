@@ -43,6 +43,8 @@ use Pluma\Datos\RepositorioBorradores;
 use Pluma\Datos\RepositorioBorradoresInterface;
 use Pluma\Datos\RepositorioColaPublicacion;
 use Pluma\Datos\RepositorioColaPublicacionInterface;
+use Pluma\Datos\RepositorioHistorias;
+use Pluma\Datos\RepositorioHistoriasInterface;
 use Pluma\Datos\RepositorioMemoriaEditorial;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioMetricasSearchConsole;
@@ -66,6 +68,7 @@ use Pluma\Investigacion\InvestigadorMecanico;
 use Pluma\Investigacion\ResolutorDisputas;
 use Pluma\Investigacion\SelectorImagenPorAutoridad;
 use Pluma\Investigacion\VerificadorProcedenciaDeclaracion;
+use Pluma\Pipeline\GestorHistorias;
 use Pluma\Pipeline\GestorRespuestasComentarios;
 use Pluma\Pipeline\GestorSalaRevision;
 use Pluma\Pipeline\GestorSalaTendencias;
@@ -130,6 +133,7 @@ use Pluma\Seo\EmisorEsquemaFrontend;
 use Pluma\Seo\EnlazadorInterno;
 use Pluma\Seo\ExtractorPalabrasClave;
 use Pluma\Seo\GeneradorMetadatosSeo;
+use Pluma\Seo\HistoriaHub;
 use Pluma\Seo\MotorSeo;
 use Pluma\Seo\PaginaAutorPeriodista;
 use Pluma\Sensores\ComparadorHistorias;
@@ -194,6 +198,10 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			RepositorioTendenciasInterface::class,
 			fn ( Contenedor $c ): RepositorioTendencias => new RepositorioTendencias( $c->obtener( 'wpdb' ) )
+		);
+		$this->contenedor->registrar(
+			RepositorioHistoriasInterface::class,
+			fn ( Contenedor $c ): RepositorioHistorias => new RepositorioHistorias( $c->obtener( 'wpdb' ) )
 		);
 		$this->contenedor->registrar(
 			RepositorioModoRespetoInterface::class,
@@ -596,7 +604,8 @@ final class Nucleo {
 				$c->obtener( ClasificadorGravedadTendencia::class ),
 				$c->obtener( GestorModoRespeto::class ),
 				$c->obtener( AsignadorImagenDestacadaInterface::class ),
-				$c->obtener( EvaluadorLegitimidadInsumo::class )
+				$c->obtener( EvaluadorLegitimidadInsumo::class ),
+				$c->obtener( GestorHistorias::class )
 			)
 		);
 
@@ -641,12 +650,21 @@ final class Nucleo {
 		$this->contenedor->registrar( NotificadorSinPeriodistaIdoneo::class, static fn (): NotificadorSinPeriodistaIdoneo => new NotificadorSinPeriodistaIdoneo() );
 
 		$this->contenedor->registrar(
+			GestorHistorias::class,
+			fn ( Contenedor $c ): GestorHistorias => new GestorHistorias(
+				$c->obtener( RepositorioHistoriasInterface::class ),
+				$c->obtener( RepositorioPiezasInterface::class ),
+				$c->obtener( RelojInterface::class )
+			)
+		);
+		$this->contenedor->registrar(
 			GestorSalaTendencias::class,
 			fn ( Contenedor $c ): GestorSalaTendencias => new GestorSalaTendencias(
 				$c->obtener( RepositorioTendenciasInterface::class ),
 				$c->obtener( RepositorioPiezasInterface::class ),
 				$c->obtener( Transicionador::class ),
-				$c->obtener( RelojInterface::class )
+				$c->obtener( RelojInterface::class ),
+				$c->obtener( GestorHistorias::class )
 			)
 		);
 		$this->contenedor->registrar(
@@ -810,6 +828,13 @@ final class Nucleo {
 				$c->obtener( DeclaracionIdentidadSintetica::class )
 			)
 		);
+		$this->contenedor->registrar(
+			HistoriaHub::class,
+			fn ( Contenedor $c ): HistoriaHub => new HistoriaHub(
+				$c->obtener( GestorHistorias::class ),
+				$c->obtener( RepositorioPeriodistasInterface::class )
+			)
+		);
 	}
 
 	public function arrancar( string $archivoPrincipalPlugin, string $versionEsquemaObjetivo ): void {
@@ -844,5 +869,6 @@ final class Nucleo {
 		$this->contenedor->obtener( RestModeloVerificador::class )->registrar();
 		$this->contenedor->obtener( EmisorEsquemaFrontend::class )->registrar();
 		$this->contenedor->obtener( PaginaAutorPeriodista::class )->registrar();
+		$this->contenedor->obtener( HistoriaHub::class )->registrar();
 	}
 }

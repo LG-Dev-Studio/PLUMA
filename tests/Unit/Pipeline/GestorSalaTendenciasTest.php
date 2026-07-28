@@ -7,9 +7,11 @@ namespace Pluma\Tests\Unit\Pipeline;
 use Brain\Monkey\Functions;
 use Mockery;
 use Pluma\Datos\RepositorioAuditoriaInterface;
+use Pluma\Datos\RepositorioHistoriasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Pipeline\EstadoPieza;
+use Pluma\Pipeline\GestorHistorias;
 use Pluma\Pipeline\GestorSalaTendencias;
 use Pluma\Pipeline\Pieza;
 use Pluma\Pipeline\TendenciaNoEncontradaException;
@@ -36,7 +38,7 @@ final class GestorSalaTendenciasTest extends CasoDePruebaUnitario {
 	/**
 	 * @param RepositorioPiezasInterface&Mockery\MockInterface $piezas
 	 */
-	private function construir( $tendencias, $piezas ): GestorSalaTendencias {
+	private function construir( $tendencias, $piezas, ?GestorHistorias $gestorHistorias = null ): GestorSalaTendencias {
 		$auditoria = Mockery::mock( RepositorioAuditoriaInterface::class );
 		$auditoria->allows( 'registrar' );
 
@@ -44,8 +46,24 @@ final class GestorSalaTendenciasTest extends CasoDePruebaUnitario {
 			$tendencias,
 			$piezas,
 			new Transicionador( $piezas, $auditoria, new RelojFijo() ),
-			new RelojFijo()
+			new RelojFijo(),
+			$gestorHistorias ?? $this->gestorHistoriasFalso( $piezas )
 		);
+	}
+
+	/**
+	 * `GestorHistorias` es `final` sin interfaz (lógica de dominio pura,
+	 * mismo criterio que `SelectorAngulo`/`AsignadorPeriodista`): se
+	 * construye real, con sus propios repositorios como dobles.
+	 *
+	 * @param RepositorioPiezasInterface&Mockery\MockInterface $piezas
+	 */
+	private function gestorHistoriasFalso( $piezas ): GestorHistorias {
+		$historias = Mockery::mock( RepositorioHistoriasInterface::class );
+		$historias->allows( 'crear' )->andReturn( 900 );
+		$historias->allows( 'actualizarEstado' )->andReturn( true );
+
+		return new GestorHistorias( $historias, $piezas, new RelojFijo() );
 	}
 
 	public function test_cubrir_ahora_prioriza_la_pieza_viva_y_devuelve_la_tendencia_al_pipeline(): void {
@@ -143,6 +161,12 @@ final class GestorSalaTendenciasTest extends CasoDePruebaUnitario {
 		$tendencias = Mockery::mock( RepositorioTendenciasInterface::class );
 		$tendencias->expects( 'obtenerTendenciaOriginal' )->with( 10 )->andReturn( 3 );
 		$tendencias->expects( 'actualizarEstadoTendencia' )->with( 10, EstadoTendencia::EnPipeline )->andReturn( true );
+		$tendencias->allows( 'obtenerPorId' )->with( 3 )->andReturn(
+			array(
+				'termino'               => 'saga de prueba',
+				'articulosRelacionados' => array(),
+			)
+		);
 
 		$piezaOriginal = $this->pieza( 70, EstadoPieza::Publicada );
 
@@ -151,6 +175,11 @@ final class GestorSalaTendenciasTest extends CasoDePruebaUnitario {
 		$piezas->expects( 'crearComoActualizacion' )->with( 10, 70, Mockery::any() )->andReturn( 71 );
 		$piezas->expects( 'crear' )->never();
 		$piezas->expects( 'priorizar' )->with( 71, Mockery::any() )->andReturn( true );
+		// Nivel Cuatro U.1 (Etapa 9): la vinculación a Historia pasa por
+		// $piezas también (vincularHistoria/obtenerPorHistoria), vía
+		// GestorHistorias — no es el foco de este test, se permite tal cual.
+		$piezas->allows( 'vincularHistoria' )->andReturn( true );
+		$piezas->allows( 'obtenerPorHistoria' )->andReturn( array() );
 
 		$this->construir( $tendencias, $piezas )->cubrirComoActualizacion( 10 );
 

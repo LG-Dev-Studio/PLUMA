@@ -104,6 +104,7 @@ final class Orquestador {
 		private readonly GestorModoRespeto $gestorModoRespeto,
 		private readonly AsignadorImagenDestacadaInterface $asignadorImagenDestacada,
 		private readonly EvaluadorLegitimidadInsumo $evaluadorLegitimidad,
+		private readonly GestorHistorias $gestorHistorias,
 	) {
 	}
 
@@ -137,6 +138,7 @@ final class Orquestador {
 			$this->procesarPublicacionesVencidas( $errores );
 			$this->procesarComentarios( $errores );
 			$this->verificarEscasezHonesta( $errores );
+			$this->procesarHistoriasInactivas( $errores );
 		} finally {
 			$this->bitacora->finalizarEjecucion( $bitacoraId, $this->reloj->ahora(), $lotesProcesados, $errores );
 			$this->candado->liberar();
@@ -576,6 +578,21 @@ final class Orquestador {
 				$config->cuotaMinima,
 				$config->cuotaObjetivo
 			);
+		}
+	}
+
+	/**
+	 * Nivel Cuatro U.1 (Etapa 9): barrido de Historias sin actividad
+	 * reciente → `Inactiva`. Capa de mantenimiento adicional, nunca
+	 * bloquea el resto del tick si falla.
+	 *
+	 * @param list<string> $errores
+	 */
+	private function procesarHistoriasInactivas( array &$errores ): void {
+		try {
+			$this->gestorHistorias->marcarInactivasVencidas();
+		} catch ( Throwable $error ) {
+			$errores[] = 'historias inactivas (no bloqueante): ' . $error->getMessage();
 		}
 	}
 

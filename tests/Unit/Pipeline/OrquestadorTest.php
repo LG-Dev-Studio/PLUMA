@@ -30,6 +30,7 @@ use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Datos\RepositorioRespuestasComentariosInterface;
+use Pluma\Datos\RepositorioHistoriasInterface;
 use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabularioInterface;
@@ -42,6 +43,7 @@ use Pluma\Investigacion\NivelVerificacion;
 use Pluma\Investigacion\ResolutorDisputas;
 use Pluma\Pipeline\EstadoColaPublicacion;
 use Pluma\Pipeline\EstadoPieza;
+use Pluma\Pipeline\GestorHistorias;
 use Pluma\Pipeline\LectorConfiguracionCadencia;
 use Pluma\Pipeline\Orquestador;
 use Pluma\Pipeline\Pieza;
@@ -354,7 +356,8 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 				$lectorCadencia
 			),
 			$overrides['asignadorImagenDestacada'] ?? Mockery::mock( AsignadorImagenDestacadaInterface::class )->allows( 'asignar' )->getMock(),
-			$overrides['evaluadorLegitimidad'] ?? new EvaluadorLegitimidadInsumo()
+			$overrides['evaluadorLegitimidad'] ?? new EvaluadorLegitimidadInsumo(),
+			$overrides['gestorHistorias'] ?? $this->gestorHistoriasPermisivo()
 		);
 	}
 
@@ -363,6 +366,13 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$repo->allows( 'estadoActual' )->andReturn( EstadoModoRespeto::inactivo() );
 
 		return $repo;
+	}
+
+	private function gestorHistoriasPermisivo(): GestorHistorias {
+		$historias = Mockery::mock( RepositorioHistoriasInterface::class );
+		$historias->allows( 'obtenerAbiertasSinActividadDesde' )->andReturn( array() );
+
+		return new GestorHistorias( $historias, $this->piezasPermisivas(), new RelojFijo() );
 	}
 
 	public function test_si_no_adquiere_el_candado_no_ejecuta_nada(): void {

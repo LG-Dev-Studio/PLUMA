@@ -9,6 +9,7 @@ use Pluma\Compuertas\ResultadoEvaluacion;
 use Pluma\Investigacion\Expediente;
 use Pluma\Pipeline\EstadoPieza;
 use Pluma\Pipeline\Pieza;
+use Pluma\Pipeline\TipoPieza;
 use Pluma\Redaccion\FichaDecisionEditorial;
 use Pluma\Seo\DatosSeo;
 use Pluma\Taxonomia\ResultadoTaxonomia;
@@ -292,6 +293,32 @@ final class RepositorioPiezas implements RepositorioPiezasInterface {
 		return false !== $filasAfectadas;
 	}
 
+	public function vincularHistoria( int $id, int $historiaId, TipoPieza $tipo, DateTimeImmutable $ahora ): bool {
+		$filasAfectadas = $this->wpdb->update(
+			$this->tabla(),
+			array(
+				'historia_id'    => $historiaId,
+				'tipo'           => $tipo->value,
+				'actualizada_en' => $ahora->format( 'Y-m-d H:i:s' ),
+			),
+			array( 'id' => $id ),
+			array( '%d', '%s', '%s' ),
+			array( '%d' )
+		);
+
+		return false !== $filasAfectadas;
+	}
+
+	public function obtenerPorHistoria( int $historiaId ): array {
+		$sql = $this->wpdb->prepare( "SELECT * FROM {$this->tabla()} WHERE historia_id = %d ORDER BY creada_en ASC", $historiaId ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type
+		assert( null !== $sql );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql ya se construyó con $wpdb->prepare() arriba.
+		$filas = $this->wpdb->get_results( $sql, ARRAY_A );
+
+		return array_map( fn ( array $fila ): Pieza => $this->filaAPieza( $fila ), $filas ?? array() );
+	}
+
 	public function existePiezaPublicadaConKeyword( string $keywordPrincipal, int $excluirPiezaId ): bool {
 		$sql = $this->wpdb->prepare(
 			"SELECT COUNT(*) FROM {$this->tabla()} WHERE keyword_principal = %s AND estado = %s AND id != %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type
@@ -451,6 +478,8 @@ final class RepositorioPiezas implements RepositorioPiezasInterface {
 		}
 
 		$piezaOriginalId = null !== ( $fila['pieza_original_id'] ?? null ) ? (int) $fila['pieza_original_id'] : null;
+		$historiaId      = null !== ( $fila['historia_id'] ?? null ) ? (int) $fila['historia_id'] : null;
+		$tipo            = isset( $fila['tipo'] ) && is_string( $fila['tipo'] ) ? ( TipoPieza::tryFrom( $fila['tipo'] ) ?? TipoPieza::Original ) : TipoPieza::Original;
 
 		return new Pieza(
 			(int) $fila['id'],
@@ -466,7 +495,9 @@ final class RepositorioPiezas implements RepositorioPiezasInterface {
 			$resultadoCompuertas,
 			$datosSeo,
 			$resultadoTaxonomia,
-			$piezaOriginalId
+			$piezaOriginalId,
+			$historiaId,
+			$tipo
 		);
 	}
 }
