@@ -33,7 +33,11 @@ final class CompuertaComentarios {
 	public const OPCION_RETENER_AFIRMACION_RIESGOSA   = 'pluma_comentarios_retener_afirmacion_riesgosa';
 	private const RETENER_AFIRMACION_RIESGOSA_DEFECTO = true;
 
-	private const META_CATEGORIA = 'pluma_categoria_comentario';
+	// Nivel Cuatro X.2 (Etapa 9): pública desde `Pluma\Publicacion\LectorComentarios`
+	// para cruzar el comentario con su categoría de X.1 antes de generar
+	// un borrador de respuesta — Compuertas es adyacente a Publicacion en
+	// la Ley de Arquitectura de CLAUDE.md.
+	public const META_CATEGORIA = 'pluma_categoria_comentario';
 
 	private static ?CategoriaComentario $ultimaCategoriaClasificada = null;
 

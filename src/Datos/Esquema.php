@@ -210,6 +210,64 @@ final class Esquema {
                 KEY pieza_id (pieza_id),
                 KEY estado (estado)
             ) {$charset};",
+			// Etapa 9, porción 5 (Nivel Cuatro X.4): correcciones
+			// reportadas por lectores. `credito_opt_in` es explícito —
+			// nunca se acredita a nadie sin su consentimiento activo.
+			"CREATE TABLE {$prefijo}correcciones (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                pieza_id BIGINT UNSIGNED NOT NULL,
+                afirmacion_reportada TEXT NOT NULL,
+                evidencia_aportada TEXT NOT NULL,
+                email_reportante VARCHAR(191) NULL,
+                nombre_credito VARCHAR(191) NULL,
+                credito_opt_in TINYINT(1) NOT NULL DEFAULT 0,
+                estado VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+                nota_editor TEXT NULL,
+                creado_en DATETIME NOT NULL,
+                resuelto_en DATETIME NULL,
+                PRIMARY KEY  (id),
+                KEY pieza_id (pieza_id),
+                KEY estado (estado)
+            ) {$charset};",
+			// Etapa 9, porción 5 (Nivel Cuatro Y.2): experimento de
+			// titular editorial (nunca el title SEO, que queda fijo). CTR
+			// interno aproximado: impresiones = veces que el titular se
+			// mostró fuera de la página individual (listados), clics =
+			// veces que se vio la página individual con esa variante
+			// activa — proxy honesto sin sesión/cookie de correlación
+			// (`PLUMA-E9-8`, documentado como límite explícito).
+			"CREATE TABLE {$prefijo}experimentos_titular (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                pieza_id BIGINT UNSIGNED NOT NULL,
+                post_id BIGINT UNSIGNED NOT NULL,
+                titulo_a VARCHAR(191) NOT NULL,
+                titulo_b VARCHAR(191) NOT NULL,
+                impresiones_a BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                clics_a BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                impresiones_b BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                clics_b BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                titulo_ganador VARCHAR(1) NULL,
+                consolidado_en DATETIME NULL,
+                creado_en DATETIME NOT NULL,
+                PRIMARY KEY  (id),
+                KEY post_id (post_id),
+                KEY consolidado_en (consolidado_en)
+            ) {$charset};",
+			// Etapa 9, porción 5 (Nivel Cuatro X.3): buzón de pistas.
+			// `contenido` es material de procedencia NO verificada por
+			// definición — nunca se copia al expediente, solo queda a la
+			// vista del editor (L.1 aplica con máxima severidad).
+			"CREATE TABLE {$prefijo}pistas (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                historia_id BIGINT UNSIGNED NOT NULL,
+                contenido TEXT NOT NULL,
+                contacto_email VARCHAR(191) NULL,
+                estado VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+                creado_en DATETIME NOT NULL,
+                PRIMARY KEY  (id),
+                KEY historia_id (historia_id),
+                KEY estado (estado)
+            ) {$charset};",
 			// Etapa 8, porción 10 (Nivel Tres Q.1): locale_editorial —
 			// determina qué catálogo localizado (vocabulario prohibido,
 			// ejemplos-ancla) aplica al compilar directrices. Campo desde
@@ -445,6 +503,9 @@ final class Esquema {
 			$prefijo . 'eventos_programados',
 			$prefijo . 'suscriptores',
 			$prefijo . 'derivados_sociales',
+			$prefijo . 'correcciones',
+			$prefijo . 'experimentos_titular',
+			$prefijo . 'pistas',
 		);
 	}
 
@@ -481,6 +542,15 @@ final class Esquema {
 		$prefijo = $wpdb->prefix . 'pluma_';
 
 		return match ( $versionOrigen . '->' . $versionDestino ) {
+			'0.23.0->0.22.0' => array(
+				"DROP TABLE IF EXISTS {$prefijo}pistas;",
+			),
+			'0.22.0->0.21.0' => array(
+				"DROP TABLE IF EXISTS {$prefijo}experimentos_titular;",
+			),
+			'0.21.0->0.20.0' => array(
+				"DROP TABLE IF EXISTS {$prefijo}correcciones;",
+			),
 			'0.20.0->0.19.0' => array(
 				"DROP TABLE IF EXISTS {$prefijo}suscriptores;",
 				"DROP TABLE IF EXISTS {$prefijo}derivados_sociales;",

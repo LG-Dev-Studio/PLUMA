@@ -167,6 +167,39 @@
 | `npm run build` | build de producción real verificado |
 | `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
 
-## Porción 5
+## Porción 5 — Confianza y negocio (Nivel Cuatro X.2-X.4 + Y.2-Y.3 + Z)
 
-Pendiente: Confianza y negocio (X.2-X.4+Y.2-Y.3+Z).
+**Texto fuente** (`docs/PLUMA_Engine_Nivel_Cuatro.md`, Caps. X-Z): la última porción de la Etapa 9 cierra el arco de confianza pública (correcciones con crédito, respuesta a comentarios, buzón de pistas, transparencia de metodología) y el arco de negocio (experimento de titular, informe de capacidad). Ejecutada en sub-entregas con gates completos entre cada una, per decisión del propietario al abrir la porción.
+
+**X.4 — corrección con crédito:** `Pluma\Publicacion\GestorCorrecciones` (reportar/verificar/rechazar) sobre la nueva tabla `pluma_correcciones` (esquema `0.20.0→0.21.0`); `verificar()` escribe post meta (`_pluma_correccion_fecha`, `_pluma_correccion_credito`) en formato MySQL exacto para que `Pluma\Seo\BannerCorreccion` (nuevo filtro `the_content`, mismo mecanismo que el resto de superficies de confianza) lo formatee con `mysql2date()`. `Pluma\Admin\RestCorrecciones`: reportar público, verificar/rechazar/listar pendientes protegidos con `pluma_aprobar_piezas`.
+
+**Y.2 — experimento de titular:** `Pluma\Seo\GestorExperimentosTitular` genera un titular B (`Pluma\Redaccion\GeneradorTitularAlternativo`, nuevo `PropositoLenguaje::TitularAlternativo`) al publicar, sirve A/B por petición vía el filtro `the_title` (asignación aleatoria cacheada por post ID **por petición real**, con `reiniciarCachePorPeticion()` enganchado a `init` para no dejar fugar variantes entre peticiones distintas bajo workers PHP-FPM persistentes — lección de un bug anterior de `HistoriaHub` aplicada aquí antes de que ningún test la encontrara), y consolida el ganador por CTR al vencer la ventana configurable. El seguimiento de impresiones/clics es dos contadores independientes por variante, no correlacionados por sesión de lector — converge estadísticamente pero no es trazabilidad de clic por impresión individual (`PLUMA-E9-8`).
+
+**X.2 — la mitad real construida:** el widget de encuesta desde la pregunta del Bloque del Editor NO se construyó — verificado que `BloqueEditor::$pregunta` nunca se persiste como campo estructurado en ningún punto del pipeline, solo se incrusta en el HTML ya renderizado y se descarta; extraerla por scraping del HTML habría sido exactamente el atajo frágil que "cero invención" prohíbe (`PLUMA-E9-9`). La otra mitad de X.2 (formalizar qué comentarios generan borrador de respuesta) sí se construyó: `CompuertaComentarios::META_CATEGORIA` se expone (antes `private`), `ComentarioWordPress`/`LectorComentarios` cruzan la categoría real de X.1 desde el comment meta, y `Orquestador::elegibleParaRespuesta()` bloquea la generación de respuesta para comentarios de categoría `Odio`/`Toxico`.
+
+**X.3 — buzón de pistas:** `Pluma\Publicacion\GestorPistas` (reportar/marcar revisada/marcar descartada) sobre la nueva tabla `pluma_pistas` (esquema `0.22.0→0.23.0`); el formulario vive directamente en la plantilla ya existente de `HistoriaHub` (`src/Seo/templates/historia-hub.php`, sin asset nuevo encolado, solo un `<script>` inline mínimo). Deliberadamente **sin** ningún disparo automático de investigación: `InvestigadorMecanico` no tiene ("cero invención") ningún punto de entrada de "investigación dirigida" — cada pista queda como material para que un editor humano la use manualmente por los canales normales (p. ej. como fuente al preparar cobertura en el Calendario Editorial), tal como el propio texto fuente lo especifica literalmente.
+
+**Y.3 — diferida completa a la Etapa 10 (`ADR 0008`):** Y.3 asume que R (Nivel Tres, coste/valor por pieza) ya existe; verificado que no existe en ningún lugar del código, y `docs/PLAN-MAESTRO-EVOLUCION.md` ya asigna R explícitamente a la Etapa 10. Construir Y.3 sin R habría sido fabricar un informe sobre datos inventados — diferida junto con R (`PLUMA-E9-7`).
+
+**Capítulo Z — confianza pública, las 4 piezas:**
+
+- **`Pluma\Seo\PaginaMetodologia`** (`/metodologia/`, nueva página virtual — mismo mecanismo `rewrite rule`/`template_redirect`/`template_include` que `PaginaAutorPeriodista`/`HistoriaHub`, formalizado como categoría pre-autorizada por `ADR 0009` en vez de exigir un ADR por página): "Cómo trabaja esta redacción", generada leyendo la configuración REAL del sistema en el momento de la petición (`Orquestador::OPCION_MODO_OPERACION`, `CompuertaRiesgo::OPCION_REGIMEN_RESPONSABILIDAD`, `GestorModoRespeto::estadoActual()`) — nunca prosa de marketing desincronizada de la operación. Incluye también, como sección de texto (no una feature aparte), la política de presencia en superficies de IA que el texto fuente pide documentar "para resistir la tentación futura".
+- **`Pluma\Seo\PaginaHistorialCorrecciones`** (`/correcciones/`, misma familia de página virtual): lista las correcciones verificadas reales (`GestorCorrecciones::historialPublico()`), cruzando cada una con el post real de la Pieza corregida (título, URL) — el crédito del lector solo se muestra si `creditoOptIn` es real y verdadero.
+- **`Pluma\Seo\ExpedienteResumido`** ("Cómo se hizo esta pieza", nuevo filtro `the_content`, mismo mecanismo que `BannerCorreccion`): muestra únicamente hechos reales y persistidos — número de fuentes (`count($pieza->expediente->hechos)`), y si aplica (`DiagnosticoRiesgo::$afirmacionNegativaSobrePersonaIdentificable`), si se buscó la postura de la parte señalada (`Nivel Tres M.1`, ya en producción desde la Etapa 7). **No existe** ningún campo "fecha de verificación" distinto en el modelo de datos — se etiqueta con honestidad como "última actualización editorial" (`Pieza::$actualizadaEn`), nunca como una verificación que el sistema no puede certificar con ese nombre exacto. Investigado explícitamente antes de construir (ver Problem Solving) para no inventar ningún dato que la Pieza no expone realmente.
+- Wiring: las tres piezas nuevas se registran en `Nucleo.php` junto al resto de superficies de frontend (`PaginaMetodologia`, `PaginaHistorialCorrecciones`, `ExpedienteResumido`).
+- **`ADR 0009`** corrige retroactivamente la lista de `CLAUDE.md` § Ley de Arquitectura (que nunca se había actualizado cuando `HistoriaHub` se sumó en la Porción 1 — descuido de documentación, no violación) para describir categorías de superficies pre-autorizadas en vez de una enumeración cerrada a reabrir en cada porción.
+
+**Deuda pagada**: ninguna deuda previa cerraba X.2-X.4/Y.2-Y.3/Z directamente. Nueva deuda: `PLUMA-E9-7` (Y.3+R diferidos a Etapa 10, `ADR 0008`), `PLUMA-E9-8` (CTR aproximado del experimento de titular), `PLUMA-E9-9` (widget de encuesta de X.2 diferido).
+
+### Evidencia de gates — Porción 5
+
+| Gate | Resultado |
+|---|---|
+| PHPCS (repo completo) | 0 errores, 557/557 archivos |
+| PHPStan L8 (repo completo, `--memory-limit=2G`) | 0 errores |
+| `composer test:unit` | 656/656 |
+| `composer test:invariantes` | 23/23 |
+| `composer test:integration` (wp-env real, migración 0.20.0→0.23.0) | 284/284 (2 skipped esperados, preexistentes) |
+| Panel (`vitest`/`tsc`/`build`/Playwright) | no tocado en esta porción — sin cambios en `panel/src/` |
+
+Con esta porción cierra Etapa 9 completa. Auditoría final de los 4 libros de arquitectura e informe de cierre en la sección siguiente de este documento / en el mensaje de cierre del `/goal`.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pluma\Pipeline;
 
+use Pluma\Compuertas\CategoriaComentario;
 use Pluma\Compuertas\ClasificadorGravedadTendencia;
 use Pluma\Compuertas\EvaluadorCompuertas;
 use Pluma\Compuertas\GestorModoRespeto;
@@ -34,6 +35,7 @@ use Pluma\Redaccion\GeneradorRespuestaComentario;
 use Pluma\Redaccion\RedactorInterface;
 use Pluma\Redaccion\TipoMemoria;
 use Pluma\Redaccion\VerificadorComentarioSustantivo;
+use Pluma\Seo\GestorExperimentosTitular;
 use Pluma\Sensores\ComparadorHistorias;
 use Pluma\Sensores\EvaluadorLegitimidadInsumo;
 use Pluma\Sensores\RelacionHistoria;
@@ -105,6 +107,7 @@ final class Orquestador {
 		private readonly AsignadorImagenDestacadaInterface $asignadorImagenDestacada,
 		private readonly EvaluadorLegitimidadInsumo $evaluadorLegitimidad,
 		private readonly GestorHistorias $gestorHistorias,
+		private readonly GestorExperimentosTitular $gestorExperimentosTitular,
 	) {
 	}
 
@@ -139,6 +142,7 @@ final class Orquestador {
 			$this->procesarComentarios( $errores );
 			$this->verificarEscasezHonesta( $errores );
 			$this->procesarHistoriasInactivas( $errores );
+			$this->gestorExperimentosTitular->consolidarVencidos();
 		} finally {
 			$this->bitacora->finalizarEjecucion( $bitacoraId, $this->reloj->ahora(), $lotesProcesados, $errores );
 			$this->candado->liberar();
@@ -635,6 +639,7 @@ final class Orquestador {
 				if (
 					$this->respuestasComentarios->yaProcesado( $comentario->id )
 					|| ! $this->verificadorComentarioSustantivo->esSustantivo( $comentario->contenidoTexto )
+					|| ! $this->elegibleParaRespuesta( $comentario )
 				) {
 					continue;
 				}
@@ -643,6 +648,21 @@ final class Orquestador {
 				++$procesados;
 			}
 		}
+	}
+
+	/**
+	 * Nivel Cuatro X.2: "los comentarios con `aporte` o `crítica legítima`
+	 * ... generan borrador de respuesta" — formaliza la selección que antes
+	 * solo miraba si el comentario era sustantivo. `null` (sin clasificar:
+	 * post ajeno a PLUMA, o el clasificador falló) sigue siendo elegible —
+	 * mismo criterio "fallo silencioso, nunca bloqueo" que
+	 * `CompuertaComentarios`, para no regresionar el comportamiento previo
+	 * a X.1 en comentarios que nunca pasaron por esa compuerta.
+	 */
+	private function elegibleParaRespuesta( ComentarioWordPress $comentario ): bool {
+		return null === $comentario->categoria
+			|| CategoriaComentario::AporteInformativo === $comentario->categoria
+			|| CategoriaComentario::CriticaLegitima === $comentario->categoria;
 	}
 
 	private function temaDePieza( Pieza $pieza ): string {

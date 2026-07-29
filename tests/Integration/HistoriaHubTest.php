@@ -106,6 +106,14 @@ final class HistoriaHubTest extends WP_UnitTestCase {
 		self::assertSame( 'original', $datos['cronologia'][0]['tipo'] );
 		self::assertSame( 'La actualización', $datos['cronologia'][1]['titulo'] );
 		self::assertSame( 'actualizacion', $datos['cronologia'][1]['tipo'] );
+
+		// Nivel Cuatro X.3: el buzón de pistas vive en esta misma página.
+		ob_start();
+		include PLUMA_ENGINE_DIR . 'src/Seo/templates/historia-hub.php';
+		$html = (string) ob_get_clean();
+
+		self::assertStringContainsString( 'pluma-form-pista', $html );
+		self::assertStringContainsString( 'data-historia-id="' . $historiaId . '"', $html );
 	}
 
 	public function test_historia_con_una_sola_pieza_da_404_real(): void {

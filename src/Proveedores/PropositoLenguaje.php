@@ -74,11 +74,18 @@ enum PropositoLenguaje: string {
 	 * marca igual que un titular clickbait", literal del texto fuente).
 	 */
 	case DerivadoSocial = 'derivado_social';
+	/**
+	 * Experimento de titular (Nivel Cuatro Y.2, Etapa 9): un segundo titular
+	 * EDITORIAL candidato — nunca el title SEO (`Titulares`), "dos
+	 * superficies, dos reglas" literal del texto fuente. Premium: es voz
+	 * pública del periodista, mismo criterio que `Boletin`.
+	 */
+	case TitularAlternativo = 'titular_alternativo';
 
 	public function esPremium(): bool {
 		// phpcs:ignore PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext -- falso positivo: $this en un método de enum (PHP 8.1) es válido; el sniff aún no reconoce enums.
 		return match ( $this ) {
-			self::Redactar, self::Corregir, self::BloqueEditor, self::RespuestaComentario, self::Boletin, self::DerivadoSocial => true,
+			self::Redactar, self::Corregir, self::BloqueEditor, self::RespuestaComentario, self::Boletin, self::DerivadoSocial, self::TitularAlternativo => true,
 			self::Clasificar, self::Angulos, self::Titulares, self::VistaPrevia, self::CompararHistorias, self::AnalizarAudiencia, self::Falsear, self::ClasificarComentario => false,
 		};
 	}
@@ -94,7 +101,7 @@ enum PropositoLenguaje: string {
 			self::Clasificar, self::CompararHistorias, self::AnalizarAudiencia, self::ClasificarComentario => 0.0,
 			self::Corregir, self::Falsear => 0.2,
 			self::Angulos, self::Titulares => 0.8,
-			self::Redactar, self::BloqueEditor, self::VistaPrevia, self::RespuestaComentario, self::Boletin, self::DerivadoSocial => 0.7,
+			self::Redactar, self::BloqueEditor, self::VistaPrevia, self::RespuestaComentario, self::Boletin, self::DerivadoSocial, self::TitularAlternativo => 0.7,
 		};
 	}
 }

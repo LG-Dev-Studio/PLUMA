@@ -7,6 +7,8 @@ namespace Pluma\Kernel;
 use Pluma\Admin\NotificadorRevision;
 use Pluma\Admin\RestBoletines;
 use Pluma\Admin\RestCalendarioEditorial;
+use Pluma\Admin\RestCorrecciones;
+use Pluma\Admin\RestPistas;
 use Pluma\Admin\RestDerivadosSociales;
 use Pluma\Admin\RestSuscripciones;
 use Pluma\Admin\NotificadorSinPeriodistaIdoneo;
@@ -49,8 +51,14 @@ use Pluma\Datos\RepositorioBorradores;
 use Pluma\Datos\RepositorioBorradoresInterface;
 use Pluma\Datos\RepositorioColaPublicacion;
 use Pluma\Datos\RepositorioColaPublicacionInterface;
+use Pluma\Datos\RepositorioCorrecciones;
+use Pluma\Datos\RepositorioCorreccionesInterface;
 use Pluma\Datos\RepositorioDerivadosSociales;
 use Pluma\Datos\RepositorioDerivadosSocialesInterface;
+use Pluma\Datos\RepositorioExperimentosTitular;
+use Pluma\Datos\RepositorioExperimentosTitularInterface;
+use Pluma\Datos\RepositorioPistas;
+use Pluma\Datos\RepositorioPistasInterface;
 use Pluma\Datos\RepositorioEventosProgramados;
 use Pluma\Datos\RepositorioEventosProgramadosInterface;
 use Pluma\Datos\RepositorioSuscriptores;
@@ -111,6 +119,8 @@ use Pluma\Publicacion\CreadorBorrador;
 use Pluma\Publicacion\CreadorBorradorInterface;
 use Pluma\Publicacion\EscritorCamposSeo;
 use Pluma\Publicacion\GestorBoletines;
+use Pluma\Publicacion\GestorCorrecciones;
+use Pluma\Publicacion\GestorPistas;
 use Pluma\Publicacion\GestorDerivadosSociales;
 use Pluma\Publicacion\GestorSuscripciones;
 use Pluma\Publicacion\LectorComentarios;
@@ -135,6 +145,7 @@ use Pluma\Redaccion\GeneradorBoletin;
 use Pluma\Redaccion\GeneradorDerivadoSocial;
 use Pluma\Redaccion\GeneradorEsqueleto;
 use Pluma\Redaccion\GeneradorRespuestaComentario;
+use Pluma\Redaccion\GeneradorTitularAlternativo;
 use Pluma\Redaccion\GeneradorVistaPrevia;
 use Pluma\Redaccion\ImportadorBancoPeriodistas;
 use Pluma\Redaccion\RedactorConFallbackMecanico;
@@ -152,12 +163,17 @@ use Pluma\Seo\AuditorCanibalizacion;
 use Pluma\Seo\ConstructorEsquemaNewsArticle;
 use Pluma\Seo\DetectorPluginSeo;
 use Pluma\Seo\EmisorEsquemaFrontend;
+use Pluma\Seo\BannerCorreccion;
 use Pluma\Seo\EnlazadorInterno;
+use Pluma\Seo\ExpedienteResumido;
 use Pluma\Seo\ExtractorPalabrasClave;
 use Pluma\Seo\GeneradorMetadatosSeo;
+use Pluma\Seo\GestorExperimentosTitular;
 use Pluma\Seo\HistoriaHub;
 use Pluma\Seo\MotorSeo;
 use Pluma\Seo\PaginaAutorPeriodista;
+use Pluma\Seo\PaginaHistorialCorrecciones;
+use Pluma\Seo\PaginaMetodologia;
 use Pluma\Sensores\ComparadorHistorias;
 use Pluma\Sensores\EvaluadorLegitimidadInsumo;
 use Pluma\Sensores\SensorGoogleTrends;
@@ -240,6 +256,18 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			RepositorioDerivadosSocialesInterface::class,
 			fn ( Contenedor $c ): RepositorioDerivadosSociales => new RepositorioDerivadosSociales( $c->obtener( 'wpdb' ) )
+		);
+		$this->contenedor->registrar(
+			RepositorioCorreccionesInterface::class,
+			fn ( Contenedor $c ): RepositorioCorrecciones => new RepositorioCorrecciones( $c->obtener( 'wpdb' ) )
+		);
+		$this->contenedor->registrar(
+			RepositorioExperimentosTitularInterface::class,
+			fn ( Contenedor $c ): RepositorioExperimentosTitular => new RepositorioExperimentosTitular( $c->obtener( 'wpdb' ) )
+		);
+		$this->contenedor->registrar(
+			RepositorioPistasInterface::class,
+			fn ( Contenedor $c ): RepositorioPistas => new RepositorioPistas( $c->obtener( 'wpdb' ) )
 		);
 		$this->contenedor->registrar(
 			RepositorioBitacoraInterface::class,
@@ -689,7 +717,8 @@ final class Nucleo {
 				$c->obtener( GestorModoRespeto::class ),
 				$c->obtener( AsignadorImagenDestacadaInterface::class ),
 				$c->obtener( EvaluadorLegitimidadInsumo::class ),
-				$c->obtener( GestorHistorias::class )
+				$c->obtener( GestorHistorias::class ),
+				$c->obtener( GestorExperimentosTitular::class )
 			)
 		);
 
@@ -780,6 +809,30 @@ final class Nucleo {
 			)
 		);
 		$this->contenedor->registrar( WidgetSuscripcionPush::class, static fn (): WidgetSuscripcionPush => new WidgetSuscripcionPush() );
+		$this->contenedor->registrar(
+			GestorCorrecciones::class,
+			fn ( Contenedor $c ): GestorCorrecciones => new GestorCorrecciones(
+				$c->obtener( RepositorioCorreccionesInterface::class ),
+				$c->obtener( RepositorioPiezasInterface::class ),
+				$c->obtener( RelojInterface::class )
+			)
+		);
+		$this->contenedor->registrar(
+			RestCorrecciones::class,
+			fn ( Contenedor $c ): RestCorrecciones => new RestCorrecciones( $c->obtener( GestorCorrecciones::class ) )
+		);
+		$this->contenedor->registrar( BannerCorreccion::class, static fn (): BannerCorreccion => new BannerCorreccion() );
+		$this->contenedor->registrar(
+			GestorPistas::class,
+			fn ( Contenedor $c ): GestorPistas => new GestorPistas(
+				$c->obtener( RepositorioPistasInterface::class ),
+				$c->obtener( RelojInterface::class )
+			)
+		);
+		$this->contenedor->registrar(
+			RestPistas::class,
+			fn ( Contenedor $c ): RestPistas => new RestPistas( $c->obtener( GestorPistas::class ) )
+		);
 		$this->contenedor->registrar(
 			RestSuscripciones::class,
 			fn ( Contenedor $c ): RestSuscripciones => new RestSuscripciones(
@@ -955,6 +1008,35 @@ final class Nucleo {
 				$c->obtener( RepositorioPeriodistasInterface::class )
 			)
 		);
+		$this->contenedor->registrar(
+			GeneradorTitularAlternativo::class,
+			fn ( Contenedor $c ): GeneradorTitularAlternativo => new GeneradorTitularAlternativo( $c->obtener( LenguajeInterface::class ) )
+		);
+		$this->contenedor->registrar(
+			GestorExperimentosTitular::class,
+			fn ( Contenedor $c ): GestorExperimentosTitular => new GestorExperimentosTitular(
+				$c->obtener( RepositorioExperimentosTitularInterface::class ),
+				$c->obtener( RepositorioPiezasInterface::class ),
+				$c->obtener( RepositorioPeriodistasInterface::class ),
+				$c->obtener( GeneradorTitularAlternativo::class ),
+				$c->obtener( RelojInterface::class )
+			)
+		);
+		$this->contenedor->registrar(
+			PaginaMetodologia::class,
+			fn ( Contenedor $c ): PaginaMetodologia => new PaginaMetodologia( $c->obtener( GestorModoRespeto::class ) )
+		);
+		$this->contenedor->registrar(
+			PaginaHistorialCorrecciones::class,
+			fn ( Contenedor $c ): PaginaHistorialCorrecciones => new PaginaHistorialCorrecciones(
+				$c->obtener( GestorCorrecciones::class ),
+				$c->obtener( RepositorioPiezasInterface::class )
+			)
+		);
+		$this->contenedor->registrar(
+			ExpedienteResumido::class,
+			fn ( Contenedor $c ): ExpedienteResumido => new ExpedienteResumido( $c->obtener( RepositorioPiezasInterface::class ) )
+		);
 	}
 
 	public function arrancar( string $archivoPrincipalPlugin, string $versionEsquemaObjetivo ): void {
@@ -979,6 +1061,11 @@ final class Nucleo {
 		$this->contenedor->obtener( RestCalendarioEditorial::class )->registrar();
 		$this->contenedor->obtener( RestSuscripciones::class )->registrar();
 		$this->contenedor->obtener( WidgetSuscripcionPush::class )->registrar();
+		$this->contenedor->obtener( RestCorrecciones::class )->registrar();
+		$this->contenedor->obtener( RestPistas::class )->registrar();
+		$this->contenedor->obtener( BannerCorreccion::class )->registrar();
+		$this->contenedor->obtener( ExpedienteResumido::class )->registrar();
+		$this->contenedor->obtener( GestorExperimentosTitular::class )->registrar();
 		$this->contenedor->obtener( RestBoletines::class )->registrar();
 		$this->contenedor->obtener( RestDerivadosSociales::class )->registrar();
 		$this->contenedor->obtener( GestorDerivadosSociales::class )->registrar();
@@ -996,6 +1083,8 @@ final class Nucleo {
 		$this->contenedor->obtener( EmisorEsquemaFrontend::class )->registrar();
 		$this->contenedor->obtener( PaginaAutorPeriodista::class )->registrar();
 		$this->contenedor->obtener( HistoriaHub::class )->registrar();
+		$this->contenedor->obtener( PaginaMetodologia::class )->registrar();
+		$this->contenedor->obtener( PaginaHistorialCorrecciones::class )->registrar();
 		$this->contenedor->obtener( CompuertaComentarios::class )->registrar();
 	}
 }

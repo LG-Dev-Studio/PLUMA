@@ -21,6 +21,7 @@ use Pluma\Datos\RepositorioAuditoriaInterface;
 use Pluma\Datos\RepositorioBitacoraInterface;
 use Pluma\Datos\RepositorioBorradoresInterface;
 use Pluma\Datos\RepositorioColaPublicacionInterface;
+use Pluma\Datos\RepositorioExperimentosTitularInterface;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
@@ -54,6 +55,7 @@ use Pluma\Redaccion\ClasificacionNoticia;
 use Pluma\Redaccion\EsqueletoPieza;
 use Pluma\Redaccion\FichaDecisionEditorial;
 use Pluma\Redaccion\GeneradorRespuestaComentario;
+use Pluma\Redaccion\GeneradorTitularAlternativo;
 use Pluma\Redaccion\NovedadNoticia;
 use Pluma\Redaccion\PuntoCorrector;
 use Pluma\Redaccion\RedactorInterface;
@@ -70,6 +72,7 @@ use Pluma\Seo\DetectorPluginSeo;
 use Pluma\Seo\EnlazadorInterno;
 use Pluma\Seo\ExtractorPalabrasClave;
 use Pluma\Seo\GeneradorMetadatosSeo;
+use Pluma\Seo\GestorExperimentosTitular;
 use Pluma\Seo\MotorSeo;
 use Pluma\Taxonomia\AsignadorCategoria;
 use Pluma\Taxonomia\ExtractorEntidades;
@@ -242,6 +245,13 @@ final class RegistroDiagnosticoCompuertasInvarianteTest extends CasoDePruebaUnit
 			new GestorHistorias(
 				Mockery::mock( RepositorioHistoriasInterface::class )->allows( 'obtenerAbiertasSinActividadDesde' )->andReturn( array() )->getMock(),
 				$piezas,
+				new RelojFijo()
+			),
+			new GestorExperimentosTitular(
+				Mockery::mock( RepositorioExperimentosTitularInterface::class )->allows( 'obtenerListosParaConsolidar' )->andReturn( array() )->getMock(),
+				$piezas,
+				Mockery::mock( RepositorioPeriodistasInterface::class ),
+				new GeneradorTitularAlternativo( Mockery::mock( LenguajeInterface::class ) ),
 				new RelojFijo()
 			)
 		);

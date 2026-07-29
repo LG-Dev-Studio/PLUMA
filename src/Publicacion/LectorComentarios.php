@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Pluma\Publicacion;
 
 use DateTimeImmutable;
+use Pluma\Compuertas\CategoriaComentario;
+use Pluma\Compuertas\CompuertaComentarios;
 use WP_Comment;
 
 /**
@@ -34,12 +36,15 @@ final class LectorComentarios implements LectorComentariosInterface {
 				continue;
 			}
 
+			$categoriaCruda = get_comment_meta( (int) $comentario->comment_ID, CompuertaComentarios::META_CATEGORIA, true );
+
 			$resultado[] = new ComentarioWordPress(
 				(int) $comentario->comment_ID,
 				(int) $comentario->comment_post_ID,
 				wp_strip_all_tags( $comentario->comment_author ),
 				wp_strip_all_tags( $comentario->comment_content ),
-				new DateTimeImmutable( $comentario->comment_date_gmt )
+				new DateTimeImmutable( $comentario->comment_date_gmt ),
+				is_string( $categoriaCruda ) ? CategoriaComentario::tryFrom( $categoriaCruda ) : null
 			);
 		}
 

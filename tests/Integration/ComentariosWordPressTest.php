@@ -46,6 +46,43 @@ final class ComentariosWordPressTest extends WP_UnitTestCase {
 		self::assertSame( 'Un comentario aprobado y sustantivo.', $comentarios[0]->contenidoTexto );
 	}
 
+	public function test_obtener_aprobados_de_cruza_la_categoria_de_x1_desde_el_comment_meta(): void {
+		$postId = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		$comentarioId = wp_insert_comment(
+			array(
+				'comment_post_ID'  => $postId,
+				'comment_author'   => 'Lector',
+				'comment_content'  => 'Un aporte informativo real.',
+				'comment_approved' => 1,
+			)
+		);
+		add_comment_meta( $comentarioId, \Pluma\Compuertas\CompuertaComentarios::META_CATEGORIA, 'aporte_informativo', true );
+
+		$comentarios = ( new LectorComentarios() )->obtenerAprobadosDe( $postId );
+
+		self::assertCount( 1, $comentarios );
+		self::assertSame( \Pluma\Compuertas\CategoriaComentario::AporteInformativo, $comentarios[0]->categoria );
+	}
+
+	public function test_obtener_aprobados_de_sin_categoria_persistida_devuelve_null(): void {
+		$postId = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		wp_insert_comment(
+			array(
+				'comment_post_ID'  => $postId,
+				'comment_author'   => 'Lector',
+				'comment_content'  => 'Comentario sin clasificar.',
+				'comment_approved' => 1,
+			)
+		);
+
+		$comentarios = ( new LectorComentarios() )->obtenerAprobadosDe( $postId );
+
+		self::assertCount( 1, $comentarios );
+		self::assertNull( $comentarios[0]->categoria );
+	}
+
 	public function test_obtener_aprobados_de_un_post_sin_comentarios_devuelve_lista_vacia(): void {
 		$postId = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 
