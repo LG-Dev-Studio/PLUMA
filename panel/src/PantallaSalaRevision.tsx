@@ -39,6 +39,10 @@ export interface TextosSalaRevision {
     errorAccion: string;
     retenidas: string;
     sinRetenidas: string;
+    sinPeriodistaIdoneo: string;
+    sinPeriodistaIdoneoVacio: string;
+    sinPeriodistaIdoneoExplicacion: string;
+    reanudar: string;
     colaDeVeto: string;
     sinColaDeVeto: string;
     diagnostico: string;
@@ -69,6 +73,7 @@ interface Props {
 export function PantallaSalaRevision({ restUrl, nonce, textos }: Props) {
     const [retenidas, setRetenidas] = useState<PiezaRevision[] | null>(null);
     const [cola, setCola] = useState<EntradaVeto[] | null>(null);
+    const [sinPeriodista, setSinPeriodista] = useState<PiezaRevision[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [notas, setNotas] = useState<Record<number, string>>({});
     const [enCurso, setEnCurso] = useState<number | null>(null);
@@ -79,10 +84,12 @@ export function PantallaSalaRevision({ restUrl, nonce, textos }: Props) {
         Promise.all([
             fetch(`${restUrl}pluma/v1/revision/retenidas`, { headers: cabeceras }).then((r) => r.json() as Promise<PiezaRevision[]>),
             fetch(`${restUrl}pluma/v1/revision/veto`, { headers: cabeceras }).then((r) => r.json() as Promise<EntradaVeto[]>),
+            fetch(`${restUrl}pluma/v1/revision/sin-periodista-idoneo`, { headers: cabeceras }).then((r) => r.json() as Promise<PiezaRevision[]>),
         ])
-            .then(([listaRetenidas, listaVeto]) => {
+            .then(([listaRetenidas, listaVeto, listaSinPeriodista]) => {
                 setRetenidas(listaRetenidas);
                 setCola(listaVeto);
+                setSinPeriodista(listaSinPeriodista);
                 setError(null);
             })
             .catch(() => setError(textos.errorCarga));
@@ -93,7 +100,7 @@ export function PantallaSalaRevision({ restUrl, nonce, textos }: Props) {
         cargar();
     }, [cargar]);
 
-    const ejecutar = (piezaId: number, accion: 'aprobar' | 'aprobar-ahora' | 'devolver' | 'descartar') => {
+    const ejecutar = (piezaId: number, accion: 'aprobar' | 'aprobar-ahora' | 'devolver' | 'descartar' | 'reanudar') => {
         setEnCurso(piezaId);
 
         const cuerpo = 'devolver' === accion ? { nota: notas[piezaId] ?? '' } : {};
@@ -128,13 +135,43 @@ export function PantallaSalaRevision({ restUrl, nonce, textos }: Props) {
         );
     }
 
-    if (null === retenidas || null === cola) {
+    if (null === retenidas || null === cola || null === sinPeriodista) {
         return <div className="pluma-revision pluma-revision--cargando">{textos.cargando}</div>;
     }
 
     return (
         <div className="pluma-revision">
             <h1>{textos.titulo}</h1>
+
+            <section className="pluma-revision__seccion">
+                <h2>{textos.sinPeriodistaIdoneo}</h2>
+                <p className="pluma-revision__explicacion">{textos.sinPeriodistaIdoneoExplicacion}</p>
+                {0 === sinPeriodista.length ? (
+                    <p className="pluma-revision__vacio">{textos.sinPeriodistaIdoneoVacio}</p>
+                ) : (
+                    <ul className="pluma-revision__lista">
+                        {sinPeriodista.map((pieza) => (
+                            <li key={pieza.id} className="pluma-revision__tarjeta">
+                                <TarjetaPieza pieza={pieza} textos={textos} />
+
+                                <div className="pluma-revision__acciones">
+                                    <button type="button" disabled={enCurso === pieza.id} onClick={() => ejecutar(pieza.id, 'reanudar')}>
+                                        {textos.reanudar}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="pluma-revision__boton--descartar"
+                                        disabled={enCurso === pieza.id}
+                                        onClick={() => descartarConConfirmacion(pieza.id)}
+                                    >
+                                        {textos.descartar}
+                                    </button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
 
             <section className="pluma-revision__seccion">
                 <h2>{textos.retenidas}</h2>

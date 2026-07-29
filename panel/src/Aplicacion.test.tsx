@@ -291,6 +291,10 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
             respuestasHabilitadas: 'Responder comentarios automáticamente',
         },
         textosSalaRevision: {
+            sinPeriodistaIdoneo: 'Sin periodista idóneo',
+            sinPeriodistaIdoneoVacio: 'ninguna pieza esperando un periodista',
+            sinPeriodistaIdoneoExplicacion: 'Crea un periodista que cubra ese vertical y pulsa Reanudar.',
+            reanudar: 'Reanudar',
             titulo: 'Sala de Revisión',
             cargando: 'Cargando…',
             errorCarga: 'No se pudo cargar la Sala de Revisión.',

@@ -283,6 +283,21 @@ final class Orquestador {
 			++$procesadas;
 		}
 
+		// Rescate de Piezas varadas en EN_REVISION. En operación normal este
+		// sondeo no encuentra nada: EN_REVISION se entra y se sale dentro del
+		// mismo tick. Solo recoge las que quedaron a medias porque la
+		// evaluación de Compuertas reventó (proveedor caído, presupuesto
+		// agotado, proceso muerto) — antes se quedaban ahí para siempre,
+		// invisibles para el motor y para el editor.
+		foreach ( $this->piezas->obtenerPorEstado( EstadoPieza::EnRevision, self::LIMITE_POR_LOTE ) as $pieza ) {
+			if ( $this->presupuestoAgotado( $inicio, $presupuestoSegundos ) ) {
+				return array( $procesadas, $errores );
+			}
+
+			$this->procesarCompuertas( $pieza, $errores );
+			++$procesadas;
+		}
+
 		foreach ( $this->piezas->obtenerPorEstado( EstadoPieza::Aprobada, self::LIMITE_POR_LOTE ) as $pieza ) {
 			if ( $this->presupuestoAgotado( $inicio, $presupuestoSegundos ) ) {
 				return array( $procesadas, $errores );
@@ -434,9 +449,26 @@ final class Orquestador {
 	 */
 	private function procesarCompuertas( Pieza $pieza, array &$errores ): void {
 		try {
-			$transitada = $this->transicionador->transitar( $pieza->id, EstadoPieza::EnRevision, 'evaluación de compuertas' );
+			// Entrada idempotente: la Pieza puede llegar aquí desde OPTIMIZADA
+			// (camino normal) o ya estando en EN_REVISION (rescate de una
+			// varada por un fallo anterior — `avanzarPipeline()` sondea ese
+			// estado precisamente para eso). Transicionar EN_REVISION →
+			// EN_REVISION sería una arista inválida.
+			$transitada = EstadoPieza::EnRevision === $pieza->estado
+				? $pieza
+				: $this->transicionador->transitar( $pieza->id, EstadoPieza::EnRevision, 'evaluación de compuertas' );
 
-			if ( null === $transitada || null === $transitada->expediente || null === $transitada->fichaDecisionEditorial ) {
+			if ( null === $transitada ) {
+				return;
+			}
+
+			if ( null === $transitada->expediente || null === $transitada->fichaDecisionEditorial ) {
+				// Sin expediente o sin ficha no hay materia que evaluar. Se
+				// RETIENE explícitamente para decisión humana: dejarla en
+				// EN_REVISION la volvería invisible (ninguna pantalla la
+				// muestra, ningún paso del motor la recoge).
+				$this->transicionador->transitar( $pieza->id, EstadoPieza::Retenida, 'sin expediente o sin ficha de decisión editorial: no hay materia que evaluar en Compuertas.' );
+
 				return;
 			}
 
@@ -445,7 +477,10 @@ final class Orquestador {
 			if ( null === $ultimoBorrador ) {
 				// Redacción mecánica de respaldo (deuda PLUMA-E2-1): sin
 				// anotaciones del Corrector Interno no hay con qué evaluar
-				// Calidad — se retiene para revisión humana, nunca se aprueba a ciegas.
+				// Calidad — se retiene para revisión humana, nunca se aprueba
+				// a ciegas, y nunca se abandona en EN_REVISION.
+				$this->transicionador->transitar( $pieza->id, EstadoPieza::Retenida, 'sin borrador con anotaciones del Corrector Interno: Calidad no es evaluable.' );
+
 				return;
 			}
 

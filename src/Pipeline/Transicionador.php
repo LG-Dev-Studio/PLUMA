@@ -26,8 +26,15 @@ final class Transicionador {
 		'en_redaccion'          => array( 'redactada', 'retenida', 'descartada', 'fallida', 'sin_periodista_idoneo' ),
 		'redactada'             => array( 'optimizada', 'retenida', 'descartada', 'fallida' ),
 		'optimizada'            => array( 'en_revision', 'retenida', 'descartada', 'fallida' ),
-		'en_revision'           => array( 'aprobada', 'retenida', 'descartada' ),
-		'aprobada'              => array( 'programada', 'retenida', 'descartada' ),
+		// `fallida` es obligatoria en todo estado donde corra trabajo que
+		// pueda reventar (llamadas al proveedor de lenguaje, I/O): sin esa
+		// arista, `Orquestador::marcarFallida()` es rechazado por este mismo
+		// grafo, el `catch` se lo traga y la Pieza queda varada para siempre
+		// en un estado que nadie vuelve a sondear. Ocurrió de verdad: 9
+		// Piezas atascadas 6 días en EN_REVISION con el diagnóstico de
+		// Compuertas sin escribir.
+		'en_revision'           => array( 'aprobada', 'retenida', 'descartada', 'fallida' ),
+		'aprobada'              => array( 'programada', 'retenida', 'descartada', 'fallida' ),
 		'programada'            => array( 'publicada', 'retenida', 'descartada', 'fallida' ),
 		// FALLIDA/RETENIDA se reanudan al estado previo: el motivo de la
 		// transición documenta a cuál. Se admite cualquier destino no
@@ -57,9 +64,17 @@ final class Transicionador {
 		// las Compuertas).
 		'retenida'              => array( 'optimizada', 'aprobada', 'descartada' ),
 		// Nivel Dos C.3: ningún periodista del banco superó el umbral de
-		// dominio mínimo — reanudable a EN_REDACCION tras ajuste del banco
-		// por el editor, o descartable si la tendencia caduca mientras espera.
-		'sin_periodista_idoneo' => array( 'en_redaccion', 'descartada' ),
+		// dominio mínimo — reanudable tras ajuste del banco por el editor, o
+		// descartable si la tendencia caduca mientras espera.
+		//
+		// La reanudación apunta a INVESTIGADA, no a EN_REDACCION: toda ruta
+		// de vuelta al pipeline debe terminar en un estado que
+		// `avanzarPipeline()` SONDEA. EN_REDACCION es transitorio (se entra y
+		// se sale dentro del mismo tick) y nadie lo consulta por sí solo:
+		// reanudar ahí volvería a varar la Pieza, cambiando un callejón sin
+		// salida por otro. Se conserva `en_redaccion` como destino legal
+		// porque el propio pipeline lo usa al avanzar desde INVESTIGADA.
+		'sin_periodista_idoneo' => array( 'investigada', 'en_redaccion', 'descartada' ),
 	);
 
 	public function __construct(

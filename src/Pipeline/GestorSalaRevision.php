@@ -32,6 +32,19 @@ final class GestorSalaRevision {
 	}
 
 	/**
+	 * Piezas que quedaron sin periodista idóneo (Nivel Dos C.3). Se listan
+	 * aquí para que el editor pueda reanudarlas tras ajustar el banco: hasta
+	 * ahora el grafo permitía la reanudación y el contrato la prometía, pero
+	 * ninguna pantalla ni endpoint la ofrecía, así que la única salida real
+	 * era descartarlas.
+	 *
+	 * @return list<Pieza>
+	 */
+	public function obtenerSinPeriodistaIdoneo( int $limite = self::LIMITE_DEFECTO ): array {
+		return $this->piezas->obtenerPorEstado( EstadoPieza::SinPeriodistaIdoneo, $limite );
+	}
+
+	/**
 	 * Piezas PROGRAMADAS cuyo modo efectivo es Copiloto: siguen esperando el
 	 * fin de la ventana de veto antes de publicarse solas (Cap. 2.4).
 	 *
@@ -89,6 +102,35 @@ final class GestorSalaRevision {
 			: 'Devuelta a revisión desde la Sala de Revisión.';
 
 		$this->transicionador->transitar( $piezaId, EstadoPieza::Optimizada, $motivo, 'editor' );
+	}
+
+	/**
+	 * Reanuda una Pieza que quedó en SIN_PERIODISTA_IDONEO (Nivel Dos C.3:
+	 * ningún periodista del banco superaba el umbral de dominio del vertical
+	 * detectado) después de que el editor haya ajustado el banco.
+	 *
+	 * Vuelve a INVESTIGADA, no a EN_REDACCION: `Orquestador::avanzarPipeline()`
+	 * sondea INVESTIGADA en cada tick, mientras que EN_REDACCION es
+	 * transitorio y nadie lo consulta por sí solo — reanudar ahí dejaría la
+	 * Pieza igual de varada que antes. El expediente ya construido se
+	 * conserva: solo se repite la decisión editorial y la redacción.
+	 *
+	 * Deliberadamente manual, no un reintento automático en cada tick:
+	 * reasignar exige una llamada de clasificación al proveedor de lenguaje,
+	 * y reintentarla en bucle contra un banco que no ha cambiado quemaría el
+	 * presupuesto sin producir nada. El editor decide cuándo el banco está
+	 * listo, que es justo lo que dice el contrato de C.3.
+	 *
+	 * @throws PiezaNoEncontradaException
+	 * @throws TransicionInvalidaException
+	 */
+	public function reanudarSinPeriodistaIdoneo( int $piezaId ): void {
+		$this->transicionador->transitar(
+			$piezaId,
+			EstadoPieza::Investigada,
+			'Reanudada desde la Sala de Revisión tras ajustar el banco de periodistas.',
+			'editor'
+		);
 	}
 
 	/**

@@ -11,6 +11,10 @@ function textosDeEjemplo(): TextosSalaRevision {
         errorAccion: 'La acción no se pudo completar.',
         retenidas: 'Retenidas esperando decisión',
         sinRetenidas: 'ninguna pieza retenida',
+        sinPeriodistaIdoneo: 'Sin periodista idóneo',
+        sinPeriodistaIdoneoVacio: 'ninguna pieza esperando un periodista',
+        sinPeriodistaIdoneoExplicacion: 'Crea un periodista que cubra ese vertical y pulsa Reanudar.',
+        reanudar: 'Reanudar',
         colaDeVeto: 'Cola de veto (modo Copiloto)',
         sinColaDeVeto: 'ninguna pieza esperando la ventana de veto',
         diagnostico: 'Diagnóstico',
@@ -65,13 +69,16 @@ function entradaVetoDeEjemplo(sobrescribir: Partial<EntradaVeto> = {}): EntradaV
     };
 }
 
-function stubFetch(retenidas: PiezaRevision[], veto: EntradaVeto[]) {
+function stubFetch(retenidas: PiezaRevision[], veto: EntradaVeto[], sinPeriodista: PiezaRevision[] = []) {
     const fetchSimulado = vi.fn((url: string) => {
         if (url.endsWith('/revision/retenidas')) {
             return Promise.resolve({ ok: true, json: () => Promise.resolve(retenidas) });
         }
         if (url.endsWith('/revision/veto')) {
             return Promise.resolve({ ok: true, json: () => Promise.resolve(veto) });
+        }
+        if (url.endsWith('/revision/sin-periodista-idoneo')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(sinPeriodista) });
         }
         return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
     });
@@ -82,6 +89,36 @@ function stubFetch(retenidas: PiezaRevision[], veto: EntradaVeto[]) {
 describe('PantallaSalaRevision', () => {
     afterEach(() => {
         vi.unstubAllGlobals();
+    });
+
+    /**
+     * Nivel Dos C.3 prometía en su docblock que una Pieza sin periodista
+     * idóneo era "reanudable tras ajuste del banco por el editor", pero
+     * ninguna pantalla ni endpoint lo implementaba: 12 Piezas reales solo
+     * podían descartarse. La reanudación va a INVESTIGADA, que el motor sí
+     * sondea (EN_REDACCION es transitorio y volvería a vararlas).
+     */
+    it('reanuda una pieza sin periodista idóneo contra el endpoint correcto', async () => {
+        const fetchSimulado = stubFetch([], [], [piezaDeEjemplo({ id: 77 })]);
+
+        render(<PantallaSalaRevision restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+
+        await userEvent.click(await screen.findByRole('button', { name: 'Reanudar' }));
+
+        await waitFor(() =>
+            expect(fetchSimulado).toHaveBeenCalledWith(
+                'https://ejemplo.test/wp-json/pluma/v1/revision/77/reanudar',
+                expect.objectContaining({ method: 'POST' })
+            )
+        );
+    });
+
+    it('avisa cuando no hay ninguna pieza esperando periodista', async () => {
+        stubFetch([], [], []);
+
+        render(<PantallaSalaRevision restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+
+        expect(await screen.findByText('ninguna pieza esperando un periodista')).toBeInTheDocument();
     });
 
     it('muestra las piezas retenidas con su diagnóstico', async () => {

@@ -878,17 +878,27 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		self::assertSame( 1, $resultado['lotesProcesados'] );
 	}
 
-	public function test_una_pieza_optimizada_sin_borrador_queda_en_revision(): void {
+	/**
+	 * Antes esta Pieza se quedaba en EN_REVISION para siempre: el método
+	 * hacía `return` sin transicionar, el motor no sondeaba ese estado y
+	 * ninguna pantalla lo mostraba. Ocurrió de verdad — 9 Piezas varadas 6
+	 * días. Ahora se RETIENE explícitamente, que es lo que el propio
+	 * comentario del código decía hacer: visible en la Sala de Revisión y
+	 * accionable por un humano.
+	 */
+	public function test_una_pieza_optimizada_sin_borrador_se_retiene_en_vez_de_quedar_varada(): void {
 		$expediente      = new Expediente( 'x', array() );
 		$ficha           = $this->ficha();
 		$piezaOptimizada = $this->pieza( 17, EstadoPieza::Optimizada, $expediente, $ficha, 5 );
+		$piezaEnRevision = $this->pieza( 17, EstadoPieza::EnRevision, $expediente, $ficha, 5 );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
 		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Optimizada, Mockery::any() )->andReturn( array( $piezaOptimizada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
-		$piezas->expects( 'obtenerPorId' )->with( 17 )->andReturn( $piezaOptimizada );
+		$piezas->allows( 'obtenerPorId' )->with( 17 )->andReturn( $piezaOptimizada, $piezaEnRevision );
 		$piezas->expects( 'actualizarEstado' )->with( 17, EstadoPieza::Optimizada, EstadoPieza::EnRevision, Mockery::any() )->andReturn( true );
+		$piezas->expects( 'actualizarEstado' )->with( 17, EstadoPieza::EnRevision, EstadoPieza::Retenida, Mockery::any() )->andReturn( true );
 		$piezas->expects( 'actualizarResultadoCompuertas' )->never();
 
 		$auditoria = Mockery::mock( RepositorioAuditoriaInterface::class );

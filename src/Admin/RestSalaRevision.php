@@ -27,12 +27,14 @@ use WP_REST_Response;
  */
 final class RestSalaRevision {
 
-	private const RUTA_RETENIDAS     = '/revision/retenidas';
-	private const RUTA_VETO          = '/revision/veto';
-	private const RUTA_APROBAR       = '/revision/(?P<id>\d+)/aprobar';
-	private const RUTA_APROBAR_AHORA = '/revision/(?P<id>\d+)/aprobar-ahora';
-	private const RUTA_DEVOLVER      = '/revision/(?P<id>\d+)/devolver';
-	private const RUTA_DESCARTAR     = '/revision/(?P<id>\d+)/descartar';
+	private const RUTA_RETENIDAS      = '/revision/retenidas';
+	private const RUTA_VETO           = '/revision/veto';
+	private const RUTA_APROBAR        = '/revision/(?P<id>\d+)/aprobar';
+	private const RUTA_APROBAR_AHORA  = '/revision/(?P<id>\d+)/aprobar-ahora';
+	private const RUTA_DEVOLVER       = '/revision/(?P<id>\d+)/devolver';
+	private const RUTA_DESCARTAR      = '/revision/(?P<id>\d+)/descartar';
+	private const RUTA_SIN_PERIODISTA = '/revision/sin-periodista-idoneo';
+	private const RUTA_REANUDAR       = '/revision/(?P<id>\d+)/reanudar';
 
 	public function __construct(
 		private readonly GestorSalaRevision $gestor,
@@ -54,6 +56,26 @@ final class RestSalaRevision {
 			array(
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'retenidas' ),
+				'permission_callback' => array( $this, 'autorizado' ),
+			)
+		);
+
+		register_rest_route(
+			'pluma/v1',
+			self::RUTA_SIN_PERIODISTA,
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'sinPeriodistaIdoneo' ),
+				'permission_callback' => array( $this, 'autorizado' ),
+			)
+		);
+
+		register_rest_route(
+			'pluma/v1',
+			self::RUTA_REANUDAR,
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'reanudar' ),
 				'permission_callback' => array( $this, 'autorizado' ),
 			)
 		);
@@ -159,6 +181,23 @@ final class RestSalaRevision {
 		);
 
 		return new WP_REST_Response( $entradas, 200 );
+	}
+
+	public function sinPeriodistaIdoneo(): WP_REST_Response {
+		return new WP_REST_Response(
+			array_map( array( $this, 'piezaComoArray' ), $this->gestor->obtenerSinPeriodistaIdoneo() ),
+			200
+		);
+	}
+
+	/**
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function reanudar( WP_REST_Request $request ) {
+		return $this->ejecutarAccion(
+			(int) $request->get_param( 'id' ),
+			fn ( int $id ) => $this->gestor->reanudarSinPeriodistaIdoneo( $id )
+		);
 	}
 
 	/**
