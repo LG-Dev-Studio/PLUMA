@@ -150,7 +150,7 @@ final class PantallaPanel {
 			'cronRealConfigurado'  => $this->detector->cronRealConfigurado(),
 			'esMultisitio'         => $this->detector->esMultisitio(),
 			'textos'               => array(
-				'titulo'             => __( 'Sala de Máquinas — Salud del sistema', 'pluma-engine' ),
+				'titulo'             => __( 'Configuración — Sala de Máquinas', 'pluma-engine' ),
 				'etiquetaPhp'        => __( 'PHP', 'pluma-engine' ),
 				'etiquetaWordPress'  => __( 'WordPress', 'pluma-engine' ),
 				'etiquetaBaseDatos'  => __( 'Base de datos', 'pluma-engine' ),
@@ -172,7 +172,7 @@ final class PantallaPanel {
 		return array(
 			'titulo'                        => __( 'Portada', 'pluma-engine' ),
 			'navPortada'                    => __( 'Portada', 'pluma-engine' ),
-			'navSalud'                      => __( 'Sala de Máquinas', 'pluma-engine' ),
+			'navSalud'                      => __( 'Configuración', 'pluma-engine' ),
 			'cargando'                      => __( 'Cargando…', 'pluma-engine' ),
 			'errorCarga'                    => __( 'No se pudo cargar la Portada. Reintenta en unos segundos.', 'pluma-engine' ),
 			'modo'                          => array(
