@@ -28,6 +28,7 @@ export interface DatosPlumaPanel {
     textosEstudioSeo: TextosEstudioSeo;
     textosComentarios: TextosComentarios;
     textosInformes: TextosInformes;
+    iaConfigurada: boolean;
     onboardingCompletado: boolean;
     textosOnboarding: TextosOnboarding;
 }
@@ -231,7 +232,14 @@ export function Aplicacion({ datos }: Props) {
 
             <main className="pluma-panel__contenido">
                 {'portada' === ruta && <PantallaPortada datos={portada} error={error} textos={datos.textosPortada} />}
-                {'tendencias' === ruta && <PantallaTendencias restUrl={datos.restUrl} nonce={datos.nonce} textos={datos.textosTendencias} />}
+                {'tendencias' === ruta && (
+                    <PantallaTendencias
+                        restUrl={datos.restUrl}
+                        nonce={datos.nonce}
+                        textos={datos.textosTendencias}
+                        iaConfigurada={datos.iaConfigurada}
+                    />
+                )}
                 {'calendario-editorial' === ruta && (
                     <PantallaCalendarioEditorial restUrl={datos.restUrl} nonce={datos.nonce} textos={datos.textosCalendarioEditorial} />
                 )}

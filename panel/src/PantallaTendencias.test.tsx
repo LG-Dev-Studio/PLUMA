@@ -9,6 +9,8 @@ function textosDeEjemplo(): TextosTendencias {
         cargando: 'Cargando…',
         errorCarga: 'No se pudo cargar la Sala de Tendencias.',
         errorAccion: 'La acción no se pudo completar.',
+        sinIaAviso: 'No hay clave de IA configurada.',
+        sinIaTrasAccion: 'Acción registrada, pero falta la clave de IA.',
         confirmacion: {
             cubrir: 'Cobertura priorizada.',
             ignorar: 'Tendencia ignorada.',
@@ -62,7 +64,7 @@ describe('PantallaTendencias', () => {
     it('muestra la tarjeta con su desglose real y quién la cubre', async () => {
         stubFetchConTarjetas([tarjetaDeEjemplo()]);
 
-        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} iaConfigurada />);
 
         expect(await screen.findByText('elecciones 2026')).toBeInTheDocument();
         expect(screen.getByText('81')).toBeInTheDocument();
@@ -76,7 +78,7 @@ describe('PantallaTendencias', () => {
     it('destaca las tendencias en vigilancia y desactiva su botón Vigilar', async () => {
         stubFetchConTarjetas([tarjetaDeEjemplo({ estado: 'vigilada' })]);
 
-        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} iaConfigurada />);
 
         expect(await screen.findByText('En vigilancia')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Vigilar' })).toBeDisabled();
@@ -86,7 +88,7 @@ describe('PantallaTendencias', () => {
     it('muestra la insignia de sospecha de manipulación (Nivel Dos G.1) sin desactivar Vigilar', async () => {
         stubFetchConTarjetas([tarjetaDeEjemplo({ estado: 'sospecha_manipulacion' })]);
 
-        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} iaConfigurada />);
 
         expect(await screen.findByText('Sospecha de manipulación (concentración de fuente) — heurística, no un veredicto')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Vigilar' })).toBeEnabled();
@@ -96,7 +98,7 @@ describe('PantallaTendencias', () => {
     it('ejecuta "Cubrir ahora" contra la ruta REST correcta con el nonce y recarga', async () => {
         const fetchSimulado = stubFetchConTarjetas([tarjetaDeEjemplo()]);
 
-        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="nonce-x" textos={textosDeEjemplo()} />);
+        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="nonce-x" textos={textosDeEjemplo()} iaConfigurada />);
 
         await userEvent.click(await screen.findByRole('button', { name: 'Cubrir ahora' }));
 
@@ -119,13 +121,45 @@ describe('PantallaTendencias', () => {
     it('confirma en pantalla que la acción se completó, aunque la tarjeta no cambie', async () => {
         stubFetchConTarjetas([tarjetaDeEjemplo()]);
 
-        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} iaConfigurada />);
 
         expect(screen.queryByRole('status')).not.toBeInTheDocument();
 
         await userEvent.click(await screen.findByRole('button', { name: 'Cubrir ahora' }));
 
         await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Cobertura priorizada.'));
+    });
+
+    /**
+     * Sin clave de IA toda Pieza muere en la fase de investigación
+     * (`PLUMA-E9-19`). El editor debe saberlo ANTES de perder tiempo dando
+     * clics, no descubrirlo viendo piezas fallidas horas después.
+     */
+    it('avisa de que falta la clave de IA en cuanto se abre la pantalla', async () => {
+        stubFetchConTarjetas([tarjetaDeEjemplo()]);
+
+        render(
+            <PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} iaConfigurada={false} />
+        );
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('No hay clave de IA configurada.');
+    });
+
+    /**
+     * Sin clave, prometer que "entra en el próximo ciclo del motor" sería
+     * mentirle al editor: la pieza va a volver a fallar. Se le dice la verdad.
+     */
+    it('no promete cobertura tras la acción si falta la clave de IA', async () => {
+        stubFetchConTarjetas([tarjetaDeEjemplo()]);
+
+        render(
+            <PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} iaConfigurada={false} />
+        );
+
+        await userEvent.click(await screen.findByRole('button', { name: 'Cubrir ahora' }));
+
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Acción registrada, pero falta la clave de IA.'));
+        expect(screen.queryByText('Cobertura priorizada.')).not.toBeInTheDocument();
     });
 
     it('muestra el error de acción si el POST falla', async () => {
@@ -135,7 +169,7 @@ describe('PantallaTendencias', () => {
             .mockResolvedValueOnce({ ok: false, json: () => Promise.resolve({}) });
         vi.stubGlobal('fetch', fetchSimulado);
 
-        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} iaConfigurada />);
 
         await userEvent.click(await screen.findByRole('button', { name: 'Ignorar' }));
 
@@ -145,7 +179,7 @@ describe('PantallaTendencias', () => {
     it('muestra la insignia y el botón "Cubrir como actualización" para una posible actualización', async () => {
         const fetchSimulado = stubFetchConTarjetas([tarjetaDeEjemplo({ estado: 'posible_actualizacion', tendenciaOriginalId: 3 })]);
 
-        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="nonce-x" textos={textosDeEjemplo()} />);
+        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="nonce-x" textos={textosDeEjemplo()} iaConfigurada />);
 
         expect(await screen.findByText('Posible actualización de una historia ya cubierta')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Cubrir ahora' })).not.toBeInTheDocument();
@@ -163,7 +197,7 @@ describe('PantallaTendencias', () => {
     it('muestra el mensaje vacío cuando el radar no tiene tendencias', async () => {
         stubFetchConTarjetas([]);
 
-        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} iaConfigurada />);
 
         expect(await screen.findByText('todavía no se ha detectado ninguna tendencia')).toBeInTheDocument();
     });

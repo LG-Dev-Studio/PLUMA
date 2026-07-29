@@ -269,6 +269,16 @@ final class ProveedorOpenRouter implements LenguajeInterface, EmbeddingsInterfac
 	}
 
 	/**
+	 * Sin red y sin coste: solo comprueba que exista una llave descifrable.
+	 * `obtenerLlave()` devuelve `null` tanto si nunca se configuró como si
+	 * las salts de `wp-config.php` cambiaron y el sobre ya no se puede abrir
+	 * — ambos casos son "no hay credenciales utilizables" para el editor.
+	 */
+	public function tieneCredenciales(): bool {
+		return null !== $this->obtenerLlave();
+	}
+
+	/**
 	 * Estado del circuit breaker para la Sala de Máquinas (Cap. 10.2:
 	 * "estado de cada API conectada") — el mismo estado que ya usa
 	 * `verificarCircuitoCerrado()`, expuesto en solo lectura.

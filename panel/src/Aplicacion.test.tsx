@@ -91,6 +91,7 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
         restUrl: 'https://ejemplo.test/wp-json/',
         nonce: 'nonce-de-prueba',
         salud: saludDeEjemplo(),
+        iaConfigurada: true,
         onboardingCompletado: true,
         textosOnboarding: textosOnboardingDeEjemplo(),
         textosPortada: {
@@ -135,6 +136,8 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
             cargando: 'Cargando…',
             errorCarga: 'No se pudo cargar la Sala de Tendencias.',
             errorAccion: 'La acción no se pudo completar.',
+            sinIaAviso: 'No hay clave de IA configurada.',
+            sinIaTrasAccion: 'Acción registrada, pero falta la clave de IA.',
             confirmacion: {
                 cubrir: 'Cobertura priorizada.',
                 ignorar: 'Tendencia ignorada.',

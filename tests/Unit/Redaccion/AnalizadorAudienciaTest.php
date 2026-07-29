@@ -56,6 +56,10 @@ final class AnalizadorAudienciaTest extends CasoDePruebaUnitario {
 				throw new ProveedorLenguajeException( 'proveedor caído' );
 			}
 
+			public function tieneCredenciales(): bool {
+				return true;
+			}
+
 			public function familiaDe( string $modelo ): string {
 				return $modelo;
 			}

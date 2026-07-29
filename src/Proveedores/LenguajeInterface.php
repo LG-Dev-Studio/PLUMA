@@ -18,6 +18,17 @@ interface LenguajeInterface {
 	public function completar( PeticionLenguaje $peticion ): RespuestaLenguaje;
 
 	/**
+	 * ¿Hay credenciales utilizables para hablar con el modelo? Pura, sin red:
+	 * responde por la CONFIGURACIÓN, no por la disponibilidad del servicio
+	 * (para eso está el circuit breaker). Existe para que el panel pueda
+	 * avisar al editor ANTES de que una Pieza muera en el pipeline por falta
+	 * de llave — sin que `Pluma\Admin` tenga que conocer qué proveedor hay
+	 * detrás ni leer su opción concreta (CLAUDE.md § Contrato del Proveedor
+	 * de Lenguaje).
+	 */
+	public function tieneCredenciales(): bool;
+
+	/**
 	 * Familia de modelo (Nivel Tres J.2): "la independencia de proveedor
 	 * comercial no es lo mismo que independencia de familia de modelo — el
 	 * contrato debe distinguir ambas cosas explícitamente". Pura, sin red:

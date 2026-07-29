@@ -36,6 +36,10 @@ final class ProveedorLenguajeSecuencial implements LenguajeInterface {
 		return new RespuestaLenguaje( (string) $contenido, 100, 50, 0.001, 'falso', 'modelo-falso', 10, false );
 	}
 
+	public function tieneCredenciales(): bool {
+		return true;
+	}
+
 	public function familiaDe( string $modelo ): string {
 		return explode( '/', $modelo, 2 )[0];
 	}

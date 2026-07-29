@@ -29,6 +29,10 @@ final class VerificadorIndependenciaEpistemicaTest extends CasoDePruebaUnitario 
 				throw new \RuntimeException( 'no usado en este test' );
 			}
 
+			public function tieneCredenciales(): bool {
+				return true;
+			}
+
 			public function familiaDe( string $modelo ): string {
 				return explode( '/', $modelo, 2 )[0];
 			}

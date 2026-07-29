@@ -23,6 +23,10 @@ final class ProveedorLenguajeQueFalla implements LenguajeInterface {
 		throw $this->excepcion;
 	}
 
+	public function tieneCredenciales(): bool {
+		return true;
+	}
+
 	public function familiaDe( string $modelo ): string {
 		return explode( '/', $modelo, 2 )[0];
 	}

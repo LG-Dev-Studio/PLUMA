@@ -24,6 +24,8 @@ export interface TextosTendencias {
         vigilar: string;
         'cubrir-actualizacion': string;
     };
+    sinIaAviso: string;
+    sinIaTrasAccion: string;
     vacio: string;
     velocidad: string;
     afinidad: string;
@@ -44,6 +46,7 @@ interface Props {
     restUrl: string;
     nonce: string;
     textos: TextosTendencias;
+    iaConfigurada: boolean;
 }
 
 /**
@@ -52,7 +55,7 @@ interface Props {
  * HOY (velocidad y afinidad — hueco competitivo y vida útil son deuda
  * PLUMA-E1-1 del Radar) y lo declara en pantalla en vez de inventar cifras.
  */
-export function PantallaTendencias({ restUrl, nonce, textos }: Props) {
+export function PantallaTendencias({ restUrl, nonce, textos, iaConfigurada }: Props) {
     const [tarjetas, setTarjetas] = useState<TarjetaTendencia[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [confirmacion, setConfirmacion] = useState<string | null>(null);
@@ -103,7 +106,10 @@ export function PantallaTendencias({ restUrl, nonce, textos }: Props) {
                 // sobre una tendencia que ya está EN_PIPELINE deja la tarjeta
                 // idéntica, y el editor no tiene forma de saber que el sistema
                 // hizo algo (bug real reportado: "no pasa nada").
-                setConfirmacion(textos.confirmacion[accion]);
+                // Sin clave de IA, prometer que "entra en el próximo ciclo"
+                // sería mentirle al editor: la pieza morirá en investigación
+                // (`PLUMA-E9-19`). Se le dice lo que de verdad va a pasar.
+                setConfirmacion(iaConfigurada ? textos.confirmacion[accion] : textos.sinIaTrasAccion);
                 cargar();
             })
             .catch(() => setError(textos.errorAccion))
@@ -125,6 +131,12 @@ export function PantallaTendencias({ restUrl, nonce, textos }: Props) {
     return (
         <div className="pluma-tendencias">
             <h1>{textos.titulo}</h1>
+
+            {!iaConfigurada && (
+                <p className="pluma-tendencias__aviso-sin-ia" role="alert">
+                    {textos.sinIaAviso}
+                </p>
+            )}
 
             {null !== confirmacion && (
                 <p className="pluma-tendencias__confirmacion" role="status">

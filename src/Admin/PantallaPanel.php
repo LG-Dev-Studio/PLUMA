@@ -8,6 +8,7 @@ use Pluma\Datos\Migrador;
 use Pluma\Kernel\Capacidades;
 use Pluma\Kernel\DetectorEntorno;
 use Pluma\Pipeline\EstadoPieza;
+use Pluma\Proveedores\LenguajeInterface;
 
 /**
  * La página única del panel (Libro de Arquitectura Cap. 10): registra el
@@ -27,7 +28,10 @@ final class PantallaPanel {
 
 	private ?string $hookSuffix = null;
 
-	public function __construct( private readonly DetectorEntorno $detector ) {
+	public function __construct(
+		private readonly DetectorEntorno $detector,
+		private readonly LenguajeInterface $proveedorLenguaje,
+	) {
 	}
 
 	public function registrar(): void {
@@ -133,6 +137,10 @@ final class PantallaPanel {
 			'textosEstudioSeo'          => $this->textosEstudioSeo(),
 			'textosComentarios'         => $this->textosComentarios(),
 			'textosInformes'            => $this->textosInformesEditoriales(),
+			// Sin credenciales de IA toda Pieza muere en investigación
+			// (`PLUMA-E9-19`): el panel lo avisa en vez de dejar que el editor
+			// lo descubra viendo piezas fallidas.
+			'iaConfigurada'             => $this->proveedorLenguaje->tieneCredenciales(),
 			'onboardingCompletado'      => (bool) get_option( RestOnboarding::OPCION_COMPLETADO, false ),
 			'textosOnboarding'          => $this->textosOnboarding(),
 		);
@@ -284,7 +292,7 @@ final class PantallaPanel {
 	}
 
 	/**
-	 * @return array<string, string>
+	 * @return array<string, mixed>
 	 */
 	private function textosTendencias(): array {
 		return array(
@@ -298,6 +306,8 @@ final class PantallaPanel {
 				'vigilar'              => __( 'Tendencia en vigilancia: sigue en el radar, sin gastar investigación ni redacción.', 'pluma-engine' ),
 				'cubrir-actualizacion' => __( 'Actualización priorizada: la pieza queda enlazada a la historia original.', 'pluma-engine' ),
 			),
+			'sinIaAviso'                 => __( 'No hay ninguna clave de IA configurada. El motor puede detectar tendencias, pero cada pieza morirá en la fase de investigación hasta que añadas una clave en la pestaña Configuración.', 'pluma-engine' ),
+			'sinIaTrasAccion'            => __( 'Acción registrada, pero la pieza volverá a fallar en investigación: falta configurar una clave de IA en la pestaña Configuración.', 'pluma-engine' ),
 			'vacio'                      => __( 'todavía no se ha detectado ninguna tendencia', 'pluma-engine' ),
 			'velocidad'                  => __( 'Velocidad', 'pluma-engine' ),
 			'afinidad'                   => __( 'Afinidad', 'pluma-engine' ),

@@ -1058,7 +1058,10 @@ final class Nucleo {
 			dirname( plugin_basename( $archivoPrincipalPlugin ) ) . '/languages'
 		);
 
-		( new PantallaPanel( $this->contenedor->obtener( DetectorEntorno::class ) ) )->registrar();
+		( new PantallaPanel(
+			$this->contenedor->obtener( DetectorEntorno::class ),
+			$this->contenedor->obtener( LenguajeInterface::class )
+		) )->registrar();
 		$this->contenedor->obtener( RestOrquestador::class )->registrar();
 		$this->contenedor->obtener( RestModoRespeto::class )->registrar();
 		$this->contenedor->obtener( RestImagenDestacada::class )->registrar();
