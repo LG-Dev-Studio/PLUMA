@@ -17,6 +17,18 @@ use WP_Error;
  */
 final class ExtractorImagenFuenteTest extends CasoDePruebaUnitario {
 
+	protected function setUp(): void {
+		parent::setUp();
+
+		// Circuit breaker por host (`PLUMA-E3-7`/`PLUMA-E8-8`): circuito
+		// siempre cerrado por defecto en estos tests, que verifican solo la
+		// extracción en sí, no la resiliencia (cubierta en su propio test).
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'delete_transient' )->justReturn( true );
+		Functions\when( 'do_action' )->justReturn( null );
+	}
+
 	private function mockearUrlSegura(): void {
 		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
 		// Evita resolución DNS real (GOVERNANCE §4.4/pl-proveedor-ia §5).
@@ -124,5 +136,65 @@ final class ExtractorImagenFuenteTest extends CasoDePruebaUnitario {
 		);
 
 		self::assertNull( ( new ExtractorImagenFuente() )->extraerImagenDestacada( 'https://medio.example.com/articulo' ) );
+	}
+
+	/**
+	 * Circuit breaker por host (`PLUMA-E3-7`/`PLUMA-E8-8`): un host con el
+	 * circuito ya abierto ni siquiera intenta la llamada de red.
+	 */
+	public function test_no_intenta_la_llamada_si_el_circuito_esta_abierto_para_ese_host(): void {
+		$this->mockearUrlSegura();
+		Functions\when( 'get_transient' )->justReturn( true );
+		Functions\expect( 'wp_remote_get' )->never();
+
+		self::assertNull( ( new ExtractorImagenFuente() )->extraerImagenDestacada( 'https://medio.example.com/articulo' ) );
+	}
+
+	/**
+	 * Al cruzar el umbral de fallos para un mismo host, el circuito se abre
+	 * y se dispara la alerta una sola vez (nunca en cada fallo posterior
+	 * mientras ya está abierto).
+	 */
+	public function test_abre_el_circuito_y_alerta_una_sola_vez_tras_el_umbral_de_fallos(): void {
+		$this->mockearUrlSegura();
+		Functions\when( 'wp_remote_get' )->justReturn( new WP_Error( 'http_request_failed', 'Timeout' ) );
+		Functions\when( 'is_wp_error' )->alias( static fn ( $valor ): bool => $valor instanceof WP_Error );
+
+		$fallosPorClave  = array();
+		$abiertoPorClave = array();
+		Functions\when( 'get_transient' )->alias(
+			static function ( string $clave ) use ( &$fallosPorClave, &$abiertoPorClave ) {
+				if ( str_starts_with( $clave, 'pluma_extractor_imagen_abierto_' ) ) {
+					return $abiertoPorClave[ $clave ] ?? false;
+				}
+
+				return $fallosPorClave[ $clave ] ?? false;
+			}
+		);
+		Functions\when( 'set_transient' )->alias(
+			static function ( string $clave, $valor ) use ( &$fallosPorClave, &$abiertoPorClave ): bool {
+				if ( str_starts_with( $clave, 'pluma_extractor_imagen_abierto_' ) ) {
+					$abiertoPorClave[ $clave ] = $valor;
+				} else {
+					$fallosPorClave[ $clave ] = $valor;
+				}
+
+				return true;
+			}
+		);
+		$alertas = array();
+		Functions\when( 'do_action' )->alias(
+			static function ( string $accion, ...$args ) use ( &$alertas ): void {
+				if ( 'pluma/proveedor_circuito_abierto' === $accion ) {
+					$alertas[] = $args;
+				}
+			}
+		);
+
+		$extractor = new ExtractorImagenFuente();
+		self::assertNull( $extractor->extraerImagenDestacada( 'https://medio.example.com/articulo-1' ) );
+		self::assertNull( $extractor->extraerImagenDestacada( 'https://medio.example.com/articulo-2' ) );
+
+		self::assertSame( array( array( 'extractor_imagen_fuente:medio.example.com' ) ), $alertas );
 	}
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pluma\Kernel;
 
+use Pluma\Admin\NotificadorProveedorCaido;
 use Pluma\Admin\NotificadorRevision;
 use Pluma\Admin\RestBoletines;
 use Pluma\Admin\RestCalendarioEditorial;
@@ -174,6 +175,7 @@ use Pluma\Seo\MotorSeo;
 use Pluma\Seo\PaginaAutorPeriodista;
 use Pluma\Seo\PaginaHistorialCorrecciones;
 use Pluma\Seo\PaginaMetodologia;
+use Pluma\Seo\SitemapNoticias;
 use Pluma\Sensores\ComparadorHistorias;
 use Pluma\Sensores\EvaluadorLegitimidadInsumo;
 use Pluma\Sensores\SensorGoogleTrends;
@@ -760,6 +762,7 @@ final class Nucleo {
 			}
 		);
 		$this->contenedor->registrar( NotificadorRevision::class, static fn (): NotificadorRevision => new NotificadorRevision() );
+		$this->contenedor->registrar( NotificadorProveedorCaido::class, static fn (): NotificadorProveedorCaido => new NotificadorProveedorCaido() );
 		$this->contenedor->registrar( NotificadorSinPeriodistaIdoneo::class, static fn (): NotificadorSinPeriodistaIdoneo => new NotificadorSinPeriodistaIdoneo() );
 
 		$this->contenedor->registrar(
@@ -1037,6 +1040,13 @@ final class Nucleo {
 			ExpedienteResumido::class,
 			fn ( Contenedor $c ): ExpedienteResumido => new ExpedienteResumido( $c->obtener( RepositorioPiezasInterface::class ) )
 		);
+		$this->contenedor->registrar(
+			SitemapNoticias::class,
+			fn ( Contenedor $c ): SitemapNoticias => new SitemapNoticias(
+				$c->obtener( RepositorioPiezasInterface::class ),
+				$c->obtener( RelojInterface::class )
+			)
+		);
 	}
 
 	public function arrancar( string $archivoPrincipalPlugin, string $versionEsquemaObjetivo ): void {
@@ -1055,6 +1065,7 @@ final class Nucleo {
 		$this->contenedor->obtener( RestBancoPeriodistas::class )->registrar();
 		$this->contenedor->obtener( RestSalaRevision::class )->registrar();
 		$this->contenedor->obtener( NotificadorRevision::class )->registrar();
+		$this->contenedor->obtener( NotificadorProveedorCaido::class )->registrar();
 		$this->contenedor->obtener( NotificadorSinPeriodistaIdoneo::class )->registrar();
 		$this->contenedor->obtener( RestPortada::class )->registrar();
 		$this->contenedor->obtener( RestSalaTendencias::class )->registrar();
@@ -1085,6 +1096,7 @@ final class Nucleo {
 		$this->contenedor->obtener( HistoriaHub::class )->registrar();
 		$this->contenedor->obtener( PaginaMetodologia::class )->registrar();
 		$this->contenedor->obtener( PaginaHistorialCorrecciones::class )->registrar();
+		$this->contenedor->obtener( SitemapNoticias::class )->registrar();
 		$this->contenedor->obtener( CompuertaComentarios::class )->registrar();
 	}
 }

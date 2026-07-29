@@ -106,11 +106,18 @@ final class ProveedorGoogleTrends implements ProveedorTendenciasInterface {
 		update_option( self::OPCION_FALLOS, $fallos, false );
 
 		if ( $fallos >= self::UMBRAL_FALLOS ) {
+			$yaAbierto = $this->circuitoAbierto();
+
 			update_option(
 				self::OPCION_ABIERTO_HASTA,
 				$this->reloj->ahora()->getTimestamp() + self::ENFRIAMIENTO_SEGUNDOS,
 				false
 			);
+
+			if ( ! $yaAbierto ) {
+				// PLUMA-E3-7/E8-8: alerta una sola vez por transición cerrado→abierto.
+				do_action( 'pluma/proveedor_circuito_abierto', 'google_trends' );
+			}
 		}
 	}
 
