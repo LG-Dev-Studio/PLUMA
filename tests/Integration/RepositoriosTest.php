@@ -77,6 +77,34 @@ final class RepositoriosTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Bug real encontrado en producción (`localhost:8888`, "Cubrir ahora"
+	 * fallaba con 404 sobre una tendencia recién detectada): `$wpdb->update()`
+	 * reporta 0 filas afectadas cuando el UPDATE no cambia ningún valor (sin
+	 * `CLIENT_FOUND_ROWS`), aunque la fila exista y el `WHERE` haya
+	 * coincidido — una tendencia ya en `EN_PIPELINE` (el estado por defecto
+	 * de toda tendencia recién detectada) nunca podía "cubrirse ahora" porque
+	 * el propio código confundía "0 filas afectadas" con "no encontrada".
+	 */
+	public function test_actualizar_estado_a_un_valor_ya_vigente_no_se_confunde_con_no_encontrada(): void {
+		global $wpdb;
+		$repo  = new RepositorioTendencias( $wpdb );
+		$reloj = new RelojSistema();
+
+		$id = $repo->guardar(
+			new TendenciaDetectada( 'tendencia idempotente', PuntuacionOportunidad::calcular( 70, 70 ), $reloj->ahora(), array(), 'google_trends' ),
+			$reloj->ahora()
+		);
+
+		self::assertTrue( $repo->actualizarEstadoTendencia( $id, EstadoTendencia::EnPipeline ) );
+		// Segunda llamada al MISMO estado: el UPDATE es un no-op para MySQL
+		// (0 filas afectadas), pero la fila sigue existiendo — debe seguir
+		// devolviendo true, no confundirse con "no encontrada".
+		self::assertTrue( $repo->actualizarEstadoTendencia( $id, EstadoTendencia::EnPipeline ) );
+
+		self::assertFalse( $repo->actualizarEstadoTendencia( 999999, EstadoTendencia::EnPipeline ) );
+	}
+
+	/**
 	 * Nivel Dos F.1-F.2: `actualizarGravedad()` persiste la clasificación, y
 	 * `obtenerGravedadMaximaRecientes()` — el material crudo del disparador
 	 * automático del modo respeto — filtra por umbral y ventana de tiempo

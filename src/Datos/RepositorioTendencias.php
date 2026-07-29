@@ -283,6 +283,19 @@ final class RepositorioTendencias implements RepositorioTendenciasInterface {
 			array( '%d' )
 		);
 
-		return false !== $actualizadas && $actualizadas > 0;
+		if ( false === $actualizadas ) {
+			return false;
+		}
+
+		if ( $actualizadas > 0 ) {
+			return true;
+		}
+
+		// $wpdb->update() (sin CLIENT_FOUND_ROWS) reporta 0 filas afectadas
+		// tanto si la fila no existe como si existe pero el UPDATE no cambió
+		// ningún valor (ej. "Cubrir ahora" sobre una tendencia que ya está
+		// EN_PIPELINE) — sin esta verificación, ese caso se confundía con
+		// "tendencia no encontrada" y la acción fallaba en el panel real.
+		return null !== $this->obtenerPorId( $id );
 	}
 }
