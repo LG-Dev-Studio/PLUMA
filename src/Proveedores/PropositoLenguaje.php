@@ -58,11 +58,27 @@ enum PropositoLenguaje: string {
 	 * visitante. Económico y determinista, mismo criterio que `Clasificar`.
 	 */
 	case ClasificarComentario = 'clasificar_comentario';
+	/**
+	 * El boletín como producto del periodista (Nivel Cuatro W.1, Etapa 9):
+	 * párrafo de apertura redactado en la voz del periodista, "mismo
+	 * pipeline, propósito boletin, mismas compuertas de tono" — literal del
+	 * texto fuente. Premium, mismo criterio que `RespuestaComentario`: es
+	 * voz pública del periodista, no una clasificación interna.
+	 */
+	case Boletin = 'boletin';
+	/**
+	 * Derivados por canal (Nivel Cuatro W.2, Etapa 9): extracto social +
+	 * titular de Discover derivados de una Pieza ya redactada. Premium
+	 * (voz pública del periodista, el anti-clickbait del Corrector aplica
+	 * igual que a un titular normal — "un derivado clickbait envenena la
+	 * marca igual que un titular clickbait", literal del texto fuente).
+	 */
+	case DerivadoSocial = 'derivado_social';
 
 	public function esPremium(): bool {
 		// phpcs:ignore PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext -- falso positivo: $this en un método de enum (PHP 8.1) es válido; el sniff aún no reconoce enums.
 		return match ( $this ) {
-			self::Redactar, self::Corregir, self::BloqueEditor, self::RespuestaComentario => true,
+			self::Redactar, self::Corregir, self::BloqueEditor, self::RespuestaComentario, self::Boletin, self::DerivadoSocial => true,
 			self::Clasificar, self::Angulos, self::Titulares, self::VistaPrevia, self::CompararHistorias, self::AnalizarAudiencia, self::Falsear, self::ClasificarComentario => false,
 		};
 	}
@@ -78,7 +94,7 @@ enum PropositoLenguaje: string {
 			self::Clasificar, self::CompararHistorias, self::AnalizarAudiencia, self::ClasificarComentario => 0.0,
 			self::Corregir, self::Falsear => 0.2,
 			self::Angulos, self::Titulares => 0.8,
-			self::Redactar, self::BloqueEditor, self::VistaPrevia, self::RespuestaComentario => 0.7,
+			self::Redactar, self::BloqueEditor, self::VistaPrevia, self::RespuestaComentario, self::Boletin, self::DerivadoSocial => 0.7,
 		};
 	}
 }

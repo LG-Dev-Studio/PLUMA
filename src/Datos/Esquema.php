@@ -166,6 +166,50 @@ final class Esquema {
                 KEY historia_id (historia_id),
                 KEY tendencia_id (tendencia_id)
             ) {$charset};",
+			// Etapa 9, porción 4 (Nivel Cuatro W.3): suscriptores de
+			// precisión. Una fila = un canal de un lector a un objetivo
+			// (periodista/historia/vertical/alerta_urgente). `email` solo
+			// se rellena cuando canal='email'; los tres campos `push_*`
+			// solo cuando canal='push' — un lector puede tener varias filas
+			// (un canal por suscripción, nunca mezclados en una). `token`
+			// sirve para doble opt-in (confirmar) Y para baja de un clic
+			// (RGPD, `PLUMA-EV-2`): el mismo enlace confirma o da de baja
+			// según el estado de `confirmado`.
+			"CREATE TABLE {$prefijo}suscriptores (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                canal VARCHAR(10) NOT NULL,
+                tipo VARCHAR(20) NOT NULL,
+                referencia_id BIGINT UNSIGNED NULL,
+                vertical VARCHAR(50) NULL,
+                email VARCHAR(191) NULL,
+                push_endpoint TEXT NULL,
+                push_clave_p256dh VARCHAR(255) NULL,
+                push_clave_auth VARCHAR(255) NULL,
+                token VARCHAR(64) NOT NULL,
+                confirmado TINYINT(1) NOT NULL DEFAULT 0,
+                creado_en DATETIME NOT NULL,
+                confirmado_en DATETIME NULL,
+                PRIMARY KEY  (id),
+                UNIQUE KEY token (token),
+                KEY tipo_referencia (tipo, referencia_id),
+                KEY canal (canal)
+            ) {$charset};",
+			// Etapa 9, porción 4 (Nivel Cuatro W.2): derivados por canal.
+			// Se generan al publicarse la Pieza (`pluma/pieza_publicada`);
+			// el editor los revisa antes de usarlos — nunca se publican
+			// solos a una plataforma externa (PLUMA no tiene credenciales
+			// de ninguna red social todavía, `PLUMA-E9-4`).
+			"CREATE TABLE {$prefijo}derivados_sociales (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                pieza_id BIGINT UNSIGNED NOT NULL,
+                extracto_social TEXT NOT NULL,
+                titular_discover VARCHAR(191) NOT NULL,
+                estado VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+                creado_en DATETIME NOT NULL,
+                PRIMARY KEY  (id),
+                KEY pieza_id (pieza_id),
+                KEY estado (estado)
+            ) {$charset};",
 			// Etapa 8, porción 10 (Nivel Tres Q.1): locale_editorial —
 			// determina qué catálogo localizado (vocabulario prohibido,
 			// ejemplos-ancla) aplica al compilar directrices. Campo desde
@@ -399,6 +443,8 @@ final class Esquema {
 			$prefijo . 'modo_respeto',
 			$prefijo . 'historias',
 			$prefijo . 'eventos_programados',
+			$prefijo . 'suscriptores',
+			$prefijo . 'derivados_sociales',
 		);
 	}
 
@@ -435,6 +481,10 @@ final class Esquema {
 		$prefijo = $wpdb->prefix . 'pluma_';
 
 		return match ( $versionOrigen . '->' . $versionDestino ) {
+			'0.20.0->0.19.0' => array(
+				"DROP TABLE IF EXISTS {$prefijo}suscriptores;",
+				"DROP TABLE IF EXISTS {$prefijo}derivados_sociales;",
+			),
 			'0.19.0->0.18.0' => array(
 				"DROP TABLE IF EXISTS {$prefijo}eventos_programados;",
 			),

@@ -409,6 +409,21 @@ final class RepositorioPiezas implements RepositorioPiezasInterface {
 		);
 	}
 
+	public function obtenerPublicadasRecientesPorPeriodista( int $periodistaId, int $limite ): array {
+		$sql = $this->wpdb->prepare(
+			"SELECT * FROM {$this->tabla()} WHERE periodista_id = %d AND estado = %s ORDER BY actualizada_en DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type
+			$periodistaId,
+			EstadoPieza::Publicada->value,
+			$limite
+		);
+		assert( null !== $sql );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql ya se construyó con $wpdb->prepare() arriba.
+		$filas = $this->wpdb->get_results( $sql, ARRAY_A );
+
+		return array_map( fn ( array $fila ): Pieza => $this->filaAPieza( $fila ), $filas ?? array() );
+	}
+
 	public function obtenerCanibalizacion(): array {
 		$sql = $this->wpdb->prepare(
 			"SELECT keyword_principal, GROUP_CONCAT(id ORDER BY id) AS ids FROM {$this->tabla()} WHERE estado = %s AND keyword_principal IS NOT NULL AND keyword_principal != '' GROUP BY keyword_principal HAVING COUNT(*) > 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type

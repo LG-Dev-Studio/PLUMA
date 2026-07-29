@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AsistenteOnboarding, type TextosOnboarding } from './AsistenteOnboarding';
 import { BarraEstado } from './BarraEstado';
 import { PantallaCalendarioEditorial, type TextosCalendarioEditorial } from './PantallaCalendarioEditorial';
+import { PantallaDistribucion, type TextosDistribucion } from './PantallaDistribucion';
 import { PantallaBancoPeriodistas, type TextosBancoPeriodistas } from './PantallaBancoPeriodistas';
 import { PantallaComentarios, type TextosComentarios } from './PantallaComentarios';
 import { PantallaEstudioSeo, type TextosEstudioSeo } from './PantallaEstudioSeo';
@@ -19,6 +20,7 @@ export interface DatosPlumaPanel {
     textosPortada: TextosPortada;
     textosTendencias: TextosTendencias;
     textosCalendarioEditorial: TextosCalendarioEditorial;
+    textosDistribucion: TextosDistribucion;
     textosMesaEditorial: TextosMesaEditorial;
     textosBancoPeriodistas: TextosBancoPeriodistas;
     textosSalaRevision: TextosSalaRevision;
@@ -38,6 +40,7 @@ type Ruta =
     | 'portada'
     | 'tendencias'
     | 'calendario-editorial'
+    | 'distribucion'
     | 'mesa-editorial'
     | 'periodistas'
     | 'revision'
@@ -59,6 +62,10 @@ function leerRuta(): Ruta {
 
     if ('#/calendario-editorial' === window.location.hash) {
         return 'calendario-editorial';
+    }
+
+    if ('#/distribucion' === window.location.hash) {
+        return 'distribucion';
     }
 
     if ('#/mesa-editorial' === window.location.hash) {
@@ -176,6 +183,12 @@ export function Aplicacion({ datos }: Props) {
                     {datos.textosCalendarioEditorial.titulo}
                 </a>
                 <a
+                    href="#/distribucion"
+                    className={'distribucion' === ruta ? 'pluma-panel__nav-enlace pluma-panel__nav-enlace--activo' : 'pluma-panel__nav-enlace'}
+                >
+                    {datos.textosDistribucion.titulo}
+                </a>
+                <a
                     href="#/mesa-editorial"
                     className={'mesa-editorial' === ruta ? 'pluma-panel__nav-enlace pluma-panel__nav-enlace--activo' : 'pluma-panel__nav-enlace'}
                 >
@@ -221,6 +234,9 @@ export function Aplicacion({ datos }: Props) {
                 {'tendencias' === ruta && <PantallaTendencias restUrl={datos.restUrl} nonce={datos.nonce} textos={datos.textosTendencias} />}
                 {'calendario-editorial' === ruta && (
                     <PantallaCalendarioEditorial restUrl={datos.restUrl} nonce={datos.nonce} textos={datos.textosCalendarioEditorial} />
+                )}
+                {'distribucion' === ruta && (
+                    <PantallaDistribucion restUrl={datos.restUrl} nonce={datos.nonce} textos={datos.textosDistribucion} />
                 )}
                 {'mesa-editorial' === ruta && (
                     <PantallaMesaEditorial restUrl={datos.restUrl} nonce={datos.nonce} textos={datos.textosMesaEditorial} />

@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Pluma\Kernel;
 
 use Pluma\Admin\NotificadorRevision;
+use Pluma\Admin\RestBoletines;
 use Pluma\Admin\RestCalendarioEditorial;
+use Pluma\Admin\RestDerivadosSociales;
+use Pluma\Admin\RestSuscripciones;
 use Pluma\Admin\NotificadorSinPeriodistaIdoneo;
 use Pluma\Admin\PantallaPanel;
 use Pluma\Admin\RestBancoPeriodistas;
@@ -46,8 +49,12 @@ use Pluma\Datos\RepositorioBorradores;
 use Pluma\Datos\RepositorioBorradoresInterface;
 use Pluma\Datos\RepositorioColaPublicacion;
 use Pluma\Datos\RepositorioColaPublicacionInterface;
+use Pluma\Datos\RepositorioDerivadosSociales;
+use Pluma\Datos\RepositorioDerivadosSocialesInterface;
 use Pluma\Datos\RepositorioEventosProgramados;
 use Pluma\Datos\RepositorioEventosProgramadosInterface;
+use Pluma\Datos\RepositorioSuscriptores;
+use Pluma\Datos\RepositorioSuscriptoresInterface;
 use Pluma\Datos\RepositorioHistorias;
 use Pluma\Datos\RepositorioHistoriasInterface;
 use Pluma\Datos\RepositorioMemoriaEditorial;
@@ -90,8 +97,10 @@ use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Proveedores\ProveedorGoogleTrends;
 use Pluma\Proveedores\ProveedorOpenRouter;
+use Pluma\Proveedores\ProveedorPushWeb;
 use Pluma\Proveedores\ProveedorSearchConsole;
 use Pluma\Proveedores\ProveedorSearchConsoleInterface;
+use Pluma\Proveedores\PushWebInterface;
 use Pluma\Proveedores\ProveedorTelemetria;
 use Pluma\Proveedores\ProveedorTendenciasInterface;
 use Pluma\Proveedores\TelemetriaInterface;
@@ -101,8 +110,13 @@ use Pluma\Publicacion\AsignadorTaxonomiaWp;
 use Pluma\Publicacion\CreadorBorrador;
 use Pluma\Publicacion\CreadorBorradorInterface;
 use Pluma\Publicacion\EscritorCamposSeo;
+use Pluma\Publicacion\GestorBoletines;
+use Pluma\Publicacion\GestorDerivadosSociales;
+use Pluma\Publicacion\GestorSuscripciones;
 use Pluma\Publicacion\LectorComentarios;
 use Pluma\Publicacion\LectorComentariosInterface;
+use Pluma\Publicacion\NotificadorSuscripciones;
+use Pluma\Publicacion\WidgetSuscripcionPush;
 use Pluma\Publicacion\Publicador;
 use Pluma\Publicacion\PublicadorComentario;
 use Pluma\Publicacion\PublicadorComentarioInterface;
@@ -117,6 +131,8 @@ use Pluma\Redaccion\DecisionEditorial;
 use Pluma\Redaccion\DeclaracionIdentidadSintetica;
 use Pluma\Redaccion\ExportadorBancoPeriodistas;
 use Pluma\Redaccion\GeneradorBloqueEditor;
+use Pluma\Redaccion\GeneradorBoletin;
+use Pluma\Redaccion\GeneradorDerivadoSocial;
 use Pluma\Redaccion\GeneradorEsqueleto;
 use Pluma\Redaccion\GeneradorRespuestaComentario;
 use Pluma\Redaccion\GeneradorVistaPrevia;
@@ -216,6 +232,14 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			RepositorioEventosProgramadosInterface::class,
 			fn ( Contenedor $c ): RepositorioEventosProgramados => new RepositorioEventosProgramados( $c->obtener( 'wpdb' ) )
+		);
+		$this->contenedor->registrar(
+			RepositorioSuscriptoresInterface::class,
+			fn ( Contenedor $c ): RepositorioSuscriptores => new RepositorioSuscriptores( $c->obtener( 'wpdb' ) )
+		);
+		$this->contenedor->registrar(
+			RepositorioDerivadosSocialesInterface::class,
+			fn ( Contenedor $c ): RepositorioDerivadosSociales => new RepositorioDerivadosSociales( $c->obtener( 'wpdb' ) )
 		);
 		$this->contenedor->registrar(
 			RepositorioBitacoraInterface::class,
@@ -373,6 +397,8 @@ final class Nucleo {
 				$c->obtener( RelojInterface::class )
 			)
 		);
+
+		$this->contenedor->registrar( PushWebInterface::class, static fn (): ProveedorPushWeb => new ProveedorPushWeb() );
 
 		$this->contenedor->registrar(
 			TelemetriaInterface::class,
@@ -592,6 +618,43 @@ final class Nucleo {
 			fn ( Contenedor $c ): GeneradorRespuestaComentario => new GeneradorRespuestaComentario( $c->obtener( LenguajeInterface::class ) )
 		);
 		$this->contenedor->registrar(
+			GeneradorBoletin::class,
+			fn ( Contenedor $c ): GeneradorBoletin => new GeneradorBoletin( $c->obtener( LenguajeInterface::class ) )
+		);
+		$this->contenedor->registrar(
+			GeneradorDerivadoSocial::class,
+			fn ( Contenedor $c ): GeneradorDerivadoSocial => new GeneradorDerivadoSocial( $c->obtener( LenguajeInterface::class ) )
+		);
+		$this->contenedor->registrar(
+			GestorBoletines::class,
+			fn ( Contenedor $c ): GestorBoletines => new GestorBoletines(
+				$c->obtener( RepositorioPeriodistasInterface::class ),
+				$c->obtener( RepositorioPiezasInterface::class ),
+				$c->obtener( GeneradorBoletin::class ),
+				$c->obtener( NotificadorSuscripciones::class )
+			)
+		);
+		$this->contenedor->registrar(
+			RestBoletines::class,
+			fn ( Contenedor $c ): RestBoletines => new RestBoletines( $c->obtener( GestorBoletines::class ) )
+		);
+		$this->contenedor->registrar(
+			GestorDerivadosSociales::class,
+			fn ( Contenedor $c ): GestorDerivadosSociales => new GestorDerivadosSociales(
+				$c->obtener( RepositorioPiezasInterface::class ),
+				$c->obtener( RepositorioPeriodistasInterface::class ),
+				$c->obtener( RepositorioTendenciasInterface::class ),
+				$c->obtener( RepositorioDerivadosSocialesInterface::class ),
+				$c->obtener( GeneradorDerivadoSocial::class ),
+				$c->obtener( NotificadorSuscripciones::class ),
+				$c->obtener( RelojInterface::class )
+			)
+		);
+		$this->contenedor->registrar(
+			RestDerivadosSociales::class,
+			fn ( Contenedor $c ): RestDerivadosSociales => new RestDerivadosSociales( $c->obtener( RepositorioDerivadosSocialesInterface::class ) )
+		);
+		$this->contenedor->registrar(
 			Orquestador::class,
 			fn ( Contenedor $c ): Orquestador => new Orquestador(
 				$c->obtener( CandadoGlobalInterface::class ),
@@ -701,6 +764,28 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			RestCalendarioEditorial::class,
 			fn ( Contenedor $c ): RestCalendarioEditorial => new RestCalendarioEditorial( $c->obtener( GestorCalendarioEditorial::class ) )
+		);
+		$this->contenedor->registrar(
+			GestorSuscripciones::class,
+			fn ( Contenedor $c ): GestorSuscripciones => new GestorSuscripciones(
+				$c->obtener( RepositorioSuscriptoresInterface::class ),
+				$c->obtener( RelojInterface::class )
+			)
+		);
+		$this->contenedor->registrar(
+			NotificadorSuscripciones::class,
+			fn ( Contenedor $c ): NotificadorSuscripciones => new NotificadorSuscripciones(
+				$c->obtener( RepositorioSuscriptoresInterface::class ),
+				$c->obtener( PushWebInterface::class )
+			)
+		);
+		$this->contenedor->registrar( WidgetSuscripcionPush::class, static fn (): WidgetSuscripcionPush => new WidgetSuscripcionPush() );
+		$this->contenedor->registrar(
+			RestSuscripciones::class,
+			fn ( Contenedor $c ): RestSuscripciones => new RestSuscripciones(
+				$c->obtener( GestorSuscripciones::class ),
+				$c->obtener( NotificadorSuscripciones::class )
+			)
 		);
 		$this->contenedor->registrar(
 			RestSalaTendencias::class,
@@ -892,6 +977,11 @@ final class Nucleo {
 		$this->contenedor->obtener( RestPortada::class )->registrar();
 		$this->contenedor->obtener( RestSalaTendencias::class )->registrar();
 		$this->contenedor->obtener( RestCalendarioEditorial::class )->registrar();
+		$this->contenedor->obtener( RestSuscripciones::class )->registrar();
+		$this->contenedor->obtener( WidgetSuscripcionPush::class )->registrar();
+		$this->contenedor->obtener( RestBoletines::class )->registrar();
+		$this->contenedor->obtener( RestDerivadosSociales::class )->registrar();
+		$this->contenedor->obtener( GestorDerivadosSociales::class )->registrar();
 		$this->contenedor->obtener( RestMesaEditorial::class )->registrar();
 		$this->contenedor->obtener( RestPeriodistas::class )->registrar();
 		$this->contenedor->obtener( RestSalaMaquinas::class )->registrar();

@@ -1,6 +1,6 @@
 # Etapa 9 — El medio real (Nivel Cuatro Parte II, territorio nuevo, TIER 3)
 
-**Estado: EN CURSO.** Porción 1 (Historia como entidad, U.1-U.2+U.4), Porción 2 (Comunidad mínima viable, X.1+Y.1) y Porción 3 (Iniciativa editorial, V.1-V.2) completas. Orden interno confirmado por `docs/PLAN-MAESTRO-EVOLUCION.md` §6 (N4-III.1): Historia primero porque toca esquema y grafo — se hace temprano para no migrar dos veces; el resto llega con el primer tráfico real.
+**Estado: EN CURSO.** Porción 1 (Historia como entidad, U.1-U.2+U.4), Porción 2 (Comunidad mínima viable, X.1+Y.1), Porción 3 (Iniciativa editorial, V.1-V.2) y Porción 4 (Canal propio, W.1-W.2+W.3) completas. Orden interno confirmado por `docs/PLAN-MAESTRO-EVOLUCION.md` §6 (N4-III.1): Historia primero porque toca esquema y grafo — se hace temprano para no migrar dos veces; el resto llega con el primer tráfico real.
 
 ## Objetivo y criterio de salida (`docs/PLAN-MAESTRO-EVOLUCION.md` §6)
 
@@ -117,6 +117,56 @@
 | `npm run build` | build de producción real verificado |
 | `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
 
-## Porciones 4-5
+## Porción 4 — Canal propio (Nivel Cuatro W.1 + W.2 + W.3)
 
-Pendientes. Orden: Canal propio (W.1-W.3) → Confianza y negocio (X.2-X.4+Y.2-Y.3+Z).
+**Texto fuente** (`docs/PLUMA_Engine_Nivel_Cuatro.md`, Cap. W): "los tres documentos apuestan todo el tráfico a un único canal alquilado: el SERP de Google... la respuesta de todo medio que sobrevivió a los últimos quince años es la misma: canales propios". W.1 pide un boletín compuesto automáticamente por periodista con un párrafo de apertura en su voz. W.2 pide derivados por canal (extracto social, metadatos de Discover) que "jamás contradicen ni exageran la pieza". W.3 pide suscripciones de precisión (periodista/Historia/vertical/alerta urgente) por email transaccional y push web, "todo opt-in explícito, exportable, del cliente".
+
+**Decisión de alcance del propietario (2026-07-28)**: se construye W.1 completo, W.2 en su mitad de texto (extracto social + titular Discover; la publicación directa a plataformas externas queda diferida, requiere credenciales por plataforma) y W.3 completo — incluyendo push web real (VAPID + cifrado), no solo email. Ejecutado en 4 sub-entregas con gates completos entre cada una (decisión del propietario sobre el ritmo de esta porción, dado el riesgo real en áreas sensibles — criptografía de push, datos personales).
+
+**Conflicto de arquitectura resuelto — ADR 0007**: `CLAUDE.md` restringía el frontend público a 4 superficies enumeradas ("peso adicional en frontend ≈ 0"); las notificaciones push web reales exigen un service worker registrado en el propio frontend, una 5ª superficie no prevista. Siguiendo la propia regla de `CLAUDE.md` ("ante conflicto... DETENTE y pide decisión"), se preguntó al propietario, que decidió **modificar `CLAUDE.md` de forma permanente** (no una excepción puntual) para autorizar esta 5ª superficie — documentado en `docs/decisiones/0007-service-worker-push-web-frontend.md`.
+
+**Sub-entrega 1 — Suscriptores + RGPD + email:**
+
+- Tabla `pluma_suscriptores` (esquema `0.19.0 → 0.20.0`): una fila = un canal (`email`/`push`) de un lector a un objetivo (`Pluma\Publicacion\TipoSuscripcion`: periodista/historia/vertical/alerta_urgente).
+- `Pluma\Publicacion\GestorSuscripciones`: alta con doble opt-in por email (token de un solo uso), confirmación, baja de un clic (mismo token), export/borrado por email (`PLUMA-EV-2`, mecánica técnica mínima — self-service sin verificación de propiedad del email queda como `PLUMA-E9-5`, agujero de PII si se construyera sin esa verificación).
+- `Pluma\Admin\RestSuscripciones`: alta/confirmar/baja públicos (por token, sin necesidad de sesión); listar/exportar/borrar protegidos con `pluma_aprobar_piezas`.
+
+**Sub-entrega 2 — VAPID + push web real:**
+
+- `minishlink/web-push` (primera dependencia de producción PHP del plugin) + `nyholm/psr7` — ambas MIT, `composer audit` limpio, scoping vía PHP-Scoper ya agnóstico a nuevas dependencias.
+- `Pluma\Proveedores\ClienteHttpWp`: adaptador PSR-18 sobre `wp_remote_request()` — CLAUDE.md exige que TODO HTTP saliente pase por `Pluma\Proveedores`; las librerías de terceros con contrato PSR-18 no abren un segundo canal de red.
+- `Pluma\Proveedores\ClavesVapid`: par de claves generado una sola vez en activación (`Activador::activar()`), clave privada cifrada en reposo con `Pluma\Kernel\Cifrado` (misma disciplina que la llave de OpenRouter).
+- `Pluma\Proveedores\ProveedorPushWeb`: envío real RFC 8291/8292, mejor esfuerzo — cualquier fallo (claves ausentes, cifrado, red) devuelve fracaso silencioso, nunca lanza; distingue suscripción expirada (se borra) de fallo transitorio (no se borra).
+
+**Sub-entrega 3 — Boletín (W.1) + derivados sociales (W.2):**
+
+- Nuevos `PropositoLenguaje::Boletin`/`DerivadoSocial`, `Pluma\Redaccion\GeneradorBoletin` (párrafo de apertura en la voz del periodista, mismo molde ligero que `GeneradorRespuestaComentario`) y `Pluma\Redaccion\GeneradorDerivadoSocial` (extracto social + titular Discover, con la regla anti-clickbait pedida al proveedor en las directrices — verificación determinista completa queda como `PLUMA-E9-6`).
+- `Pluma\Publicacion\GestorBoletines`: composición automática, disparo MANUAL del editor (mismo patrón "Cubrir ahora" de la Sala de Tendencias — el texto fuente no pide una cadencia automática, no se inventa una).
+- `Pluma\Publicacion\GestorDerivadosSociales`: se engancha a `pluma/pieza_publicada` (el evento que `Transicionador` ya dispara en toda transición) — genera el derivado y, si la tendencia de origen tiene gravedad alta (`pluma_alerta_urgente_gravedad_minima`, default 70), dispara la alerta urgente a los suscriptores de ese tipo. Mejor esfuerzo: un fallo del proveedor de lenguaje nunca revierte ni bloquea la Pieza ya publicada.
+- Nueva tabla `pluma_derivados_sociales`: el editor aprueba/descarta cada derivado (`Pluma\Admin\RestDerivadosSociales`) antes de usarlo — PLUMA no publica solo a ninguna red social todavía (`PLUMA-E9-4`, requiere credenciales por plataforma).
+
+**Sub-entrega 4 — Panel + frontend (5ª superficie, ADR 0007):**
+
+- `panel/src/PantallaDistribucion.tsx`: nueva pantalla del panel — lista de periodistas activos con botón "Enviar boletín", lista de derivados pendientes con aprobar/descartar.
+- `Pluma\Publicacion\WidgetSuscripcionPush` + `assets/frontend/{sw-push.js,suscripcion-push.js}` (vanilla JS, sin build, sin dependencias): shortcode `[pluma_suscripcion]` — el service worker y el script de suscripción SOLO se encolan en páginas que llevan el shortcode, nunca en todo el sitio (ADR 0007: "solo se sirve al lector que se suscribe explícitamente").
+
+**Deuda pagada**: ninguna deuda previa cerraba W.1/W.2/W.3 directamente. Nueva deuda: `PLUMA-E9-4` (publicación directa a plataformas sociales), `PLUMA-E9-5` (autoservicio RGPD sin verificación de propiedad del email), `PLUMA-E9-6` (verificación determinista de derivados). `PLUMA-EV-1` actualizado: `pluma_suscriptores`/`pluma_derivados_sociales` construidas, el total de tablas propias sube a 18.
+
+### Evidencia de gates — Porción 4 (acumulada de las 4 sub-entregas)
+
+| Gate | Resultado |
+|---|---|
+| PHPCS (repo completo) | 0 errores, 518/518 archivos |
+| PHPStan L8 (repo completo, `--memory-limit=2G`) | 0 errores |
+| `composer audit` | sin vulnerabilidades (`minishlink/web-push`, `nyholm/psr7` y transitivas) |
+| `composer test:unit` | 633/633 |
+| `composer test:invariantes` | 23/23 |
+| `composer test:integration` (wp-env real, migración 0.19.0→0.20.0) | 243/243 (2 skipped esperados, preexistentes) |
+| `npx vitest run` | 110/110 (21 archivos) |
+| `npx tsc --noEmit` | limpio |
+| `npm run build` | build de producción real verificado |
+| `npx playwright test tests/e2e/salud.spec.ts` | 2/2 |
+
+## Porción 5
+
+Pendiente: Confianza y negocio (X.2-X.4+Y.2-Y.3+Z).

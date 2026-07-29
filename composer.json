@@ -5,7 +5,9 @@
     "version": "0.14.0",
     "license": "proprietary",
     "require": {
-        "php": ">=8.2"
+        "php": ">=8.2",
+        "minishlink/web-push": "^11.0",
+        "nyholm/psr7": "^1.8"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6",

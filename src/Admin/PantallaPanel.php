@@ -125,6 +125,7 @@ final class PantallaPanel {
 			'textosPortada'             => $this->textosPortada(),
 			'textosTendencias'          => $this->textosTendencias(),
 			'textosCalendarioEditorial' => $this->textosCalendarioEditorial(),
+			'textosDistribucion'        => $this->textosDistribucion(),
 			'textosMesaEditorial'       => $this->textosMesaEditorial(),
 			'textosBancoPeriodistas'    => $this->textosBancoPeriodistas(),
 			'textosSalaRevision'        => $this->textosSalaRevision(),
@@ -335,6 +336,29 @@ final class PantallaPanel {
 			'marcarEnCurso'        => __( 'Marcar en curso', 'pluma-engine' ),
 			'marcarCubierto'       => __( 'Marcar cubierto', 'pluma-engine' ),
 			'necesitaFuentes'      => __( 'Añade al menos una fuente real (título y URL) antes de preparar la cobertura.', 'pluma-engine' ),
+		);
+	}
+
+	/**
+	 * @return array<string, string>
+	 */
+	private function textosDistribucion(): array {
+		return array(
+			'titulo'           => __( 'Distribución', 'pluma-engine' ),
+			'cargando'         => __( 'Cargando…', 'pluma-engine' ),
+			'errorCarga'       => __( 'No se pudo cargar Distribución. Reintenta en unos segundos.', 'pluma-engine' ),
+			'errorAccion'      => __( 'La acción no se pudo completar. Reintenta en unos segundos.', 'pluma-engine' ),
+			'seccionBoletines' => __( 'Boletines por periodista', 'pluma-engine' ),
+			'enviarBoletin'    => __( 'Enviar boletín', 'pluma-engine' ),
+			'sinPeriodistas'   => __( 'todavía no hay periodistas activos', 'pluma-engine' ),
+			'piezasEnviadas'   => __( 'piezas incluidas', 'pluma-engine' ),
+			'sinPiezasNuevas'  => __( 'sin piezas nuevas para enviar', 'pluma-engine' ),
+			'seccionDerivados' => __( 'Derivados sociales pendientes de revisión', 'pluma-engine' ),
+			'sinDerivados'     => __( 'todavía no hay derivados pendientes', 'pluma-engine' ),
+			'extractoSocial'   => __( 'Extracto social', 'pluma-engine' ),
+			'titularDiscover'  => __( 'Titular Discover', 'pluma-engine' ),
+			'aprobar'          => __( 'Aprobar', 'pluma-engine' ),
+			'descartar'        => __( 'Descartar', 'pluma-engine' ),
 		);
 	}
 

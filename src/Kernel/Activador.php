@@ -6,6 +6,7 @@ namespace Pluma\Kernel;
 
 use Pluma\Datos\Esquema;
 use Pluma\Datos\Migrador;
+use Pluma\Proveedores\ClavesVapid;
 use wpdb;
 
 /**
@@ -43,6 +44,9 @@ final class Activador {
 
 		Capacidades::instalar();
 		( new Migrador( $wpdb ) )->migrar( $versionEsquemaObjetivo, Esquema::sentenciasCreateTable( $wpdb ) );
+		// Nivel Cuatro W.3 (push web): el par de claves VAPID del sitio se
+		// genera una sola vez, aquí, nunca en cada carga de página.
+		ClavesVapid::generarSiNoExisten();
 
 		// `add_option` no sobrescribe un valor ya existente: reactivar el
 		// plugin nunca resetea la elección de conservación del cliente ni

@@ -174,6 +174,15 @@ interface RepositorioPiezasInterface {
 	public function metricasPorPeriodista( int $periodistaId ): array;
 
 	/**
+	 * Nivel Cuatro W.1 — piezas para componer el boletín de un periodista:
+	 * las últimas publicadas, con `postId` para poder resolver título/
+	 * extracto reales contra el post de WordPress.
+	 *
+	 * @return list<Pieza>
+	 */
+	public function obtenerPublicadasRecientesPorPeriodista( int $periodistaId, int $limite ): array;
+
+	/**
 	 * Auditoría de canibalización agregada (Estudio SEO y Taxonomía, Libro
 	 * Cap. 10.2): TODOS los grupos de Piezas ya PUBLICADAS que comparten la
 	 * misma keyword principal — a diferencia de
