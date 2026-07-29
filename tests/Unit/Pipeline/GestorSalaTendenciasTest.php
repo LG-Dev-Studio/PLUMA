@@ -116,6 +116,34 @@ final class GestorSalaTendenciasTest extends CasoDePruebaUnitario {
 		$this->expectNotToPerformAssertions();
 	}
 
+	/**
+	 * Bug real encontrado en producción ("Cubrir ahora" reportaba éxito pero
+	 * no pasaba nada visible): si la Pieza en curso ya está FALLIDA, solo
+	 * priorizarla no la revive — ningún tick del Orquestador vuelve a tocar
+	 * una Pieza fallida por su cuenta. "Cubrir ahora" debe reanudarla a
+	 * DETECTADA (arista que el propio grafo del Transicionador ya admite)
+	 * antes de priorizarla, en vez de re-priorizar en silencio una Pieza
+	 * muerta.
+	 */
+	public function test_cubrir_ahora_reanuda_una_pieza_fallida_antes_de_priorizarla(): void {
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$tendencias = Mockery::mock( RepositorioTendenciasInterface::class );
+		$tendencias->expects( 'actualizarEstadoTendencia' )->with( 21, EstadoTendencia::EnPipeline )->andReturn( true );
+
+		$pieza  = $this->pieza( 21, EstadoPieza::Fallida );
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->expects( 'obtenerUltimaPorTendencia' )->with( 21 )->andReturn( $pieza );
+		$piezas->allows( 'obtenerPorId' )->with( 21 )->andReturn( $pieza );
+		$piezas->expects( 'actualizarEstado' )->with( 21, EstadoPieza::Fallida, EstadoPieza::Detectada, Mockery::any() )->andReturn( true );
+		$piezas->expects( 'priorizar' )->with( 21, Mockery::any() )->andReturn( true );
+		$piezas->expects( 'crear' )->never();
+
+		$this->construir( $tendencias, $piezas )->cubrirAhora( 21 );
+
+		$this->expectNotToPerformAssertions();
+	}
+
 	public function test_vigilar_descarta_la_pieza_en_curso_y_marca_la_tendencia(): void {
 		Functions\when( 'do_action' )->justReturn( null );
 

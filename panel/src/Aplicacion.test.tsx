@@ -135,6 +135,12 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
             cargando: 'Cargando…',
             errorCarga: 'No se pudo cargar la Sala de Tendencias.',
             errorAccion: 'La acción no se pudo completar.',
+            confirmacion: {
+                cubrir: 'Cobertura priorizada.',
+                ignorar: 'Tendencia ignorada.',
+                vigilar: 'Tendencia en vigilancia.',
+                'cubrir-actualizacion': 'Actualización priorizada.',
+            },
             vacio: 'todavía no se ha detectado ninguna tendencia',
             velocidad: 'Velocidad',
             afinidad: 'Afinidad',

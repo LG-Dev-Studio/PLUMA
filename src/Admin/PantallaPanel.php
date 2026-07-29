@@ -292,6 +292,12 @@ final class PantallaPanel {
 			'cargando'                   => __( 'Cargando…', 'pluma-engine' ),
 			'errorCarga'                 => __( 'No se pudo cargar la Sala de Tendencias. Reintenta en unos segundos.', 'pluma-engine' ),
 			'errorAccion'                => __( 'La acción no se pudo completar. Reintenta en unos segundos.', 'pluma-engine' ),
+			'confirmacion'               => array(
+				'cubrir'               => __( 'Cobertura priorizada: la pieza salta la cola y entra en el próximo ciclo del motor.', 'pluma-engine' ),
+				'ignorar'              => __( 'Tendencia ignorada: sale del radar y su pieza en curso queda descartada.', 'pluma-engine' ),
+				'vigilar'              => __( 'Tendencia en vigilancia: sigue en el radar, sin gastar investigación ni redacción.', 'pluma-engine' ),
+				'cubrir-actualizacion' => __( 'Actualización priorizada: la pieza queda enlazada a la historia original.', 'pluma-engine' ),
+			),
 			'vacio'                      => __( 'todavía no se ha detectado ninguna tendencia', 'pluma-engine' ),
 			'velocidad'                  => __( 'Velocidad', 'pluma-engine' ),
 			'afinidad'                   => __( 'Afinidad', 'pluma-engine' ),

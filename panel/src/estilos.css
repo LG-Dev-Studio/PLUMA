@@ -302,6 +302,21 @@
 
 /* Sala de Tendencias */
 
+/*
+ * Acuse de recibo de una acción del editor. Sin esto, "Cubrir ahora" sobre
+ * una tendencia que ya está EN_PIPELINE deja la tarjeta idéntica y la acción
+ * resulta invisible aunque el motor sí haya hecho su trabajo.
+ */
+.pluma-tendencias__confirmacion {
+    border-left: 4px solid var(--pluma-color-publicada);
+    background: var(--pluma-color-superficie);
+    color: var(--pluma-color-texto);
+    padding: 0.75rem 1rem;
+    margin: 0 0 var(--pluma-espaciado);
+    border-radius: 4px;
+    font-size: 0.92rem;
+}
+
 .pluma-tendencias__vacio {
     color: var(--pluma-color-texto-tenue);
     font-size: 0.9rem;

@@ -41,7 +41,7 @@ test.describe('Sala de Máquinas — Salud del sistema', () => {
         // Acotado al contenedor de la pantalla: "WordPress"/"PHP" también
         // aparecen en el pie de página nativo de wp-admin (strict mode
         // violation si se busca en toda la página).
-        await expect(raiz.getByText('Sala de Máquinas — Salud del sistema')).toBeVisible();
+        await expect(raiz.getByText('Configuración — Sala de Máquinas')).toBeVisible();
         await expect(raiz.getByText('PHP', { exact: true })).toBeVisible();
         await expect(raiz.getByText('WordPress', { exact: true })).toBeVisible();
         await expect(raiz.getByText('Esquema PLUMA', { exact: true })).toBeVisible();

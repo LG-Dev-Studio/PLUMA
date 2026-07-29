@@ -18,6 +18,12 @@ export interface TextosTendencias {
     cargando: string;
     errorCarga: string;
     errorAccion: string;
+    confirmacion: {
+        cubrir: string;
+        ignorar: string;
+        vigilar: string;
+        'cubrir-actualizacion': string;
+    };
     vacio: string;
     velocidad: string;
     afinidad: string;
@@ -49,7 +55,20 @@ interface Props {
 export function PantallaTendencias({ restUrl, nonce, textos }: Props) {
     const [tarjetas, setTarjetas] = useState<TarjetaTendencia[] | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [confirmacion, setConfirmacion] = useState<string | null>(null);
     const [accionEnCurso, setAccionEnCurso] = useState<number | null>(null);
+
+    // La confirmación se desvanece sola: es un acuse de recibo, no un estado
+    // permanente que el editor tenga que cerrar a mano.
+    useEffect(() => {
+        if (null === confirmacion) {
+            return;
+        }
+
+        const temporizador = window.setTimeout(() => setConfirmacion(null), 6000);
+
+        return () => window.clearTimeout(temporizador);
+    }, [confirmacion]);
 
     const cargar = useCallback(() => {
         fetch(`${restUrl}pluma/v1/tendencias`, { headers: { 'X-WP-Nonce': nonce } })
@@ -80,6 +99,11 @@ export function PantallaTendencias({ restUrl, nonce, textos }: Props) {
                 if (!respuesta.ok) {
                     throw new Error('respuesta no OK');
                 }
+                // Sin esta confirmación la acción es invisible: "Cubrir ahora"
+                // sobre una tendencia que ya está EN_PIPELINE deja la tarjeta
+                // idéntica, y el editor no tiene forma de saber que el sistema
+                // hizo algo (bug real reportado: "no pasa nada").
+                setConfirmacion(textos.confirmacion[accion]);
                 cargar();
             })
             .catch(() => setError(textos.errorAccion))
@@ -101,6 +125,12 @@ export function PantallaTendencias({ restUrl, nonce, textos }: Props) {
     return (
         <div className="pluma-tendencias">
             <h1>{textos.titulo}</h1>
+
+            {null !== confirmacion && (
+                <p className="pluma-tendencias__confirmacion" role="status">
+                    {confirmacion}
+                </p>
+            )}
 
             {0 === tarjetas.length ? (
                 <p className="pluma-tendencias__vacio">{textos.vacio}</p>

@@ -9,6 +9,12 @@ function textosDeEjemplo(): TextosTendencias {
         cargando: 'Cargando…',
         errorCarga: 'No se pudo cargar la Sala de Tendencias.',
         errorAccion: 'La acción no se pudo completar.',
+        confirmacion: {
+            cubrir: 'Cobertura priorizada.',
+            ignorar: 'Tendencia ignorada.',
+            vigilar: 'Tendencia en vigilancia.',
+            'cubrir-actualizacion': 'Actualización priorizada.',
+        },
         vacio: 'todavía no se ha detectado ninguna tendencia',
         velocidad: 'Velocidad',
         afinidad: 'Afinidad',
@@ -102,6 +108,24 @@ describe('PantallaTendencias', () => {
         );
         // GET inicial + POST + GET de recarga.
         await waitFor(() => expect(fetchSimulado).toHaveBeenCalledTimes(3));
+    });
+
+    /**
+     * Bug real reportado en producción: "Cubrir ahora" sobre una tendencia que
+     * ya está EN_PIPELINE devolvía 200 y priorizaba la pieza de verdad, pero la
+     * tarjeta quedaba idéntica — el editor no tenía forma de saber que el
+     * sistema había hecho algo ("no pasa nada").
+     */
+    it('confirma en pantalla que la acción se completó, aunque la tarjeta no cambie', async () => {
+        stubFetchConTarjetas([tarjetaDeEjemplo()]);
+
+        render(<PantallaTendencias restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+        await userEvent.click(await screen.findByRole('button', { name: 'Cubrir ahora' }));
+
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Cobertura priorizada.'));
     });
 
     it('muestra el error de acción si el POST falla', async () => {

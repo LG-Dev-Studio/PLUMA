@@ -38,7 +38,14 @@ final class GestorSalaTendencias {
 	/**
 	 * "Cubrir ahora (salta la cola)": si la Pieza en curso sigue viva, se
 	 * prioriza; si fue descartada (tendencia vigilada/ignorada) se crea una
-	 * nueva ya prioritaria. En ambos casos la tendencia vuelve a EN_PIPELINE.
+	 * nueva ya prioritaria; si falló (proveedor caído, sin credenciales, etc.)
+	 * se reanuda a DETECTADA — el propio grafo del Transicionador admite esta
+	 * arista de recuperación ("FALLIDA se reanuda al estado previo") — y se
+	 * prioriza, en vez de re-priorizar en silencio una Pieza ya muerta que
+	 * ningún tick futuro vuelve a tocar (bug real encontrado en producción:
+	 * "Cubrir ahora" reportaba éxito pero no pasaba nada visible porque la
+	 * Pieza subyacente ya estaba en FALLIDA). En todos los casos la tendencia
+	 * vuelve a EN_PIPELINE.
 	 *
 	 * @throws TendenciaNoEncontradaException
 	 */
@@ -52,6 +59,15 @@ final class GestorSalaTendencias {
 			$this->piezas->priorizar( $piezaId, $this->reloj->ahora() );
 
 			return;
+		}
+
+		if ( EstadoPieza::Fallida === $pieza->estado ) {
+			$this->transicionador->transitar(
+				$pieza->id,
+				EstadoPieza::Detectada,
+				'Reintento manual desde "Cubrir ahora" en la Sala de Tendencias.',
+				'editor'
+			);
 		}
 
 		$this->piezas->priorizar( $pieza->id, $this->reloj->ahora() );
