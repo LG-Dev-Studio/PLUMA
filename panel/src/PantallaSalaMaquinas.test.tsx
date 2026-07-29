@@ -40,6 +40,14 @@ function textosDeEjemplo(): TextosSalaMaquinas {
         cargando: 'Cargando…',
         errorCarga: 'No se pudo cargar.',
         errorAccion: 'La acción no se pudo completar.',
+        ejecutarMotor: {
+            titulo: 'Ejecutar el motor ahora',
+            explicacion: 'El motor no se ejecuta solo sin cron configurado.',
+            boton: 'Ejecutar un ciclo ahora',
+            ejecutando: 'Ejecutando…',
+            resultado: 'Ciclo completado. Lotes procesados:',
+            error: 'No se pudo ejecutar el ciclo.',
+        },
         bitacora: {
             titulo: 'Bitácora del motor',
             vacia: 'sin ejecuciones todavía',
@@ -397,6 +405,33 @@ describe('PantallaSalaMaquinas', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Ocultar' }));
 
         expect(screen.queryByText(/piezasPublicadas/)).not.toBeInTheDocument();
+    });
+
+    /**
+     * Sin cron real configurado el motor no arranca solo. Este botón es la
+     * única forma de procesar un ciclo desde el panel una vez terminado el
+     * asistente de bienvenida.
+     */
+    it('ejecuta un ciclo del motor a mano y reporta los lotes procesados', async () => {
+        const fetchSimulado = vi.fn().mockImplementation((url: string) => {
+            if (url.includes('/motor/ejecutar')) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve({ lotesProcesados: 7 }) });
+            }
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(url.includes('/estado') ? estadoDeEjemplo() : []) });
+        });
+        vi.stubGlobal('fetch', fetchSimulado);
+
+        render(<PantallaSalaMaquinas datos={datosDeEjemplo()} restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+
+        await userEvent.click(await screen.findByRole('button', { name: 'Ejecutar un ciclo ahora' }));
+
+        await waitFor(() =>
+            expect(fetchSimulado).toHaveBeenCalledWith(
+                'https://ejemplo.test/wp-json/pluma/v1/motor/ejecutar',
+                expect.objectContaining({ method: 'POST', headers: { 'X-WP-Nonce': 'n' } })
+            )
+        );
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Ciclo completado. Lotes procesados: 7'));
     });
 
     it('descarga el reporte de diagnóstico como un archivo', async () => {

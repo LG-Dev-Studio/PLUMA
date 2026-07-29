@@ -50,6 +50,7 @@ export interface DatosPortada {
 }
 
 export interface TextosPortada {
+    cronNoConfigurado: string;
     titulo: string;
     navPortada: string;
     navSalud: string;
@@ -130,6 +131,25 @@ interface Props {
  * ayer" (tráfico, piezas top, comentarios) del Libro queda fuera a
  * propósito hasta que exista una fuente real de tráfico (Etapa 5).
  */
+/**
+ * El motor lleva demasiado sin ejecutarse. Se mide por EVIDENCIA (la última
+ * ejecución real registrada en la bitácora), no por `DISABLE_WP_CRON`:
+ * desactivar WP-Cron no significa que exista un cron real: en un entorno sin
+ * cron configurado ambas cosas son ciertas a la vez y la bandera de
+ * configuración reportaría que todo está bien mientras nada avanza.
+ */
+const HORAS_SIN_EJECUTAR_PARA_AVISAR = 3;
+
+function motorParado(ultima: UltimaEjecucion | null): boolean {
+    if (null === ultima) {
+        return true;
+    }
+
+    const transcurridoMs = Date.now() - new Date(ultima.iniciadaEn).getTime();
+
+    return transcurridoMs > HORAS_SIN_EJECUTAR_PARA_AVISAR * 60 * 60 * 1000;
+}
+
 export function PantallaPortada({ datos, error, textos }: Props) {
     if (null !== error) {
         return (
@@ -146,6 +166,12 @@ export function PantallaPortada({ datos, error, textos }: Props) {
     return (
         <div className="pluma-portada">
             <h1>{textos.titulo}</h1>
+
+            {motorParado(datos.salud.ultimaEjecucion) && (
+                <p className="pluma-portada__aviso" role="alert">
+                    {textos.cronNoConfigurado}
+                </p>
+            )}
 
             {datos.cuota.deficit && (
                 <p className="pluma-portada__aviso" role="alert">

@@ -8,6 +8,7 @@ function textosDeEjemplo(): TextosPortada {
         titulo: 'Portada',
         navPortada: 'Portada',
         navSalud: 'Sala de Máquinas',
+        cronNoConfigurado: 'El motor lleva horas sin ejecutarse.',
         cargando: 'Cargando…',
         errorCarga: 'No se pudo cargar la Portada.',
         modo: { piloto: 'Piloto', copiloto: 'Copiloto', autonomo: 'Autónomo' },

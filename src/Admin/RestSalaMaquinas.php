@@ -9,6 +9,7 @@ use Pluma\Kernel\Activador;
 use Pluma\Kernel\Capacidades;
 use Pluma\Kernel\Cifrado;
 use Pluma\Kernel\ExportadorDiagnostico;
+use Pluma\Pipeline\Orquestador;
 use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Proveedores\ProveedorGoogleTrends;
 use Pluma\Proveedores\ProveedorOpenRouter;
@@ -42,6 +43,7 @@ final class RestSalaMaquinas {
 	private const RUTA_PRESUPUESTO  = '/motor/presupuesto';
 	private const RUTA_TELEMETRIA   = '/motor/telemetria';
 	private const RUTA_DIAGNOSTICO  = '/motor/diagnostico';
+	private const RUTA_EJECUTAR     = '/motor/ejecutar';
 
 	private const LIMITE_BITACORA = 20;
 
@@ -52,6 +54,7 @@ final class RestSalaMaquinas {
 		private readonly ProveedorGoogleTrends $googleTrends,
 		private readonly TelemetriaInterface $telemetria,
 		private readonly ExportadorDiagnostico $exportadorDiagnostico,
+		private readonly Orquestador $orquestador,
 	) {
 	}
 
@@ -143,6 +146,29 @@ final class RestSalaMaquinas {
 				'permission_callback' => array( $this, 'autorizado' ),
 			)
 		);
+
+		register_rest_route(
+			'pluma/v1',
+			self::RUTA_EJECUTAR,
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'ejecutar' ),
+				'permission_callback' => array( $this, 'autorizado' ),
+			)
+		);
+	}
+
+	/**
+	 * Ejecución manual del motor desde el panel. El punto de entrada normal
+	 * es el cron real autenticado por token (`RestOrquestador`), pero sin un
+	 * cron configurado el motor no arranca nunca por su cuenta y el editor
+	 * se queda mirando piezas que no avanzan. Aquí la autenticación es por
+	 * capacidad (sesión de wp-admin), no por token: es un humano pulsando un
+	 * botón, no una máquina. Mismo `ejecutarTick()`, mismo candado global —
+	 * si el cron real corre a la vez, la segunda ejecución sale en silencio.
+	 */
+	public function ejecutar(): WP_REST_Response {
+		return new WP_REST_Response( $this->orquestador->ejecutarTick(), 200 );
 	}
 
 	public function autorizado(): bool {

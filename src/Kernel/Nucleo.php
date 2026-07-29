@@ -944,7 +944,8 @@ final class Nucleo {
 				$c->obtener( ProveedorOpenRouter::class ),
 				$c->obtener( ProveedorGoogleTrends::class ),
 				$c->obtener( TelemetriaInterface::class ),
-				$c->obtener( ExportadorDiagnostico::class )
+				$c->obtener( ExportadorDiagnostico::class ),
+				$c->obtener( Orquestador::class )
 			)
 		);
 		$this->contenedor->registrar(

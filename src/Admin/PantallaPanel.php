@@ -181,6 +181,7 @@ final class PantallaPanel {
 			'titulo'                        => __( 'Portada', 'pluma-engine' ),
 			'navPortada'                    => __( 'Portada', 'pluma-engine' ),
 			'navSalud'                      => __( 'Configuración', 'pluma-engine' ),
+			'cronNoConfigurado'             => __( 'El motor lleva horas sin ejecutarse: las piezas no avanzarán por su cuenta. Comprueba que el cron real de tu servidor esté llamando a PLUMA, o ejecuta un ciclo a mano desde la pestaña Configuración.', 'pluma-engine' ),
 			'cargando'                      => __( 'Cargando…', 'pluma-engine' ),
 			'errorCarga'                    => __( 'No se pudo cargar la Portada. Reintenta en unos segundos.', 'pluma-engine' ),
 			'modo'                          => array(
@@ -565,6 +566,14 @@ final class PantallaPanel {
 			'cargando'          => __( 'Cargando…', 'pluma-engine' ),
 			'errorCarga'        => __( 'No se pudo cargar. Reintenta en unos segundos.', 'pluma-engine' ),
 			'errorAccion'       => __( 'La acción no se pudo completar. Reintenta en unos segundos.', 'pluma-engine' ),
+			'ejecutarMotor'     => array(
+				'titulo'      => __( 'Ejecutar el motor ahora', 'pluma-engine' ),
+				'explicacion' => __( 'En producción el motor lo dispara el cron real del servidor. Si el cron no está configurado, el motor no se ejecuta solo y las piezas no avanzan por su cuenta: úsalo para procesar un ciclo a mano.', 'pluma-engine' ),
+				'boton'       => __( 'Ejecutar un ciclo ahora', 'pluma-engine' ),
+				'ejecutando'  => __( 'Ejecutando…', 'pluma-engine' ),
+				'resultado'   => __( 'Ciclo completado. Lotes procesados:', 'pluma-engine' ),
+				'error'       => __( 'No se pudo ejecutar el ciclo. Reintenta en unos segundos.', 'pluma-engine' ),
+			),
 			'bitacora'          => array(
 				'titulo'     => __( 'Bitácora del motor', 'pluma-engine' ),
 				'vacia'      => __( 'el motor no se ha ejecutado todavía', 'pluma-engine' ),

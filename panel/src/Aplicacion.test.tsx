@@ -98,6 +98,7 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
             titulo: 'Portada',
             navPortada: 'Portada',
             navSalud: 'Sala de Máquinas',
+            cronNoConfigurado: 'El motor lleva horas sin ejecutarse.',
             cargando: 'Cargando…',
             errorCarga: 'No se pudo cargar la Portada.',
             modo: { piloto: 'Piloto', copiloto: 'Copiloto', autonomo: 'Autónomo' },
@@ -320,6 +321,14 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
             cargando: 'Cargando…',
             errorCarga: 'No se pudo cargar.',
             errorAccion: 'La acción no se pudo completar.',
+            ejecutarMotor: {
+                titulo: 'Ejecutar el motor ahora',
+                explicacion: 'El motor no se ejecuta solo sin cron configurado.',
+                boton: 'Ejecutar un ciclo ahora',
+                ejecutando: 'Ejecutando…',
+                resultado: 'Ciclo completado. Lotes procesados:',
+                error: 'No se pudo ejecutar el ciclo.',
+            },
             bitacora: {
                 titulo: 'Bitácora del motor',
                 vacia: 'sin ejecuciones todavía',

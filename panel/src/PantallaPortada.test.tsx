@@ -7,6 +7,7 @@ function textosDeEjemplo(): TextosPortada {
         titulo: 'Portada',
         navPortada: 'Portada',
         navSalud: 'Sala de Máquinas',
+        cronNoConfigurado: 'El motor lleva horas sin ejecutarse.',
         cargando: 'Cargando…',
         errorCarga: 'No se pudo cargar la Portada.',
         modo: { piloto: 'Piloto', copiloto: 'Copiloto', autonomo: 'Autónomo' },
@@ -89,6 +90,41 @@ function portadaDeEjemplo(sobrescribir: Partial<DatosPortada> = {}): DatosPortad
 }
 
 describe('PantallaPortada', () => {
+    /**
+     * Descubierto depurando un caso real: sin cron el motor no se ejecuta y
+     * las piezas se quedan quietas sin que el editor sepa por qué. El aviso
+     * se basa en la EVIDENCIA (última ejecución real) y no en
+     * `DISABLE_WP_CRON`, que estaba desactivado sin haber ningún cron real
+     * detrás — la bandera reportaba que todo iba bien mientras nada avanzaba.
+     */
+    it('avisa cuando el motor no se ha ejecutado nunca', () => {
+        render(<PantallaPortada datos={portadaDeEjemplo()} error={null} textos={textosDeEjemplo()} />);
+
+        expect(screen.getByText(/El motor lleva horas sin ejecutarse/)).toBeInTheDocument();
+    });
+
+    it('avisa cuando la última ejecución del motor es demasiado antigua', () => {
+        const hace5Horas = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString();
+        const datos = portadaDeEjemplo({
+            salud: { ultimaEjecucion: { iniciadaEn: hace5Horas, finalizadaEn: hace5Horas, lotesProcesados: 3, errores: [] }, gastoHoyUsd: 0, limiteDiarioUsd: 5 },
+        });
+
+        render(<PantallaPortada datos={datos} error={null} textos={textosDeEjemplo()} />);
+
+        expect(screen.getByText(/El motor lleva horas sin ejecutarse/)).toBeInTheDocument();
+    });
+
+    it('no avisa si el motor se ejecutó hace un momento', () => {
+        const haceUnMinuto = new Date(Date.now() - 60 * 1000).toISOString();
+        const datos = portadaDeEjemplo({
+            salud: { ultimaEjecucion: { iniciadaEn: haceUnMinuto, finalizadaEn: haceUnMinuto, lotesProcesados: 3, errores: [] }, gastoHoyUsd: 0, limiteDiarioUsd: 5 },
+        });
+
+        render(<PantallaPortada datos={datos} error={null} textos={textosDeEjemplo()} />);
+
+        expect(screen.queryByText(/El motor lleva horas sin ejecutarse/)).not.toBeInTheDocument();
+    });
+
     it('muestra el mensaje de error cuando la carga falló', () => {
         render(<PantallaPortada datos={null} error="No se pudo cargar la Portada." textos={textosDeEjemplo()} />);
 

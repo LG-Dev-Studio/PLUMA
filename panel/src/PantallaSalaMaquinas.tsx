@@ -54,10 +54,20 @@ export interface EstadoTelemetria {
     vistaPreviaPayload: Record<string, unknown>;
 }
 
+export interface TextosEjecutarMotor {
+    titulo: string;
+    explicacion: string;
+    boton: string;
+    ejecutando: string;
+    resultado: string;
+    error: string;
+}
+
 export interface TextosSalaMaquinas {
     cargando: string;
     errorCarga: string;
     errorAccion: string;
+    ejecutarMotor: TextosEjecutarMotor;
     bitacora: {
         titulo: string;
         vacia: string;
@@ -134,6 +144,42 @@ interface Props {
  * día y los errores tal como se registraron, sin inventar una atribución
  * o un mecanismo de reintento que no existen.
  */
+/**
+ * Ejecución manual del motor. El punto de entrada de producción es el cron
+ * real del servidor; sin cron configurado el motor no arranca nunca solo y
+ * el editor ve piezas que no avanzan sin saber por qué.
+ */
+function BotonEjecutarMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: string; textos: TextosEjecutarMotor }) {
+    const [ejecutando, setEjecutando] = useState(false);
+    const [resultado, setResultado] = useState<string | null>(null);
+
+    const ejecutar = () => {
+        setEjecutando(true);
+        setResultado(null);
+        fetch(`${restUrl}pluma/v1/motor/ejecutar`, { method: 'POST', headers: { 'X-WP-Nonce': nonce } })
+            .then((r) => {
+                if (!r.ok) {
+                    throw new Error('respuesta no OK');
+                }
+                return r.json() as Promise<{ lotesProcesados: number }>;
+            })
+            .then((json) => setResultado(`${textos.resultado} ${json.lotesProcesados}`))
+            .catch(() => setResultado(textos.error))
+            .finally(() => setEjecutando(false));
+    };
+
+    return (
+        <section className='pluma-maquinas__ejecutar'>
+            <h2>{textos.titulo}</h2>
+            <p>{textos.explicacion}</p>
+            <button type='button' disabled={ejecutando} onClick={ejecutar}>
+                {ejecutando ? textos.ejecutando : textos.boton}
+            </button>
+            {null !== resultado && <p role='status'>{resultado}</p>}
+        </section>
+    );
+}
+
 export function PantallaSalaMaquinas({ datos, restUrl, nonce, textos }: Props) {
     const { textos: textosSalud } = datos;
 
@@ -176,6 +222,8 @@ export function PantallaSalaMaquinas({ datos, restUrl, nonce, textos }: Props) {
                     <dd>{datos.esMultisitio ? textosSalud.multisitioSi : textosSalud.multisitioNo}</dd>
                 </div>
             </dl>
+
+            <BotonEjecutarMotor restUrl={restUrl} nonce={nonce} textos={textos.ejecutarMotor} />
 
             <SeccionesMotor restUrl={restUrl} nonce={nonce} textos={textos} />
         </div>
