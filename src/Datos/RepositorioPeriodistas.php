@@ -155,6 +155,45 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 		return null !== $fila ? $this->filaAVersion( $fila ) : null;
 	}
 
+	public function actualizarIdentidad(
+		int $periodistaId,
+		string $nombre,
+		?string $avatarUrl,
+		string $biografia,
+		RolPeriodista $rol,
+		array $especialidades,
+		DateTimeImmutable $ahora
+	): bool {
+		$filasAfectadas = $this->wpdb->update(
+			$this->tablaPeriodistas(),
+			array(
+				'nombre'         => $nombre,
+				'avatar_url'     => $avatarUrl,
+				'biografia'      => $biografia,
+				'rol'            => $rol->value,
+				'especialidades' => wp_json_encode( array_map( static fn ( Especialidad $e ): array => $e->aArray(), $especialidades ) ),
+				'actualizado_en' => $ahora->format( 'Y-m-d H:i:s' ),
+			),
+			array( 'id' => $periodistaId ),
+			array( '%s', '%s', '%s', '%s', '%s', '%s' ),
+			array( '%d' )
+		);
+
+		if ( false === $filasAfectadas ) {
+			return false;
+		}
+
+		// $wpdb->update() (sin CLIENT_FOUND_ROWS) reporta 0 filas afectadas
+		// tanto si la fila no existe como si existe pero el UPDATE no cambió
+		// ningún valor — mismo defecto real ya corregido en
+		// RepositorioTendencias::actualizarEstadoTendencia() esta sesión.
+		if ( $filasAfectadas > 0 ) {
+			return true;
+		}
+
+		return null !== $this->obtenerPorId( $periodistaId );
+	}
+
 	public function jubilar( int $periodistaId, DateTimeImmutable $ahora ): bool {
 		$filasAfectadas = $this->wpdb->update(
 			$this->tablaPeriodistas(),

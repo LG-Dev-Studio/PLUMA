@@ -17,6 +17,7 @@ function textosDeEjemplo(): TextosBancoPeriodistas {
         estadoActivo: 'Activo',
         estadoJubilado: 'Jubilado',
         crearDesdePlantilla: 'Crear desde plantilla',
+        crearPersonalizado: 'Crear personalizado',
         elegirPlantilla: 'Elegir plantilla',
         nombreOpcional: 'Nombre (opcional)',
         crear: 'Crear',
@@ -26,6 +27,28 @@ function textosDeEjemplo(): TextosBancoPeriodistas {
         cerrar: 'Cerrar',
         estudioDeConducta: 'Estudio de Conducta',
         identidad: 'Identidad',
+        nombre: 'Nombre',
+        biografia: 'Biografía',
+        avatarUrl: 'URL del avatar (opcional)',
+        rol: {
+            titulo: 'Rol',
+            analista: 'Analista',
+            columnista: 'Columnista',
+            cronista: 'Cronista',
+            satirico: 'Satírico',
+        },
+        especialidades: {
+            titulo: 'Especialidades',
+            cubreTodosLosTemas: 'Cubre todos los temas',
+            nivelDominioComodin: 'Nivel de dominio general',
+            vertical: 'Vertical',
+            nivelDominio: 'Nivel de dominio (1-5)',
+            anadir: 'Añadir especialidad',
+            eliminar: 'Eliminar',
+            sinEspecialidades: 'Declara al menos una especialidad.',
+        },
+        guardarIdentidad: 'Guardar identidad',
+        errorIdentidad: 'No se pudo guardar la identidad.',
         diales: {
             titulo: 'Diales de temperamento',
             agudezaCritica: 'Agudeza crítica',
@@ -96,7 +119,7 @@ function textosDeEjemplo(): TextosBancoPeriodistas {
     };
 }
 
-function detalleDeEjemplo(): DetallePeriodista {
+function detalleDeEjemplo(sobrescribir: Partial<DetallePeriodista> = {}): DetallePeriodista {
     return {
         id: 7,
         nombre: 'Valentina Ruiz',
@@ -133,6 +156,7 @@ function detalleDeEjemplo(): DetallePeriodista {
         respuestasHabilitadas: false,
         metricas: { piezasPublicadas: 12, verticalesTop: ['economia'] },
         memoriaReciente: [],
+        ...sobrescribir,
     };
 }
 
@@ -240,6 +264,64 @@ describe('EstudioDeConducta', () => {
                 expect.objectContaining({ method: 'POST', body: expect.stringContaining('"respuestasHabilitadas":true') })
             )
         );
+    });
+
+    it('carga los valores actuales de Identidad, incluido el comodín cuando aplica', async () => {
+        stubFetchDetalle(detalleDeEjemplo({ especialidades: [{ vertical: '*', nivelDominio: 4 }] }));
+
+        render(<EstudioDeConducta restUrl="https://ejemplo.test/wp-json/" nonce="n" periodistaId={7} textos={textosDeEjemplo()} onCerrar={() => {}} onCambio={() => {}} />);
+
+        expect(await screen.findByDisplayValue('Valentina Ruiz')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('Economista de formación.')).toBeInTheDocument();
+        expect(screen.getByLabelText('Cubre todos los temas')).toBeChecked();
+        expect(screen.getByLabelText('Nivel de dominio general')).toHaveValue(4);
+    });
+
+    it('guarda Identidad contra el endpoint PUT correcto, sin mezclarse con el guardado de Conducta', async () => {
+        const detalle = detalleDeEjemplo();
+        const fetchSimulado = vi.fn((url: string, opciones?: RequestInit) => {
+            if (url.endsWith(`/periodistas/${detalle.id}`) && (!opciones || undefined === opciones.method)) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve(detalle) });
+            }
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+        });
+        vi.stubGlobal('fetch', fetchSimulado);
+        const onCambio = vi.fn();
+
+        render(<EstudioDeConducta restUrl="https://ejemplo.test/wp-json/" nonce="n" periodistaId={7} textos={textosDeEjemplo()} onCerrar={() => {}} onCambio={onCambio} />);
+
+        await screen.findByDisplayValue('Valentina Ruiz');
+        await userEvent.click(screen.getByRole('button', { name: 'Guardar identidad' }));
+
+        await waitFor(() =>
+            expect(fetchSimulado).toHaveBeenCalledWith(
+                'https://ejemplo.test/wp-json/pluma/v1/periodistas/7',
+                expect.objectContaining({ method: 'PUT' })
+            )
+        );
+        expect(fetchSimulado.mock.calls.some(([url, opciones]) => String(url).includes('/conducta') && opciones)).toBe(false);
+        await waitFor(() => expect(onCambio).toHaveBeenCalled());
+    });
+
+    it('muestra el error de identidad cuando el guardado de Identidad falla', async () => {
+        const detalle = detalleDeEjemplo();
+        const fetchSimulado = vi.fn((url: string, opciones?: RequestInit) => {
+            if (url.endsWith(`/periodistas/${detalle.id}`) && (!opciones || undefined === opciones.method)) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve(detalle) });
+            }
+            if (url.endsWith(`/periodistas/${detalle.id}`) && 'PUT' === opciones?.method) {
+                return Promise.resolve({ ok: false, json: () => Promise.resolve({}) });
+            }
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+        });
+        vi.stubGlobal('fetch', fetchSimulado);
+
+        render(<EstudioDeConducta restUrl="https://ejemplo.test/wp-json/" nonce="n" periodistaId={7} textos={textosDeEjemplo()} onCerrar={() => {}} onCambio={() => {}} />);
+
+        await screen.findByDisplayValue('Valentina Ruiz');
+        await userEvent.click(screen.getByRole('button', { name: 'Guardar identidad' }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo guardar la identidad.');
     });
 
     it('clona pidiendo un nombre nuevo', async () => {

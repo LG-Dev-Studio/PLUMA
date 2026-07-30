@@ -180,6 +180,210 @@ final class RestPeriodistasTest extends WP_UnitTestCase {
 		self::assertSame( 'Marcos Iriarte', $periodista->nombre );
 	}
 
+	public function test_crear_custom_con_especialidades_y_rol_arbitrarios(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->registrarRutas();
+
+		$peticion = new WP_REST_Request( 'POST', '/pluma/v1/periodistas' );
+		$peticion->set_body_params(
+			array(
+				'nombre'             => 'Periodista Personalizado',
+				'biografia'          => 'Cubre deportes y ciencia.',
+				'rol'                => 'cronista',
+				'cubreTodosLosTemas' => false,
+				'especialidades'     => array(
+					array(
+						'vertical'     => 'deportes',
+						'nivelDominio' => 4,
+					),
+					array(
+						'vertical'     => 'ciencia',
+						'nivelDominio' => 3,
+					),
+				),
+			)
+		);
+		$respuesta = rest_get_server()->dispatch( $peticion );
+
+		self::assertSame( 201, $respuesta->get_status() );
+
+		global $wpdb;
+		$periodista = ( new RepositorioPeriodistas( $wpdb ) )->obtenerPorId( $respuesta->get_data()['id'] );
+		self::assertNotNull( $periodista );
+		self::assertSame( 'Periodista Personalizado', $periodista->nombre );
+		self::assertSame( RolPeriodista::Cronista, $periodista->rol );
+		self::assertSame( 4, $periodista->dominioDe( 'deportes' ) );
+		self::assertSame( 3, $periodista->dominioDe( 'ciencia' ) );
+	}
+
+	public function test_crear_custom_con_cubre_todos_los_temas_construye_el_comodin(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->registrarRutas();
+
+		$peticion = new WP_REST_Request( 'POST', '/pluma/v1/periodistas' );
+		$peticion->set_body_params(
+			array(
+				'nombre'              => 'Periodista Generalista',
+				'biografia'           => 'Cubre lo que haga falta.',
+				'rol'                 => 'cronista',
+				'cubreTodosLosTemas'  => true,
+				'nivelDominioComodin' => 3,
+			)
+		);
+		$respuesta = rest_get_server()->dispatch( $peticion );
+
+		self::assertSame( 201, $respuesta->get_status() );
+
+		global $wpdb;
+		$periodista = ( new RepositorioPeriodistas( $wpdb ) )->obtenerPorId( $respuesta->get_data()['id'] );
+		self::assertNotNull( $periodista );
+		// Nunca visto antes: solo el comodín puede responder.
+		self::assertSame( 3, $periodista->dominioDe( 'un tema completamente nuevo' ) );
+	}
+
+	public function test_crear_custom_con_rol_invalido_devuelve_400(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->registrarRutas();
+
+		$peticion = new WP_REST_Request( 'POST', '/pluma/v1/periodistas' );
+		$peticion->set_body_params(
+			array(
+				'nombre'              => 'X',
+				'biografia'           => 'Y',
+				'rol'                 => 'rol-que-no-existe',
+				'cubreTodosLosTemas'  => true,
+				'nivelDominioComodin' => 3,
+			)
+		);
+		$respuesta = rest_get_server()->dispatch( $peticion );
+
+		self::assertSame( 400, $respuesta->get_status() );
+	}
+
+	public function test_crear_custom_sin_especialidades_ni_comodin_devuelve_400(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->registrarRutas();
+
+		$peticion = new WP_REST_Request( 'POST', '/pluma/v1/periodistas' );
+		$peticion->set_body_params(
+			array(
+				'nombre'             => 'X',
+				'biografia'          => 'Y',
+				'rol'                => 'analista',
+				'cubreTodosLosTemas' => false,
+				'especialidades'     => array(),
+			)
+		);
+		$respuesta = rest_get_server()->dispatch( $peticion );
+
+		self::assertSame( 400, $respuesta->get_status() );
+	}
+
+	public function test_crear_custom_con_nivel_de_dominio_fuera_de_rango_devuelve_400(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->registrarRutas();
+
+		$peticion = new WP_REST_Request( 'POST', '/pluma/v1/periodistas' );
+		$peticion->set_body_params(
+			array(
+				'nombre'             => 'X',
+				'biografia'          => 'Y',
+				'rol'                => 'analista',
+				'cubreTodosLosTemas' => false,
+				'especialidades'     => array(
+					array(
+						'vertical'     => 'economia',
+						'nivelDominio' => 9,
+					),
+				),
+			)
+		);
+		$respuesta = rest_get_server()->dispatch( $peticion );
+
+		self::assertSame( 400, $respuesta->get_status() );
+	}
+
+	public function test_editar_identidad_cambia_especialidades_y_preserva_la_conducta(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$periodistaId = $this->crearPeriodista( 'Dexter de Prueba' );
+
+		global $wpdb;
+		$repo  = new RepositorioPeriodistas( $wpdb );
+		$antes = $repo->obtenerPorId( $periodistaId );
+		self::assertNotNull( $antes );
+		$versionAntes = $antes->conductaActual->id;
+
+		$this->registrarRutas();
+
+		$peticion = new WP_REST_Request( 'PUT', "/pluma/v1/periodistas/{$periodistaId}" );
+		$peticion->set_body_params(
+			array(
+				'nombre'             => $antes->nombre,
+				'biografia'          => $antes->biografia,
+				'rol'                => $antes->rol->value,
+				'cubreTodosLosTemas' => false,
+				'especialidades'     => array(
+					array(
+						'vertical'     => 'deportes',
+						'nivelDominio' => 4,
+					),
+				),
+			)
+		);
+		$respuesta = rest_get_server()->dispatch( $peticion );
+
+		self::assertSame( 200, $respuesta->get_status() );
+
+		$despues = $repo->obtenerPorId( $periodistaId );
+		self::assertNotNull( $despues );
+		self::assertSame( 4, $despues->dominioDe( 'deportes' ) );
+		// Aislamiento de capas: editar Identidad no toca Conducta.
+		self::assertSame( $versionAntes, $despues->conductaActual->id );
+	}
+
+	public function test_editar_identidad_de_un_periodista_inexistente_devuelve_404(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->registrarRutas();
+
+		$peticion = new WP_REST_Request( 'PUT', '/pluma/v1/periodistas/999999' );
+		$peticion->set_body_params(
+			array(
+				'nombre'              => 'X',
+				'biografia'           => 'Y',
+				'rol'                 => 'analista',
+				'cubreTodosLosTemas'  => true,
+				'nivelDominioComodin' => 3,
+			)
+		);
+		$respuesta = rest_get_server()->dispatch( $peticion );
+
+		self::assertSame( 404, $respuesta->get_status() );
+	}
+
+	public function test_crear_y_editar_identidad_rechazan_a_quien_no_tiene_la_capacidad(): void {
+		$this->registrarRutas();
+
+		$crear = rest_get_server()->dispatch( new WP_REST_Request( 'POST', '/pluma/v1/periodistas' ) );
+		self::assertContains( $crear->get_status(), array( 401, 403 ) );
+
+		$editar = rest_get_server()->dispatch( new WP_REST_Request( 'PUT', '/pluma/v1/periodistas/1' ) );
+		self::assertContains( $editar->get_status(), array( 401, 403 ) );
+	}
+
 	public function test_clonar_copia_identidad_y_conducta_bajo_un_nombre_nuevo(): void {
 		Activador::activar( new RelojSistema(), '0.9.0' );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );

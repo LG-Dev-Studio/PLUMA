@@ -40,14 +40,40 @@ final readonly class Periodista {
 	/**
 	 * Dominio del vertical de `$tema` (Paso 2 del Algoritmo de Decisión
 	 * Editorial: peso alto en la asignación). 0 si no tiene esa especialidad.
+	 *
+	 * Normaliza (minúsculas + recorte de espacios) antes de comparar: el
+	 * `tema` lo genera la IA en texto libre (`ClasificadorNoticia` no usa una
+	 * lista fija), así que "Economía" y "economia " deben calzar igual que
+	 * "economia". El folding de acentos queda fuera de alcance (deuda
+	 * registrada — depende de disponibilidad de `ext-intl` en el hosting).
+	 *
+	 * Un periodista generalista declara una Especialidad con
+	 * `Especialidad::VERTICAL_COMODIN` en vez de (o además de) filas por
+	 * tema. El comodín SOLO responde si ningún vertical declarado calza
+	 * exactamente: un match exacto siempre gana sobre el comodín, aunque el
+	 * comodín tenga un nivel de dominio más alto — así "generalista, pero
+	 * especialmente fuerte en economía" sigue funcionando como se espera.
 	 */
 	public function dominioDe( string $vertical ): int {
+		$temaNormalizado = $this->normalizarVertical( $vertical );
+		$nivelComodin    = null;
+
 		foreach ( $this->especialidades as $especialidad ) {
-			if ( $especialidad->vertical === $vertical ) {
+			if ( Especialidad::VERTICAL_COMODIN === $especialidad->vertical ) {
+				$nivelComodin = $especialidad->nivelDominio;
+
+				continue;
+			}
+
+			if ( $this->normalizarVertical( $especialidad->vertical ) === $temaNormalizado ) {
 				return $especialidad->nivelDominio;
 			}
 		}
 
-		return 0;
+		return $nivelComodin ?? 0;
+	}
+
+	private function normalizarVertical( string $vertical ): string {
+		return mb_strtolower( trim( $vertical ) );
 	}
 }

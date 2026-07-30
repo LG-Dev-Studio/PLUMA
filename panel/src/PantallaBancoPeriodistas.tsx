@@ -1,9 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
+import { CreadorPersonalizado } from './CreadorPersonalizado';
 import { EstudioDeConducta } from './EstudioDeConducta';
 
 export interface Especialidad {
     vertical: string;
     nivelDominio: number;
+}
+
+export const VERTICAL_COMODIN = '*';
+
+export const ROLES_PERIODISTA = ['analista', 'columnista', 'cronista', 'satirico'] as const;
+
+/**
+ * Estado editable de las especialidades de un periodista: o bien el
+ * comodín "cubre todos los temas" (con su propio nivel de dominio), o
+ * bien una lista de especialidades por vertical — mutuamente
+ * excluyentes en la UI, igual que en la validación del servidor.
+ */
+export interface EstadoEspecialidades {
+    cubreTodosLosTemas: boolean;
+    nivelDominioComodin: number;
+    especialidades: Especialidad[];
 }
 
 export interface Diales {
@@ -92,6 +109,7 @@ export interface TextosBancoPeriodistas {
     estadoActivo: string;
     estadoJubilado: string;
     crearDesdePlantilla: string;
+    crearPersonalizado: string;
     elegirPlantilla: string;
     nombreOpcional: string;
     crear: string;
@@ -101,6 +119,28 @@ export interface TextosBancoPeriodistas {
     cerrar: string;
     estudioDeConducta: string;
     identidad: string;
+    nombre: string;
+    biografia: string;
+    avatarUrl: string;
+    rol: {
+        titulo: string;
+        analista: string;
+        columnista: string;
+        cronista: string;
+        satirico: string;
+    };
+    especialidades: {
+        titulo: string;
+        cubreTodosLosTemas: string;
+        nivelDominioComodin: string;
+        vertical: string;
+        nivelDominio: string;
+        anadir: string;
+        eliminar: string;
+        sinEspecialidades: string;
+    };
+    guardarIdentidad: string;
+    errorIdentidad: string;
     diales: Record<keyof Diales, string> & { titulo: string };
     reglas: {
         titulo: string;
@@ -152,6 +192,7 @@ export function PantallaBancoPeriodistas({ restUrl, nonce, textos }: Props) {
     const [error, setError] = useState<string | null>(null);
     const [periodistaSeleccionado, setPeriodistaSeleccionado] = useState<number | null>(null);
     const [creandoDesdePlantilla, setCreandoDesdePlantilla] = useState(false);
+    const [creandoPersonalizado, setCreandoPersonalizado] = useState(false);
 
     const cabeceras = { 'X-WP-Nonce': nonce };
 
@@ -214,6 +255,9 @@ export function PantallaBancoPeriodistas({ restUrl, nonce, textos }: Props) {
                 <button type="button" onClick={() => setCreandoDesdePlantilla(true)}>
                     {textos.crearDesdePlantilla}
                 </button>
+                <button type="button" onClick={() => setCreandoPersonalizado(true)}>
+                    {textos.crearPersonalizado}
+                </button>
             </header>
 
             {0 === tarjetas.length ? (
@@ -262,6 +306,20 @@ export function PantallaBancoPeriodistas({ restUrl, nonce, textos }: Props) {
                         cargarLista();
                     }}
                     onCancelar={() => setCreandoDesdePlantilla(false)}
+                />
+            )}
+
+            {creandoPersonalizado && (
+                <CreadorPersonalizado
+                    restUrl={restUrl}
+                    cabeceras={cabeceras}
+                    textos={textos}
+                    onCreado={(periodistaId) => {
+                        setCreandoPersonalizado(false);
+                        cargarLista();
+                        setPeriodistaSeleccionado(periodistaId);
+                    }}
+                    onCancelar={() => setCreandoPersonalizado(false)}
                 />
             )}
 

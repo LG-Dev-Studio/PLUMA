@@ -11,6 +11,16 @@ namespace Pluma\Redaccion;
  */
 final readonly class Especialidad {
 
+	/**
+	 * Sentinela de "cubre todos los temas" — un periodista generalista
+	 * declara una única Especialidad con este vertical en vez de una fila
+	 * por tema. `Periodista::dominioDe()` lo trata como comodín: solo
+	 * responde cuando ningún vertical declarado calza exactamente con el
+	 * tema real de la Pieza (un match exacto siempre gana sobre el
+	 * comodín, aunque el comodín tenga nivel más alto).
+	 */
+	public const VERTICAL_COMODIN = '*';
+
 	public function __construct(
 		public string $vertical,
 		public int $nivelDominio,

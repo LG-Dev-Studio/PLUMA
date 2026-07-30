@@ -1,12 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type {
-    DetallePeriodista,
-    Diales,
-    FilaMatrizTono,
-    MatrizTonos,
-    ReglasConducta,
-    TextosBancoPeriodistas,
+import { EditorEspecialidades } from './EditorEspecialidades';
+import {
+    ROLES_PERIODISTA,
+    VERTICAL_COMODIN,
+    type DetallePeriodista,
+    type Diales,
+    type Especialidad,
+    type EstadoEspecialidades,
+    type FilaMatrizTono,
+    type MatrizTonos,
+    type ReglasConducta,
+    type TextosBancoPeriodistas,
 } from './PantallaBancoPeriodistas';
+
+function especialidadesAEstado(especialidades: Especialidad[]): EstadoEspecialidades {
+    const comodin = especialidades.find((especialidad) => VERTICAL_COMODIN === especialidad.vertical);
+
+    if (comodin) {
+        return { cubreTodosLosTemas: true, nivelDominioComodin: comodin.nivelDominio, especialidades: [] };
+    }
+
+    return { cubreTodosLosTemas: false, nivelDominioComodin: 3, especialidades };
+}
 
 const ORDEN_DIALES: (keyof Diales)[] = [
     'agudezaCritica',
@@ -44,6 +59,18 @@ export function EstudioDeConducta({ restUrl, nonce, periodistaId, textos, onCerr
     const [matriz, setMatriz] = useState<MatrizTonos | null>(null);
     const [respuestasHabilitadas, setRespuestasHabilitadas] = useState(false);
 
+    const [identidadNombre, setIdentidadNombre] = useState('');
+    const [identidadBiografia, setIdentidadBiografia] = useState('');
+    const [identidadAvatarUrl, setIdentidadAvatarUrl] = useState('');
+    const [identidadRol, setIdentidadRol] = useState<(typeof ROLES_PERIODISTA)[number]>('analista');
+    const [identidadEspecialidades, setIdentidadEspecialidades] = useState<EstadoEspecialidades>({
+        cubreTodosLosTemas: false,
+        nivelDominioComodin: 3,
+        especialidades: [],
+    });
+    const [enCursoIdentidad, setEnCursoIdentidad] = useState(false);
+    const [errorIdentidad, setErrorIdentidad] = useState<string | null>(null);
+
     const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
     const [vistaPreviaError, setVistaPreviaError] = useState<string | null>(null);
     const [generandoVistaPrevia, setGenerandoVistaPrevia] = useState(false);
@@ -65,6 +92,11 @@ export function EstudioDeConducta({ restUrl, nonce, periodistaId, textos, onCerr
                 setReglas(json.reglasConducta);
                 setMatriz(json.matrizTonos);
                 setRespuestasHabilitadas(json.respuestasHabilitadas);
+                setIdentidadNombre(json.nombre);
+                setIdentidadBiografia(json.biografia);
+                setIdentidadAvatarUrl(json.avatarUrl ?? '');
+                setIdentidadRol(json.rol as (typeof ROLES_PERIODISTA)[number]);
+                setIdentidadEspecialidades(especialidadesAEstado(json.especialidades));
                 setError(null);
             })
             .catch(() => setError(textos.errorCarga));
@@ -111,6 +143,38 @@ export function EstudioDeConducta({ restUrl, nonce, periodistaId, textos, onCerr
 
         return () => window.clearTimeout(temporizador);
     }, [diales, reglas, matriz, detalle, restUrl, cabeceras, textos.vistaPrevia]);
+
+    const identidadValida =
+        '' !== identidadNombre.trim() &&
+        '' !== identidadBiografia.trim() &&
+        (identidadEspecialidades.cubreTodosLosTemas || identidadEspecialidades.especialidades.length > 0);
+
+    const guardarIdentidad = () => {
+        setEnCursoIdentidad(true);
+        setErrorIdentidad(null);
+
+        fetch(`${restUrl}pluma/v1/periodistas/${periodistaId}`, {
+            method: 'PUT',
+            headers: cabeceras,
+            body: JSON.stringify({
+                nombre: identidadNombre,
+                biografia: identidadBiografia,
+                avatarUrl: '' === identidadAvatarUrl.trim() ? null : identidadAvatarUrl,
+                rol: identidadRol,
+                cubreTodosLosTemas: identidadEspecialidades.cubreTodosLosTemas,
+                nivelDominioComodin: identidadEspecialidades.nivelDominioComodin,
+                especialidades: identidadEspecialidades.especialidades,
+            }),
+        })
+            .then((respuesta) => {
+                if (!respuesta.ok) {
+                    throw new Error('respuesta no OK');
+                }
+                onCambio();
+            })
+            .catch(() => setErrorIdentidad(textos.errorIdentidad))
+            .finally(() => setEnCursoIdentidad(false));
+    };
 
     const guardarCambios = () => {
         if (null === diales || null === reglas || null === matriz) {
@@ -207,6 +271,51 @@ export function EstudioDeConducta({ restUrl, nonce, periodistaId, textos, onCerr
                     {error}
                 </p>
             )}
+
+            <section className="pluma-estudio__seccion">
+                <h3>{textos.identidad}</h3>
+
+                {null !== errorIdentidad && (
+                    <p role="alert" className="pluma-estudio__aviso">
+                        {errorIdentidad}
+                    </p>
+                )}
+
+                <label className="pluma-estudio__campo">
+                    {textos.nombre}
+                    <input type="text" value={identidadNombre} onChange={(evento) => setIdentidadNombre(evento.target.value)} />
+                </label>
+
+                <label className="pluma-estudio__campo">
+                    {textos.biografia}
+                    <textarea value={identidadBiografia} onChange={(evento) => setIdentidadBiografia(evento.target.value)} />
+                </label>
+
+                <label className="pluma-estudio__campo">
+                    {textos.avatarUrl}
+                    <input type="text" value={identidadAvatarUrl} onChange={(evento) => setIdentidadAvatarUrl(evento.target.value)} />
+                </label>
+
+                <label className="pluma-estudio__campo">
+                    {textos.rol.titulo}
+                    <select
+                        value={identidadRol}
+                        onChange={(evento) => setIdentidadRol(evento.target.value as (typeof ROLES_PERIODISTA)[number])}
+                    >
+                        {ROLES_PERIODISTA.map((valorRol) => (
+                            <option key={valorRol} value={valorRol}>
+                                {textos.rol[valorRol]}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+
+                <EditorEspecialidades valor={identidadEspecialidades} textos={textos.especialidades} onCambiar={setIdentidadEspecialidades} />
+
+                <button type="button" disabled={!identidadValida || enCursoIdentidad} onClick={guardarIdentidad}>
+                    {textos.guardarIdentidad}
+                </button>
+            </section>
 
             <section className="pluma-estudio__vista-previa">
                 <h3>{textos.vistaPrevia.titulo}</h3>

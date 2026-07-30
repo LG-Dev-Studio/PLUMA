@@ -11,12 +11,15 @@ use Pluma\Kernel\Capacidades;
 use Pluma\Kernel\RelojInterface;
 use Pluma\Redaccion\Diales;
 use Pluma\Redaccion\EntradaMemoria;
+use Pluma\Redaccion\Especialidad;
+use Pluma\Redaccion\EstadoPeriodista;
 use Pluma\Redaccion\GeneradorVistaPrevia;
 use Pluma\Redaccion\MatrizTonos;
 use Pluma\Redaccion\Periodista;
 use Pluma\Redaccion\PlantillaPeriodista;
 use Pluma\Redaccion\PlantillasSiembra;
 use Pluma\Redaccion\ReglasConducta;
+use Pluma\Redaccion\RolPeriodista;
 use Pluma\Proveedores\ProveedorLenguajeException;
 use WP_Error;
 use WP_REST_Request;
@@ -31,24 +34,39 @@ use WP_REST_Response;
  */
 final class RestPeriodistas {
 
-	private const RUTA_LISTAR                = '/periodistas';
+	private const RUTA_LISTAR = '/periodistas';
+	// Mismo path que RUTA_LISTAR: WordPress distingue por método HTTP (GET
+	// listar, POST crear) — mismo patrón ya usado por RUTA_LLAVE en
+	// RestSalaMaquinas (POST/DELETE en un único array de configs).
+	private const RUTA_CREAR                 = '/periodistas';
 	private const RUTA_PLANTILLAS            = '/periodistas/plantillas';
 	private const RUTA_CREAR_DESDE_PLANTILLA = '/periodistas/plantilla';
 	private const RUTA_VISTA_PREVIA          = '/periodistas/vista-previa';
 	private const RUTA_DETALLE               = '/periodistas/(?P<id>\d+)';
-	private const RUTA_CLONAR                = '/periodistas/(?P<id>\d+)/clonar';
-	private const RUTA_CONDUCTA              = '/periodistas/(?P<id>\d+)/conducta';
-	private const RUTA_JUBILAR               = '/periodistas/(?P<id>\d+)/jubilar';
+	// Mismo patrón de regex que RUTA_DETALLE: GET detalle, PUT edita Identidad.
+	private const RUTA_IDENTIDAD = '/periodistas/(?P<id>\d+)';
+	private const RUTA_CLONAR    = '/periodistas/(?P<id>\d+)/clonar';
+	private const RUTA_CONDUCTA  = '/periodistas/(?P<id>\d+)/conducta';
+	private const RUTA_JUBILAR   = '/periodistas/(?P<id>\d+)/jubilar';
 
 	private const LIMITE_MEMORIA_RECIENTE = 20;
+
+	/**
+	 * Rango válido de `nivelDominio` (Libro Cap. 5.2, Capa 1 — Identidad): el
+	 * DTO `Especialidad` no lo valida (es un DTO sin lógica), así que el
+	 * borde REST es donde corresponde rechazar un nivel fuera de rango.
+	 */
+	private const NIVEL_DOMINIO_MINIMO = 1;
+	private const NIVEL_DOMINIO_MAXIMO = 5;
 
 	/**
 	 * @var array<string, callable(): PlantillaPeriodista>
 	 */
 	private const PLANTILLAS = array(
-		'analista'   => array( PlantillasSiembra::class, 'analistaDeDatosSobrio' ),
-		'columnista' => array( PlantillasSiembra::class, 'columnistaCriticaVehemente' ),
-		'cronista'   => array( PlantillasSiembra::class, 'cronistaSatirico' ),
+		'analista'         => array( PlantillasSiembra::class, 'analistaDeDatosSobrio' ),
+		'columnista'       => array( PlantillasSiembra::class, 'columnistaCriticaVehemente' ),
+		'cronista'         => array( PlantillasSiembra::class, 'cronistaSatirico' ),
+		'cronista_factual' => array( PlantillasSiembra::class, 'cronistaFactual' ),
 	);
 
 	public function __construct(
@@ -82,6 +100,27 @@ final class RestPeriodistas {
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'listar' ),
 				'permission_callback' => array( $this, 'autorizado' ),
+			)
+		);
+
+		register_rest_route(
+			'pluma/v1',
+			self::RUTA_CREAR,
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'crear' ),
+				'permission_callback' => array( $this, 'autorizado' ),
+			)
+		);
+
+		register_rest_route(
+			'pluma/v1',
+			self::RUTA_IDENTIDAD,
+			array(
+				'methods'             => 'PUT',
+				'callback'            => array( $this, 'editarIdentidad' ),
+				'permission_callback' => array( $this, 'autorizado' ),
+				'args'                => $this->argumentoId(),
 			)
 		);
 
@@ -217,6 +256,178 @@ final class RestPeriodistas {
 			),
 			200
 		);
+	}
+
+	/**
+	 * Creación personalizada (aditiva a `crearDesdePlantilla()`, que se
+	 * mantiene intacta como camino rápido): el editor declara nombre, rol,
+	 * biografía y especialidades reales, en vez de partir de una de las 4
+	 * plantillas fijas. La Conducta inicial parte de la plantilla neutra
+	 * `analistaDeDatosSobrio()` — el editor la ajusta después en el Estudio
+	 * de Conducta ya existente, que se abre automáticamente tras crear.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function crear( WP_REST_Request $request ) {
+		$identidad = $this->identidadDesdeRequest( $request );
+
+		if ( $identidad instanceof WP_Error ) {
+			return $identidad;
+		}
+
+		$conductaBase = PlantillasSiembra::analistaDeDatosSobrio();
+
+		$id = $this->periodistas->crear(
+			$identidad['nombre'],
+			$identidad['avatarUrl'],
+			$identidad['biografia'],
+			$identidad['rol'],
+			$identidad['especialidades'],
+			EstadoPeriodista::Activo,
+			$conductaBase->diales,
+			$conductaBase->reglas,
+			$conductaBase->matrizTonos,
+			$this->reloj->ahora()
+		);
+
+		return new WP_REST_Response( array( 'id' => $id ), 201 );
+	}
+
+	/**
+	 * Edita la Identidad (nombre/avatarUrl/biografia/rol/especialidades) de
+	 * un periodista YA EXISTENTE, sin tocar su Conducta — el caso de uso
+	 * directo de ampliar la cobertura de un periodista que quedó con Piezas
+	 * en SIN_PERIODISTA_IDONEO.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function editarIdentidad( WP_REST_Request $request ) {
+		$periodistaId = (int) $request->get_param( 'id' );
+
+		if ( null === $this->periodistas->obtenerPorId( $periodistaId ) ) {
+			return $this->errorNoEncontrado();
+		}
+
+		$identidad = $this->identidadDesdeRequest( $request );
+
+		if ( $identidad instanceof WP_Error ) {
+			return $identidad;
+		}
+
+		$this->periodistas->actualizarIdentidad(
+			$periodistaId,
+			$identidad['nombre'],
+			$identidad['avatarUrl'],
+			$identidad['biografia'],
+			$identidad['rol'],
+			$identidad['especialidades'],
+			$this->reloj->ahora()
+		);
+
+		return new WP_REST_Response( array( 'id' => $periodistaId ), 200 );
+	}
+
+	/**
+	 * Validación compartida entre `crear()` y `editarIdentidad()`. El front
+	 * nunca envía el vertical sentinela directamente: envía el toggle
+	 * `cubreTodosLosTemas` + `nivelDominioComodin`, y aquí se construye la
+	 * `Especialidad` comodín — así el contrato público no depende del valor
+	 * interno del sentinela.
+	 *
+	 * @return array{nombre: string, avatarUrl: ?string, biografia: string, rol: RolPeriodista, especialidades: list<Especialidad>}|WP_Error
+	 */
+	private function identidadDesdeRequest( WP_REST_Request $request ) {
+		$nombre = $request->get_param( 'nombre' );
+
+		if ( ! is_string( $nombre ) || '' === trim( $nombre ) ) {
+			return $this->errorIdentidadInvalida( __( 'El nombre es obligatorio.', 'pluma-engine' ) );
+		}
+
+		$biografia = $request->get_param( 'biografia' );
+
+		if ( ! is_string( $biografia ) || '' === trim( $biografia ) ) {
+			return $this->errorIdentidadInvalida( __( 'La biografía es obligatoria.', 'pluma-engine' ) );
+		}
+
+		$avatarUrlParam = $request->get_param( 'avatarUrl' );
+		$avatarUrl      = is_string( $avatarUrlParam ) && '' !== trim( $avatarUrlParam ) ? esc_url_raw( $avatarUrlParam ) : null;
+
+		$rolParam = $request->get_param( 'rol' );
+		$rol      = is_string( $rolParam ) ? RolPeriodista::tryFrom( $rolParam ) : null;
+
+		if ( null === $rol ) {
+			return $this->errorIdentidadInvalida( __( 'El rol no es válido.', 'pluma-engine' ) );
+		}
+
+		$cubreTodosLosTemas = (bool) $request->get_param( 'cubreTodosLosTemas' );
+
+		if ( $cubreTodosLosTemas ) {
+			$nivelComodin = $request->get_param( 'nivelDominioComodin' );
+
+			if ( ! $this->esNivelDominioValido( $nivelComodin ) ) {
+				return $this->errorIdentidadInvalida( __( 'El nivel de dominio del comodín debe ser un número entre 1 y 5.', 'pluma-engine' ) );
+			}
+
+			return array(
+				'nombre'         => sanitize_text_field( $nombre ),
+				'avatarUrl'      => $avatarUrl,
+				'biografia'      => sanitize_textarea_field( $biografia ),
+				'rol'            => $rol,
+				'especialidades' => array( new Especialidad( Especialidad::VERTICAL_COMODIN, (int) $nivelComodin ) ),
+			);
+		}
+
+		$especialidadesParam = $request->get_param( 'especialidades' );
+
+		if ( ! is_array( $especialidadesParam ) || array() === $especialidadesParam ) {
+			return $this->errorIdentidadInvalida( __( 'Declara al menos una especialidad, o activa "cubre todos los temas".', 'pluma-engine' ) );
+		}
+
+		$especialidades = array();
+
+		foreach ( $especialidadesParam as $entrada ) {
+			if ( ! is_array( $entrada ) ) {
+				return $this->errorIdentidadInvalida( __( 'Cada especialidad debe tener un vertical y un nivel de dominio.', 'pluma-engine' ) );
+			}
+
+			$vertical     = $entrada['vertical'] ?? null;
+			$nivelDominio = $entrada['nivelDominio'] ?? null;
+
+			if ( ! is_string( $vertical ) || '' === trim( $vertical ) ) {
+				return $this->errorIdentidadInvalida( __( 'Cada especialidad necesita un vertical.', 'pluma-engine' ) );
+			}
+
+			if ( ! $this->esNivelDominioValido( $nivelDominio ) ) {
+				return $this->errorIdentidadInvalida( __( 'El nivel de dominio de cada especialidad debe ser un número entre 1 y 5.', 'pluma-engine' ) );
+			}
+
+			$especialidades[] = new Especialidad( sanitize_text_field( trim( $vertical ) ), (int) $nivelDominio );
+		}
+
+		return array(
+			'nombre'         => sanitize_text_field( $nombre ),
+			'avatarUrl'      => $avatarUrl,
+			'biografia'      => sanitize_textarea_field( $biografia ),
+			'rol'            => $rol,
+			'especialidades' => $especialidades,
+		);
+	}
+
+	private function esNivelDominioValido( mixed $valor ): bool {
+		if ( ! is_numeric( $valor ) ) {
+			return false;
+		}
+
+		// Rechaza decimales (2.5 no es un nivel de dominio válido): comparar
+		// el valor contra su propio truncado a entero, ambos como float para
+		// que la comparación no dependa del tipo original del parámetro.
+		if ( (float) (int) $valor !== (float) $valor ) {
+			return false;
+		}
+
+		$entero = (int) $valor;
+
+		return $entero >= self::NIVEL_DOMINIO_MINIMO && $entero <= self::NIVEL_DOMINIO_MAXIMO;
 	}
 
 	/**
@@ -409,6 +620,10 @@ final class RestPeriodistas {
 
 	private function errorConductaInvalida(): WP_Error {
 		return new WP_Error( 'pluma_conducta_invalida', __( 'Faltan o son inválidos los diales, reglas o matriz de tonos.', 'pluma-engine' ), array( 'status' => 400 ) );
+	}
+
+	private function errorIdentidadInvalida( string $mensaje ): WP_Error {
+		return new WP_Error( 'pluma_identidad_invalida', $mensaje, array( 'status' => 400 ) );
 	}
 
 	/**

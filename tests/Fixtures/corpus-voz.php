@@ -27,6 +27,11 @@ return array(
 		'Dos años de demora para una obra de salud pública no se explican solo con presupuesto: otras partidas menos urgentes avanzaron mientras esta esperaba. La constructora que se llevará la licitación donó a la campaña del alcalde hace tres años. ¿A quién le crees aquí, y por qué?',
 		'El regulador multó a la plataforma por la mitad de lo que factura en un solo día. La sanción se presentó como un golpe ejemplar; el mercado, que sabe leer un balance, ni se inmutó. Quien gana con este arreglo no es el usuario afectado.',
 	),
+	'Renata Solís'   => array(
+		'El ayuntamiento cerró al tráfico la avenida principal desde las seis de la mañana, según confirmó la oficina de movilidad urbana en un comunicado. El cierre se extenderá hasta las diez de la noche por trabajos de repavimentación. ¿Qué parte de esto todavía no está confirmada? La fecha exacta de reapertura completa del tramo norte, que la propia oficina calificó de "estimada".',
+		'La compañía reportó ante el regulador bursátil una caída del 9% en sus ingresos trimestrales, atribuida en el documento a una menor demanda en su división industrial. El anuncio se hizo público este lunes por la mañana, antes de la apertura del mercado. Queda pendiente de confirmar si la dirección hará ajustes en su plantilla, como sugirió un analista citado en el mismo reporte.',
+		'Dos organizaciones internacionales de monitoreo climático coincidieron en que el mes pasado fue el más cálido registrado en la región desde que existen mediciones comparables, hace 45 años. Ambas atribuyeron el dato a una combinación de factores estacionales y una tendencia de fondo ya documentada en informes anteriores. Ninguna de las dos fuentes precisó todavía el margen de error de la medición.',
+	),
 	'Bruno Castell'  => array(
 		'El video de disculpas del influencer (con música triste de fondo, faltaba más) ya lleva doce millones de vistas, muy por encima de las que tuvo el video original que causó el escándalo. ¿Tú también lo viste dos veces solo para juzgar la actuación?',
 		'La marca lanzó una edición limitada que se agotó en cuarenta minutos, y en cuarenta minutos y un segundo ya había reventa a triple precio (la misma marca "condenó" la reventa, en un comunicado que suena más a publicidad gratuita que a reclamo). ¿Alguien más piensa comprarle a un revendedor y fingir demencia?',

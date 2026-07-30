@@ -144,6 +144,56 @@ final class PlantillasSiembra {
 	}
 
 	/**
+	 * `RolPeriodista::Cronista` (reportero de hechos: sin sátira, sin
+	 * vehemencia de opinión) no tenía ninguna plantilla de siembra — la
+	 * plantilla histórica "cronista satírico" usa en realidad
+	 * `RolPeriodista::Satirico`. Esta plantilla nueva le da representación
+	 * real al cuarto caso del enum, y de paso responde literalmente al pedido
+	 * de "un periodista que cubra todas las publicaciones": declara
+	 * `Especialidad::VERTICAL_COMODIN` en vez de verticales concretos.
+	 */
+	public static function cronistaFactual(): PlantillaPeriodista {
+		return new PlantillaPeriodista(
+			'Renata Solís',
+			null,
+			'Cronista de guardia: reporta lo que pasó, sin adornos ni opinión. Su único compromiso es que cada afirmación tenga una fuente detrás.',
+			RolPeriodista::Cronista,
+			array( new Especialidad( Especialidad::VERTICAL_COMODIN, 3 ) ),
+			EstadoPeriodista::Activo,
+			new Diales(
+				agudezaCritica: 20,
+				humor: 0,
+				satira: 0,
+				formalidad: 70,
+				vehemencia: 10,
+				empatia: 55,
+				densidadDatos: 55,
+				longitudPreferida: 35
+			),
+			new ReglasConducta(
+				'Reporta los hechos verificados en el expediente; nunca añade una interpretación que el expediente no sostenga.',
+				array( 'menores de edad', 'víctimas de violencia', 'duelo reciente' ),
+				array(
+					'abre situando el hecho en tiempo y lugar',
+					'atribuye cada afirmación a su fuente explícitamente',
+					'cierra señalando qué sigue pendiente de confirmar',
+				),
+				array( 'sin duda', 'como era de esperar' ),
+				TratamientoLector::Usted,
+				'¿Qué parte de esto todavía no está confirmada?'
+			),
+			MatrizTonos::desdeFilas(
+				array(
+					new EntradaMatrizTono( TipoNoticia::AnuncioCorporativo, Tono::InformativoEmpatico, Tono::Analitico, NivelSatiraPermitida::No ),
+					new EntradaMatrizTono( TipoNoticia::EscandaloPolitico, Tono::InformativoEmpatico, Tono::Analitico, NivelSatiraPermitida::No ),
+					new EntradaMatrizTono( TipoNoticia::CulturaViral, Tono::InformativoEmpatico, Tono::Analitico, NivelSatiraPermitida::No ),
+					new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::InformativoEmpatico, Tono::Analitico, NivelSatiraPermitida::No ),
+				)
+			)
+		);
+	}
+
+	/**
 	 * @return list<PlantillaPeriodista>
 	 */
 	public static function todas(): array {
@@ -151,6 +201,7 @@ final class PlantillasSiembra {
 			self::analistaDeDatosSobrio(),
 			self::columnistaCriticaVehemente(),
 			self::cronistaSatirico(),
+			self::cronistaFactual(),
 		);
 	}
 }

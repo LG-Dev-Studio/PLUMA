@@ -81,5 +81,27 @@ interface RepositorioPeriodistasInterface {
 
 	public function obtenerVersionConducta( int $versionId ): ?ConductaVersion;
 
+	/**
+	 * Actualiza los campos de Identidad (nombre, avatarUrl, biografia, rol,
+	 * especialidades) de un periodista existente, sin tocar su Conducta.
+	 *
+	 * A diferencia de Conducta — que se versiona explícitamente, nunca se
+	 * sobrescribe (pl-periodistas §1) — la Identidad se sobrescribe
+	 * directamente: no hay valor de negocio en conservar un historial de "el
+	 * periodista se llamaba distinto antes" o "antes cubría otro vertical".
+	 * Devuelve `false` si el id no existe.
+	 *
+	 * @param list<Especialidad> $especialidades
+	 */
+	public function actualizarIdentidad(
+		int $periodistaId,
+		string $nombre,
+		?string $avatarUrl,
+		string $biografia,
+		RolPeriodista $rol,
+		array $especialidades,
+		DateTimeImmutable $ahora
+	): bool;
+
 	public function jubilar( int $periodistaId, DateTimeImmutable $ahora ): bool;
 }

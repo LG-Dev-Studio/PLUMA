@@ -16,6 +16,7 @@ function textosDeEjemplo(): TextosBancoPeriodistas {
         estadoActivo: 'Activo',
         estadoJubilado: 'Jubilado',
         crearDesdePlantilla: 'Crear desde plantilla',
+        crearPersonalizado: 'Crear personalizado',
         elegirPlantilla: 'Elegir plantilla',
         nombreOpcional: 'Nombre (opcional)',
         crear: 'Crear',
@@ -25,6 +26,28 @@ function textosDeEjemplo(): TextosBancoPeriodistas {
         cerrar: 'Cerrar',
         estudioDeConducta: 'Estudio de Conducta',
         identidad: 'Identidad',
+        nombre: 'Nombre',
+        biografia: 'Biografía',
+        avatarUrl: 'URL del avatar (opcional)',
+        rol: {
+            titulo: 'Rol',
+            analista: 'Analista',
+            columnista: 'Columnista',
+            cronista: 'Cronista',
+            satirico: 'Satírico',
+        },
+        especialidades: {
+            titulo: 'Especialidades',
+            cubreTodosLosTemas: 'Cubre todos los temas',
+            nivelDominioComodin: 'Nivel de dominio general',
+            vertical: 'Vertical',
+            nivelDominio: 'Nivel de dominio (1-5)',
+            anadir: 'Añadir especialidad',
+            eliminar: 'Eliminar',
+            sinEspecialidades: 'Declara al menos una especialidad.',
+        },
+        guardarIdentidad: 'Guardar identidad',
+        errorIdentidad: 'No se pudo guardar la identidad.',
         diales: {
             titulo: 'Diales de temperamento',
             agudezaCritica: 'Agudeza crítica',
@@ -171,6 +194,91 @@ describe('PantallaBancoPeriodistas', () => {
             )
         );
         confirmSimulado.mockRestore();
+    });
+
+    it('crea un periodista personalizado con el comodín y abre su Estudio de Conducta', async () => {
+        const detalleCreado = {
+            id: 99,
+            nombre: 'Periodista Nuevo',
+            avatarUrl: null,
+            biografia: 'Cubre lo que haga falta.',
+            rol: 'cronista',
+            especialidades: [{ vertical: '*', nivelDominio: 3 }],
+            estado: 'activo',
+            diales: {
+                agudezaCritica: 50,
+                humor: 20,
+                satira: 0,
+                formalidad: 60,
+                vehemencia: 30,
+                empatia: 50,
+                densidadDatos: 50,
+                longitudPreferida: 40,
+            },
+            reglasConducta: {
+                lineaEditorial: '',
+                lineasRojas: [],
+                muletillas: [],
+                vocabularioProhibido: [],
+                tratamientoLector: 'usted',
+                estiloPreguntaFinal: '',
+            },
+            matrizTonos: {},
+            respuestasHabilitadas: false,
+            metricas: { piezasPublicadas: 0, verticalesTop: [] },
+            memoriaReciente: [],
+        };
+
+        const fetchSimulado = vi.fn((url: string, opciones?: RequestInit) => {
+            if (url.endsWith('/periodistas') && opciones && 'POST' === opciones.method) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 99 }) });
+            }
+            if (url.endsWith('/periodistas/99')) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve(detalleCreado) });
+            }
+            if (url.endsWith('/periodistas')) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve([tarjetaDeEjemplo()]) });
+            }
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+        });
+        vi.stubGlobal('fetch', fetchSimulado);
+
+        render(<PantallaBancoPeriodistas restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+
+        await userEvent.click(await screen.findByRole('button', { name: 'Crear personalizado' }));
+        await userEvent.type(screen.getByLabelText('Nombre'), 'Periodista Nuevo');
+        await userEvent.type(screen.getByLabelText('Biografía'), 'Cubre lo que haga falta.');
+        await userEvent.click(screen.getByLabelText('Cubre todos los temas'));
+        await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+        await waitFor(() =>
+            expect(fetchSimulado).toHaveBeenCalledWith(
+                'https://ejemplo.test/wp-json/pluma/v1/periodistas',
+                expect.objectContaining({
+                    method: 'POST',
+                    body: JSON.stringify({
+                        nombre: 'Periodista Nuevo',
+                        biografia: 'Cubre lo que haga falta.',
+                        avatarUrl: null,
+                        rol: 'analista',
+                        cubreTodosLosTemas: true,
+                        nivelDominioComodin: 3,
+                        especialidades: [],
+                    }),
+                })
+            )
+        );
+
+        expect(await screen.findByRole('dialog', { name: 'Periodista Nuevo' })).toBeInTheDocument();
+    });
+
+    it('el botón de crear personalizado coexiste con el de crear desde plantilla', async () => {
+        stubFetch([tarjetaDeEjemplo()]);
+
+        render(<PantallaBancoPeriodistas restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+
+        expect(await screen.findByRole('button', { name: 'Crear desde plantilla' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Crear personalizado' })).toBeInTheDocument();
     });
 
     it('crea un periodista desde plantilla', async () => {
