@@ -261,6 +261,21 @@ final class RepositorioPiezas implements RepositorioPiezasInterface {
 		return false !== $filasAfectadas;
 	}
 
+	public function actualizarTemaSinCubrir( int $id, string $tema, DateTimeImmutable $ahora ): bool {
+		$filasAfectadas = $this->wpdb->update(
+			$this->tabla(),
+			array(
+				'tema_sin_cubrir' => $tema,
+				'actualizada_en'  => $ahora->format( 'Y-m-d H:i:s' ),
+			),
+			array( 'id' => $id ),
+			array( '%s', '%s' ),
+			array( '%d' )
+		);
+
+		return false !== $filasAfectadas;
+	}
+
 	public function actualizarResultadoCompuertas( int $id, ResultadoEvaluacion $resultado, DateTimeImmutable $ahora ): bool {
 		$filasAfectadas = $this->wpdb->update(
 			$this->tabla(),
@@ -495,6 +510,7 @@ final class RepositorioPiezas implements RepositorioPiezasInterface {
 		$piezaOriginalId = null !== ( $fila['pieza_original_id'] ?? null ) ? (int) $fila['pieza_original_id'] : null;
 		$historiaId      = null !== ( $fila['historia_id'] ?? null ) ? (int) $fila['historia_id'] : null;
 		$tipo            = isset( $fila['tipo'] ) && is_string( $fila['tipo'] ) ? ( TipoPieza::tryFrom( $fila['tipo'] ) ?? TipoPieza::Original ) : TipoPieza::Original;
+		$temaSinCubrir   = isset( $fila['tema_sin_cubrir'] ) && is_string( $fila['tema_sin_cubrir'] ) && '' !== $fila['tema_sin_cubrir'] ? $fila['tema_sin_cubrir'] : null;
 
 		return new Pieza(
 			(int) $fila['id'],
@@ -512,7 +528,8 @@ final class RepositorioPiezas implements RepositorioPiezasInterface {
 			$resultadoTaxonomia,
 			$piezaOriginalId,
 			$historiaId,
-			$tipo
+			$tipo,
+			$temaSinCubrir
 		);
 	}
 }

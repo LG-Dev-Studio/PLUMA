@@ -15,6 +15,11 @@ function textosDeEjemplo(): TextosBancoPeriodistas {
         sinVerticales: 'sin piezas publicadas todavía',
         estadoActivo: 'Activo',
         estadoJubilado: 'Jubilado',
+        estadoPropuesto: 'Propuesto',
+        ventanaVetoRestante: 'Se activa solo en',
+        aprobarAhora: 'Aprobar ahora',
+        descartarPropuesta: 'Descartar',
+        confirmarDescartarPropuesta: '¿Descartar esta propuesta?',
         crearDesdePlantilla: 'Crear desde plantilla',
         crearPersonalizado: 'Crear personalizado',
         elegirPlantilla: 'Elegir plantilla',
@@ -127,6 +132,7 @@ function tarjetaDeEjemplo(sobrescribir: Partial<TarjetaPeriodista> = {}): Tarjet
         especialidades: [{ vertical: 'economia', nivelDominio: 5 }],
         estado: 'activo',
         metricas: { piezasPublicadas: 12, verticalesTop: ['economia', 'tecnologia'] },
+        ventanaVetoExpiraEn: null,
         ...sobrescribir,
     };
 }
@@ -196,6 +202,58 @@ describe('PantallaBancoPeriodistas', () => {
         confirmSimulado.mockRestore();
     });
 
+    it('muestra el badge Propuesto y la ventana de veto restante en vez de Jubilar', async () => {
+        stubFetch([
+            tarjetaDeEjemplo({
+                id: 7,
+                nombre: 'Periodista Propuesto',
+                estado: 'propuesto',
+                ventanaVetoExpiraEn: '2026-07-30T02:00:00+00:00',
+            }),
+        ]);
+
+        render(<PantallaBancoPeriodistas restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+
+        expect(await screen.findByText('Propuesto')).toBeInTheDocument();
+        expect(screen.getByText(/Se activa solo en/)).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Jubilar' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Aprobar ahora' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Descartar' })).toBeInTheDocument();
+    });
+
+    it('aprueba una propuesta ahora contra el endpoint correcto', async () => {
+        const fetchSimulado = stubFetch([tarjetaDeEjemplo({ id: 7, estado: 'propuesto', ventanaVetoExpiraEn: '2026-07-30T02:00:00+00:00' })]);
+
+        render(<PantallaBancoPeriodistas restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+
+        await userEvent.click(await screen.findByRole('button', { name: 'Aprobar ahora' }));
+
+        await waitFor(() =>
+            expect(fetchSimulado).toHaveBeenCalledWith(
+                'https://ejemplo.test/wp-json/pluma/v1/periodistas/7/aprobar-ahora',
+                expect.objectContaining({ method: 'POST' })
+            )
+        );
+    });
+
+    it('pide confirmación antes de descartar una propuesta y llama al endpoint correcto', async () => {
+        const fetchSimulado = stubFetch([tarjetaDeEjemplo({ id: 7, estado: 'propuesto', ventanaVetoExpiraEn: '2026-07-30T02:00:00+00:00' })]);
+        const confirmSimulado = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+        render(<PantallaBancoPeriodistas restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
+
+        await userEvent.click(await screen.findByRole('button', { name: 'Descartar' }));
+
+        expect(confirmSimulado).toHaveBeenCalled();
+        await waitFor(() =>
+            expect(fetchSimulado).toHaveBeenCalledWith(
+                'https://ejemplo.test/wp-json/pluma/v1/periodistas/7/propuesta',
+                expect.objectContaining({ method: 'DELETE' })
+            )
+        );
+        confirmSimulado.mockRestore();
+    });
+
     it('crea un periodista personalizado con el comodín y abre su Estudio de Conducta', async () => {
         const detalleCreado = {
             id: 99,
@@ -227,6 +285,7 @@ describe('PantallaBancoPeriodistas', () => {
             respuestasHabilitadas: false,
             metricas: { piezasPublicadas: 0, verticalesTop: [] },
             memoriaReciente: [],
+            ventanaVetoExpiraEn: null,
         };
 
         const fetchSimulado = vi.fn((url: string, opciones?: RequestInit) => {

@@ -115,6 +115,16 @@ interface RepositorioPiezasInterface {
 	public function actualizarFichaDecisionEditorial( int $id, FichaDecisionEditorial $ficha, DateTimeImmutable $ahora ): bool;
 
 	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * registra el `$clasificacion->tema` que ningún periodista activo pudo
+	 * cubrir, en el momento en que `NingunPeriodistaIdoneoException` deja la
+	 * Pieza en SIN_PERIODISTA_IDONEO — señal real para
+	 * `CreadorAutomaticoPeriodistas`, antes descartada dentro de la frase
+	 * libre de la excepción.
+	 */
+	public function actualizarTemaSinCubrir( int $id, string $tema, DateTimeImmutable $ahora ): bool;
+
+	/**
 	 * Persiste el resultado de `Pluma\Compuertas\EvaluadorCompuertas` (Libro
 	 * Cap. 8.4): el JSON completo del diagnóstico y, denormalizado, el modo
 	 * efectivo para que el Orquestador pueda filtrar por él sin deserializar.

@@ -30,6 +30,7 @@ use Pluma\Publicacion\LectorComentariosInterface;
 use Pluma\Publicacion\PublicadorInterface;
 use Pluma\Publicacion\SnapshotPublicacion;
 use Pluma\Redaccion\AnalizadorAudiencia;
+use Pluma\Redaccion\CreadorAutomaticoPeriodistas;
 use Pluma\Redaccion\EstadoRespuestaComentario;
 use Pluma\Redaccion\GeneradorRespuestaComentario;
 use Pluma\Redaccion\RedactorInterface;
@@ -108,6 +109,8 @@ final class Orquestador {
 		private readonly EvaluadorLegitimidadInsumo $evaluadorLegitimidad,
 		private readonly GestorHistorias $gestorHistorias,
 		private readonly GestorExperimentosTitular $gestorExperimentosTitular,
+		private readonly CreadorAutomaticoPeriodistas $creadorAutomaticoPeriodistas,
+		private readonly GestorSalaRevision $gestorSalaRevision,
 	) {
 	}
 
@@ -143,6 +146,8 @@ final class Orquestador {
 			$this->verificarEscasezHonesta( $errores );
 			$this->procesarHistoriasInactivas( $errores );
 			$this->gestorExperimentosTitular->consolidarVencidos();
+			$errores = array( ...$errores, ...$this->evaluarCreacionAutomaticaPeriodistas() );
+			$this->procesarPeriodistasPropuestosVencidos( $errores );
 		} finally {
 			$this->bitacora->finalizarEjecucion( $bitacoraId, $this->reloj->ahora(), $lotesProcesados, $errores );
 			$this->candado->liberar();
@@ -632,6 +637,50 @@ final class Orquestador {
 			$this->gestorHistorias->marcarInactivasVencidas();
 		} catch ( Throwable $error ) {
 			$errores[] = 'historias inactivas (no bloqueante): ' . $error->getMessage();
+		}
+	}
+
+	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * decide si el patrón real de Piezas atascadas justifica proponer un
+	 * periodista nuevo. `CreadorAutomaticoPeriodistas` ya trae sus propias
+	 * guardas (interruptor, cooldown, tope, volumen mínimo) — este paso solo
+	 * delega y nunca bloquea el resto del tick.
+	 *
+	 * @return list<string>
+	 */
+	private function evaluarCreacionAutomaticaPeriodistas(): array {
+		try {
+			return $this->creadorAutomaticoPeriodistas->evaluarYProponer();
+		} catch ( Throwable $e ) {
+			return array( 'creación automática de periodistas (no bloqueante): ' . $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * un periodista Propuesto cuya ventana de veto ya expiró se promueve a
+	 * Activo solo — mismo criterio temporal que la cola de veto de Copiloto
+	 * para Piezas (`OPCION_VENTANA_VETO_HORAS`, reutilizada, ningún ajuste
+	 * nuevo) — y sus Piezas contribuyentes se reanudan de inmediato
+	 * (`GestorSalaRevision::promoverPeriodistaPropuesto()`).
+	 *
+	 * @param list<string> $errores
+	 */
+	private function procesarPeriodistasPropuestosVencidos( array &$errores ): void {
+		$ventanaVetoHoras = $this->ventanaVetoHorasConfigurada();
+		$ahora            = $this->reloj->ahora();
+
+		foreach ( $this->periodistas->obtenerPropuestos() as $periodista ) {
+			if ( $ahora < $periodista->creadoEn->modify( "+{$ventanaVetoHoras} hours" ) ) {
+				continue;
+			}
+
+			try {
+				$this->gestorSalaRevision->promoverPeriodistaPropuesto( $periodista->id, $ahora );
+			} catch ( Throwable $error ) {
+				$errores[] = "periodista propuesto {$periodista->id} (no bloqueante): " . $error->getMessage();
+			}
 		}
 	}
 

@@ -20,6 +20,10 @@ if ( ! defined( 'DAY_IN_SECONDS' ) ) {
 	define( 'DAY_IN_SECONDS', 86400 );
 }
 
+if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
+	define( 'HOUR_IN_SECONDS', 3600 );
+}
+
 if ( ! class_exists( 'WP_Error' ) ) {
 	/**
 	 * Doble mínimo de `WP_Error` para la suite Unit: solo lo que

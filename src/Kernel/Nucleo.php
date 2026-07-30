@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pluma\Kernel;
 
+use Pluma\Admin\NotificadorPeriodistaPropuesto;
 use Pluma\Admin\NotificadorProveedorCaido;
 use Pluma\Admin\NotificadorRevision;
 use Pluma\Admin\RestBoletines;
@@ -132,11 +133,13 @@ use Pluma\Publicacion\Publicador;
 use Pluma\Publicacion\PublicadorComentario;
 use Pluma\Publicacion\PublicadorComentarioInterface;
 use Pluma\Publicacion\PublicadorInterface;
+use Pluma\Redaccion\AgrupadorTemasSinCobertura;
 use Pluma\Redaccion\AnalizadorAudiencia;
 use Pluma\Redaccion\AsignadorPeriodista;
 use Pluma\Redaccion\AvisoTransparenciaIa;
 use Pluma\Redaccion\ClasificadorNoticia;
 use Pluma\Redaccion\CompiladorDirectrices;
+use Pluma\Redaccion\CreadorAutomaticoPeriodistas;
 use Pluma\Redaccion\CorrectorInterno;
 use Pluma\Redaccion\DecisionEditorial;
 use Pluma\Redaccion\DeclaracionIdentidadSintetica;
@@ -685,6 +688,22 @@ final class Nucleo {
 			fn ( Contenedor $c ): RestDerivadosSociales => new RestDerivadosSociales( $c->obtener( RepositorioDerivadosSocialesInterface::class ) )
 		);
 		$this->contenedor->registrar(
+			AgrupadorTemasSinCobertura::class,
+			fn ( Contenedor $c ): AgrupadorTemasSinCobertura => new AgrupadorTemasSinCobertura(
+				$c->obtener( LenguajeInterface::class ),
+				$c->obtener( PresupuestoLenguaje::class )
+			)
+		);
+		$this->contenedor->registrar(
+			CreadorAutomaticoPeriodistas::class,
+			fn ( Contenedor $c ): CreadorAutomaticoPeriodistas => new CreadorAutomaticoPeriodistas(
+				$c->obtener( RepositorioPiezasInterface::class ),
+				$c->obtener( RepositorioPeriodistasInterface::class ),
+				$c->obtener( AgrupadorTemasSinCobertura::class ),
+				$c->obtener( RelojInterface::class )
+			)
+		);
+		$this->contenedor->registrar(
 			Orquestador::class,
 			fn ( Contenedor $c ): Orquestador => new Orquestador(
 				$c->obtener( CandadoGlobalInterface::class ),
@@ -720,7 +739,9 @@ final class Nucleo {
 				$c->obtener( AsignadorImagenDestacadaInterface::class ),
 				$c->obtener( EvaluadorLegitimidadInsumo::class ),
 				$c->obtener( GestorHistorias::class ),
-				$c->obtener( GestorExperimentosTitular::class )
+				$c->obtener( GestorExperimentosTitular::class ),
+				$c->obtener( CreadorAutomaticoPeriodistas::class ),
+				$c->obtener( GestorSalaRevision::class )
 			)
 		);
 
@@ -744,6 +765,7 @@ final class Nucleo {
 			fn ( Contenedor $c ): GestorSalaRevision => new GestorSalaRevision(
 				$c->obtener( RepositorioPiezasInterface::class ),
 				$c->obtener( RepositorioColaPublicacionInterface::class ),
+				$c->obtener( RepositorioPeriodistasInterface::class ),
 				$c->obtener( Transicionador::class )
 			)
 		);
@@ -763,6 +785,7 @@ final class Nucleo {
 		);
 		$this->contenedor->registrar( NotificadorRevision::class, static fn (): NotificadorRevision => new NotificadorRevision() );
 		$this->contenedor->registrar( NotificadorProveedorCaido::class, static fn (): NotificadorProveedorCaido => new NotificadorProveedorCaido() );
+		$this->contenedor->registrar( NotificadorPeriodistaPropuesto::class, static fn (): NotificadorPeriodistaPropuesto => new NotificadorPeriodistaPropuesto() );
 		$this->contenedor->registrar( NotificadorSinPeriodistaIdoneo::class, static fn (): NotificadorSinPeriodistaIdoneo => new NotificadorSinPeriodistaIdoneo() );
 
 		$this->contenedor->registrar(
@@ -924,7 +947,8 @@ final class Nucleo {
 				$c->obtener( RepositorioPiezasInterface::class ),
 				$c->obtener( RepositorioMemoriaEditorialInterface::class ),
 				$c->obtener( GeneradorVistaPrevia::class ),
-				$c->obtener( RelojInterface::class )
+				$c->obtener( RelojInterface::class ),
+				$c->obtener( GestorSalaRevision::class )
 			)
 		);
 		$this->contenedor->registrar(
@@ -945,7 +969,8 @@ final class Nucleo {
 				$c->obtener( ProveedorGoogleTrends::class ),
 				$c->obtener( TelemetriaInterface::class ),
 				$c->obtener( ExportadorDiagnostico::class ),
-				$c->obtener( Orquestador::class )
+				$c->obtener( Orquestador::class ),
+				$c->obtener( CreadorAutomaticoPeriodistas::class )
 			)
 		);
 		$this->contenedor->registrar(
@@ -1070,6 +1095,7 @@ final class Nucleo {
 		$this->contenedor->obtener( RestSalaRevision::class )->registrar();
 		$this->contenedor->obtener( NotificadorRevision::class )->registrar();
 		$this->contenedor->obtener( NotificadorProveedorCaido::class )->registrar();
+		$this->contenedor->obtener( NotificadorPeriodistaPropuesto::class )->registrar();
 		$this->contenedor->obtener( NotificadorSinPeriodistaIdoneo::class )->registrar();
 		$this->contenedor->obtener( RestPortada::class )->registrar();
 		$this->contenedor->obtener( RestSalaTendencias::class )->registrar();

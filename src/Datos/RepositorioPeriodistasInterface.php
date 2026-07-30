@@ -38,10 +38,19 @@ interface RepositorioPeriodistasInterface {
 		ReglasConducta $reglas,
 		MatrizTonos $matrizTonos,
 		DateTimeImmutable $ahora,
-		string $localeEditorial = 'es-ES'
+		string $localeEditorial = 'es-ES',
+		bool $creadoAutomaticamente = false
 	): int;
 
 	public function obtenerPorId( int $id ): ?Periodista;
+
+	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * cuenta los periodistas sembrados por `CreadorAutomaticoPeriodistas`
+	 * que siguen "en juego" (Propuesto o Activo, nunca Jubilado) — la
+	 * guarda real del tope `pluma_creacion_automatica_max_periodistas`.
+	 */
+	public function contarAutomaticosActivos(): int;
 
 	/**
 	 * @return list<Periodista>
@@ -104,4 +113,28 @@ interface RepositorioPeriodistasInterface {
 	): bool;
 
 	public function jubilar( int $periodistaId, DateTimeImmutable $ahora ): bool;
+
+	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * periodistas nacidos {@see EstadoPeriodista::Propuesto} que siguen
+	 * esperando la ventana de veto o una acción humana explícita.
+	 *
+	 * @return list<Periodista>
+	 */
+	public function obtenerPropuestos(): array;
+
+	/**
+	 * Promueve un periodista Propuesto a Activo — al expirar la ventana de
+	 * veto (`Orquestador::procesarPeriodistasPropuestosVencidos()`) o por
+	 * "Aprobar ahora" del editor. Devuelve `false` si el id no existe.
+	 */
+	public function activarPropuesta( int $periodistaId, DateTimeImmutable $ahora ): bool;
+
+	/**
+	 * Descarta una propuesta rechazada por el editor: borrado real, a
+	 * diferencia de `jubilar()` — una propuesta nunca llegó a publicar
+	 * nada, no hay historial que conservar. Devuelve `false` si el id no
+	 * existe o no está en estado Propuesto.
+	 */
+	public function descartarPropuesta( int $periodistaId ): bool;
 }

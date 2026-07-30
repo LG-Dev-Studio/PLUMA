@@ -6,6 +6,10 @@ import { BloqueRiesgoLegal, type TextosRiesgoLegal } from './BloqueRiesgoLegal';
 import { BloqueModoRespeto, type TextosModoRespeto } from './BloqueModoRespeto';
 import { BloqueImagenDestacada, type TextosImagenDestacada } from './BloqueImagenDestacada';
 import { BloqueTransparencia, type TextosTransparencia } from './BloqueTransparencia';
+import {
+    BloqueCreacionAutomaticaPeriodistas,
+    type TextosCreacionAutomaticaPeriodistas,
+} from './BloqueCreacionAutomaticaPeriodistas';
 
 export interface DatosSalud {
     versionPhp: string;
@@ -113,6 +117,7 @@ export interface TextosSalaMaquinas {
     modeloVerificador: TextosModeloVerificador;
     modoRespeto: TextosModoRespeto;
     imagenDestacada: TextosImagenDestacada;
+    creacionAutomaticaPeriodistas: TextosCreacionAutomaticaPeriodistas;
     telemetria: {
         titulo: string;
         explicacion: string;
@@ -399,6 +404,8 @@ function SeccionesMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: st
             <BloqueModoRespeto restUrl={restUrl} nonce={nonce} textos={textos.modoRespeto} />
 
             <BloqueImagenDestacada restUrl={restUrl} nonce={nonce} textos={textos.imagenDestacada} />
+
+            <BloqueCreacionAutomaticaPeriodistas restUrl={restUrl} nonce={nonce} textos={textos.creacionAutomaticaPeriodistas} />
 
             <section className="pluma-maquinas__seccion">
                 <h2>{textos.telemetria.titulo}</h2>

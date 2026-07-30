@@ -98,6 +98,12 @@ final class Esquema {
 			// nunca pertenecen a una); tipo distingue original/actualización/
 			// corrección/cierre dentro de esa saga (Libro Cap. 3.4 "dos
 			// golpes" formalizado como campo de primera clase).
+			// Etapa 9 (trabajo posterior — creación automática de periodistas):
+			// tema_sin_cubrir guarda el `$clasificacion->tema` ya calculado por
+			// `DecisionEditorial::decidir()` en el momento exacto en que
+			// `NingunPeriodistaIdoneoException` deja la Pieza en
+			// SIN_PERIODISTA_IDONEO — antes se descartaba dentro de la frase
+			// libre de la excepción. Nulo en cualquier otro estado/motivo.
 			"CREATE TABLE {$prefijo}piezas (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 tendencia_id BIGINT UNSIGNED NOT NULL,
@@ -116,6 +122,7 @@ final class Esquema {
                 pieza_original_id BIGINT UNSIGNED NULL,
                 historia_id BIGINT UNSIGNED NULL,
                 tipo VARCHAR(20) NOT NULL DEFAULT 'original',
+                tema_sin_cubrir VARCHAR(191) NULL,
                 creada_en DATETIME NOT NULL,
                 actualizada_en DATETIME NOT NULL,
                 PRIMARY KEY  (id),
@@ -272,6 +279,12 @@ final class Esquema {
 			// determina qué catálogo localizado (vocabulario prohibido,
 			// ejemplos-ancla) aplica al compilar directrices. Campo desde
 			// ya para no migrar el banco completo después.
+			// Etapa 9 (trabajo posterior — creación automática de periodistas):
+			// creado_automaticamente distingue un periodista sembrado por
+			// `CreadorAutomaticoPeriodistas` (nace en estado PROPUESTO) de uno
+			// creado a mano por un editor — necesario para el tope
+			// `pluma_creacion_automatica_max_periodistas`, que solo cuenta los
+			// automáticos, nunca los que el propio editor decidió crear.
 			"CREATE TABLE {$prefijo}periodistas (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 nombre VARCHAR(191) NOT NULL,
@@ -282,6 +295,7 @@ final class Esquema {
                 estado VARCHAR(20) NOT NULL,
                 version_conducta_actual_id BIGINT UNSIGNED NOT NULL,
                 locale_editorial VARCHAR(10) NOT NULL DEFAULT 'es-ES',
+                creado_automaticamente TINYINT(1) NOT NULL DEFAULT 0,
                 creado_en DATETIME NOT NULL,
                 actualizado_en DATETIME NOT NULL,
                 PRIMARY KEY  (id),
@@ -542,6 +556,10 @@ final class Esquema {
 		$prefijo = $wpdb->prefix . 'pluma_';
 
 		return match ( $versionOrigen . '->' . $versionDestino ) {
+			'0.24.0->0.23.0' => array(
+				"ALTER TABLE {$prefijo}piezas DROP COLUMN tema_sin_cubrir;",
+				"ALTER TABLE {$prefijo}periodistas DROP COLUMN creado_automaticamente;",
+			),
 			'0.23.0->0.22.0' => array(
 				"DROP TABLE IF EXISTS {$prefijo}pistas;",
 			),

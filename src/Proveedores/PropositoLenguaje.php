@@ -81,12 +81,20 @@ enum PropositoLenguaje: string {
 	 * pública del periodista, mismo criterio que `Boletin`.
 	 */
 	case TitularAlternativo = 'titular_alternativo';
+	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * decide si un grupo de Piezas atascadas en SIN_PERIODISTA_IDONEO forma
+	 * UN tema coherente que justifica un periodista nuevo, o son casos sueltos
+	 * sin relación. Económico y determinista, mismo criterio que
+	 * `CompararHistorias` — es análisis/agrupación, no creación.
+	 */
+	case AgruparTemasSinCobertura = 'agrupar_temas_sin_cobertura';
 
 	public function esPremium(): bool {
 		// phpcs:ignore PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext -- falso positivo: $this en un método de enum (PHP 8.1) es válido; el sniff aún no reconoce enums.
 		return match ( $this ) {
 			self::Redactar, self::Corregir, self::BloqueEditor, self::RespuestaComentario, self::Boletin, self::DerivadoSocial, self::TitularAlternativo => true,
-			self::Clasificar, self::Angulos, self::Titulares, self::VistaPrevia, self::CompararHistorias, self::AnalizarAudiencia, self::Falsear, self::ClasificarComentario => false,
+			self::Clasificar, self::Angulos, self::Titulares, self::VistaPrevia, self::CompararHistorias, self::AnalizarAudiencia, self::Falsear, self::ClasificarComentario, self::AgruparTemasSinCobertura => false,
 		};
 	}
 
@@ -98,7 +106,7 @@ enum PropositoLenguaje: string {
 	public function temperatura(): float {
 		// phpcs:ignore PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext -- falso positivo: $this en un método de enum (PHP 8.1) es válido; el sniff aún no reconoce enums.
 		return match ( $this ) {
-			self::Clasificar, self::CompararHistorias, self::AnalizarAudiencia, self::ClasificarComentario => 0.0,
+			self::Clasificar, self::CompararHistorias, self::AnalizarAudiencia, self::ClasificarComentario, self::AgruparTemasSinCobertura => 0.0,
 			self::Corregir, self::Falsear => 0.2,
 			self::Angulos, self::Titulares => 0.8,
 			self::Redactar, self::BloqueEditor, self::VistaPrevia, self::RespuestaComentario, self::Boletin, self::DerivadoSocial, self::TitularAlternativo => 0.7,

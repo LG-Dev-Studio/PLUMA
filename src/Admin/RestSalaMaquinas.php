@@ -14,6 +14,7 @@ use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Proveedores\ProveedorGoogleTrends;
 use Pluma\Proveedores\ProveedorOpenRouter;
 use Pluma\Proveedores\TelemetriaInterface;
+use Pluma\Redaccion\CreadorAutomaticoPeriodistas;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -44,6 +45,8 @@ final class RestSalaMaquinas {
 	private const RUTA_TELEMETRIA   = '/motor/telemetria';
 	private const RUTA_DIAGNOSTICO  = '/motor/diagnostico';
 	private const RUTA_EJECUTAR     = '/motor/ejecutar';
+	// Trabajo posterior a la Etapa 9 (creación automática de periodistas).
+	private const RUTA_CREACION_AUTOMATICA_PERIODISTAS = '/motor/creacion-automatica-periodistas';
 
 	private const LIMITE_BITACORA = 20;
 
@@ -55,6 +58,7 @@ final class RestSalaMaquinas {
 		private readonly TelemetriaInterface $telemetria,
 		private readonly ExportadorDiagnostico $exportadorDiagnostico,
 		private readonly Orquestador $orquestador,
+		private readonly CreadorAutomaticoPeriodistas $creadorAutomaticoPeriodistas,
 	) {
 	}
 
@@ -132,6 +136,23 @@ final class RestSalaMaquinas {
 				array(
 					'methods'             => 'POST',
 					'callback'            => array( $this, 'actualizarTelemetria' ),
+					'permission_callback' => array( $this, 'autorizado' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			'pluma/v1',
+			self::RUTA_CREACION_AUTOMATICA_PERIODISTAS,
+			array(
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( $this, 'creacionAutomaticaPeriodistas' ),
+					'permission_callback' => array( $this, 'autorizado' ),
+				),
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( $this, 'actualizarCreacionAutomaticaPeriodistas' ),
 					'permission_callback' => array( $this, 'autorizado' ),
 				),
 			)
@@ -282,6 +303,66 @@ final class RestSalaMaquinas {
 		update_option( Activador::OPCION_TELEMETRIA_HABILITADA, $habilitada, false );
 
 		return new WP_REST_Response( array( 'habilitada' => $habilitada ), 200 );
+	}
+
+	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * expone siempre el valor EFECTIVO de cada ajuste (opción real, o el
+	 * defecto de fábrica cuando no está fijada) — mismo criterio que
+	 * `estado()` con `limiteDiarioUsd()`.
+	 */
+	public function creacionAutomaticaPeriodistas(): WP_REST_Response {
+		return new WP_REST_Response(
+			array(
+				'activada'       => $this->creadorAutomaticoPeriodistas->activada(),
+				'minPiezasGrupo' => $this->creadorAutomaticoPeriodistas->minPiezasGrupo(),
+				'ventanaDias'    => $this->creadorAutomaticoPeriodistas->ventanaDias(),
+				'cooldownHoras'  => $this->creadorAutomaticoPeriodistas->cooldownHoras(),
+				'maxPeriodistas' => $this->creadorAutomaticoPeriodistas->maxPeriodistas(),
+			),
+			200
+		);
+	}
+
+	/**
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function actualizarCreacionAutomaticaPeriodistas( WP_REST_Request $request ) {
+		$activada = $request->get_param( 'activada' );
+
+		if ( ! is_bool( $activada ) ) {
+			return $this->errorCreacionAutomaticaPeriodistasInvalida( __( 'El valor de activación debe ser verdadero o falso.', 'pluma-engine' ) );
+		}
+
+		$campos = array(
+			'minPiezasGrupo' => CreadorAutomaticoPeriodistas::OPCION_MIN_PIEZAS_GRUPO,
+			'ventanaDias'    => CreadorAutomaticoPeriodistas::OPCION_VENTANA_DIAS,
+			'cooldownHoras'  => CreadorAutomaticoPeriodistas::OPCION_COOLDOWN_HORAS,
+			'maxPeriodistas' => CreadorAutomaticoPeriodistas::OPCION_MAX_PERIODISTAS,
+		);
+
+		$valores = array( 'activada' => $activada );
+
+		foreach ( $campos as $campo => $opcion ) {
+			$valor = $request->get_param( $campo );
+
+			if ( ! is_numeric( $valor ) || (int) $valor <= 0 ) {
+				return $this->errorCreacionAutomaticaPeriodistasInvalida(
+					__( 'Los números de configuración deben ser enteros mayores que cero.', 'pluma-engine' )
+				);
+			}
+
+			$valores[ $campo ] = (int) $valor;
+			update_option( $opcion, (int) $valor, false );
+		}
+
+		update_option( CreadorAutomaticoPeriodistas::OPCION_ACTIVADA, $activada, false );
+
+		return new WP_REST_Response( $valores, 200 );
+	}
+
+	private function errorCreacionAutomaticaPeriodistasInvalida( string $mensaje ): WP_Error {
+		return new WP_Error( 'pluma_creacion_automatica_periodistas_invalida', $mensaje, array( 'status' => 400 ) );
 	}
 
 	public function diagnostico(): WP_REST_Response {

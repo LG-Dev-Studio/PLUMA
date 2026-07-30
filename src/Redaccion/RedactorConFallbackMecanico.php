@@ -46,6 +46,13 @@ final class RedactorConFallbackMecanico implements RedactorInterface {
 		} catch ( NingunPeriodistaIdoneoException $e ) {
 			// Nivel Dos C.3: "no se asigna a 'el menos malo'" — a diferencia del
 			// fallback mecánico, aquí NO se escribe ningún borrador.
+			//
+			// Trabajo posterior a la Etapa 9 (creación automática de
+			// periodistas): $e->tema ya está calculado aquí — se persiste antes
+			// de descartar la excepción en la frase libre de motivoSinPeriodistaIdoneo,
+			// es la señal real que consume `CreadorAutomaticoPeriodistas`.
+			$this->repoPiezas->actualizarTemaSinCubrir( $pieza->id, $e->tema, $this->reloj->ahora() );
+
 			return new ResultadoRedaccion( '', '', false, null, 0, true, $e->getMessage() );
 		}
 

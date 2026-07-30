@@ -34,6 +34,13 @@ final readonly class Periodista {
 		// ningún constructor posicional existente ("un solo locale
 		// poblado inicialmente es aceptable").
 		public string $localeEditorial = 'es-ES',
+		// Trabajo posterior a la Etapa 9 (creación automática de
+		// periodistas): distingue un periodista sembrado por
+		// `CreadorAutomaticoPeriodistas` (siempre nace `Propuesto`) de uno
+		// creado a mano — usado por el tope
+		// `pluma_creacion_automatica_max_periodistas`, que solo cuenta a los
+		// automáticos.
+		public bool $creadoAutomaticamente = false,
 	) {
 	}
 

@@ -45,6 +45,7 @@ use Pluma\Investigacion\ResolutorDisputas;
 use Pluma\Pipeline\EstadoColaPublicacion;
 use Pluma\Pipeline\EstadoPieza;
 use Pluma\Pipeline\GestorHistorias;
+use Pluma\Pipeline\GestorSalaRevision;
 use Pluma\Seo\GestorExperimentosTitular;
 use Pluma\Pipeline\LectorConfiguracionCadencia;
 use Pluma\Pipeline\Orquestador;
@@ -53,6 +54,8 @@ use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Pipeline\RanuraPublicacion;
 use Pluma\Pipeline\TipoAprobacion;
 use Pluma\Pipeline\Transicionador;
+use Pluma\Redaccion\AgrupadorTemasSinCobertura;
+use Pluma\Redaccion\CreadorAutomaticoPeriodistas;
 use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Proveedores\ProveedorLenguajeException;
@@ -288,6 +291,11 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 	private function periodistasPermisivo(): RepositorioPeriodistasInterface {
 		$periodistas = Mockery::mock( RepositorioPeriodistasInterface::class );
 		$periodistas->allows( 'obtenerPorId' )->andReturn( null );
+		// Trabajo posterior a la Etapa 9 (creación automática de
+		// periodistas): `procesarPeriodistasPropuestosVencidos()` consulta
+		// esto en CADA tick, sin importar el interruptor de creación
+		// automática — permisivo por defecto, sin propuestas pendientes.
+		$periodistas->allows( 'obtenerPropuestos' )->andReturn( array() );
 
 		return $periodistas;
 	}
@@ -361,7 +369,24 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			$overrides['asignadorImagenDestacada'] ?? Mockery::mock( AsignadorImagenDestacadaInterface::class )->allows( 'asignar' )->getMock(),
 			$overrides['evaluadorLegitimidad'] ?? new EvaluadorLegitimidadInsumo(),
 			$overrides['gestorHistorias'] ?? $this->gestorHistoriasPermisivo(),
-			$overrides['gestorExperimentosTitular'] ?? $this->gestorExperimentosTitularPermisivo()
+			$overrides['gestorExperimentosTitular'] ?? $this->gestorExperimentosTitularPermisivo(),
+			$overrides['creadorAutomaticoPeriodistas'] ?? $this->creadorAutomaticoPeriodistasPermisivo( $piezas ),
+			$overrides['gestorSalaRevision'] ?? new GestorSalaRevision( $piezas, $colaPublicacion, $this->periodistasPermisivo(), new Transicionador( $piezas, $this->auditoriaPermisiva(), new RelojFijo() ) )
+		);
+	}
+
+	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * con el interruptor apagado por defecto (`get_option` permisivo de
+	 * `construir()`), `evaluarYProponer()` sale antes de tocar ningún
+	 * repositorio — mocks permisivos suficientes para el camino no activado.
+	 */
+	private function creadorAutomaticoPeriodistasPermisivo( RepositorioPiezasInterface $piezas ): CreadorAutomaticoPeriodistas {
+		return new CreadorAutomaticoPeriodistas(
+			$piezas,
+			$this->periodistasPermisivo(),
+			new AgrupadorTemasSinCobertura( Mockery::mock( LenguajeInterface::class ), new PresupuestoLenguaje( new RelojFijo() ) ),
+			new RelojFijo()
 		);
 	}
 
@@ -1396,6 +1421,7 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 
 		$periodistas = Mockery::mock( \Pluma\Datos\RepositorioPeriodistasInterface::class );
 		$periodistas->expects( 'obtenerPorId' )->with( 5 )->andReturn( $this->periodistaConRespuestas( false ) );
+		$periodistas->allows( 'obtenerPropuestos' )->andReturn( array() );
 
 		Functions\when( 'get_option' )->justReturn( false );
 
@@ -1437,6 +1463,7 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 
 		$periodistas = Mockery::mock( \Pluma\Datos\RepositorioPeriodistasInterface::class );
 		$periodistas->expects( 'obtenerPorId' )->with( 5 )->andReturn( $this->periodistaConRespuestas( true ) );
+		$periodistas->allows( 'obtenerPropuestos' )->andReturn( array() );
 
 		Functions\when( 'get_option' )->justReturn( false );
 
@@ -1507,6 +1534,7 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 
 		$periodistas = Mockery::mock( \Pluma\Datos\RepositorioPeriodistasInterface::class );
 		$periodistas->expects( 'obtenerPorId' )->with( 5 )->andReturn( $this->periodistaConRespuestas( true ) );
+		$periodistas->allows( 'obtenerPropuestos' )->andReturn( array() );
 
 		Functions\when( 'get_option' )->justReturn( false );
 
@@ -1575,6 +1603,87 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 				'piezas'                => $piezas,
 				'lectorComentarios'     => $lector,
 				'respuestasComentarios' => $respuestas,
+			)
+		)->ejecutarTick();
+
+		$this->expectNotToPerformAssertions();
+	}
+
+	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * un periodista Propuesto cuya ventana de veto ya pasó se promueve solo
+	 * en el siguiente tick, sin esperar ninguna acción del editor.
+	 * `GestorSalaRevision` es una clase final: se construye real (mismo
+	 * criterio ya usado en esta suite), con repositorios mockeados, en vez
+	 * de mockear la clase misma.
+	 */
+	public function test_un_periodista_propuesto_vencido_se_promueve_en_el_tick(): void {
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$diales    = new Diales( 60, 40, 20, 60, 50, 50, 60, 50 );
+		$reglas    = new ReglasConducta( 'línea', array(), array(), array(), TratamientoLector::Tu, '¿Y tú?' );
+		$matriz    = MatrizTonos::desdeFilas( array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) ) );
+		$conducta  = new ConductaVersion( 1, 60, $diales, $reglas, $matriz, false, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ) );
+		$propuesto = new Periodista( 60, 'Propuesto', null, 'bio', RolPeriodista::Cronista, array(), EstadoPeriodista::Propuesto, $conducta, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ) );
+
+		$piezasParaGestor = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezasParaGestor->allows( 'obtenerPorEstado' )->andReturn( array() );
+
+		$periodistas = Mockery::mock( RepositorioPeriodistasInterface::class );
+		$periodistas->allows( 'obtenerPorId' )->with( 60 )->andReturn( $propuesto );
+		$periodistas->allows( 'obtenerPropuestos' )->andReturn( array( $propuesto ) );
+		$periodistas->expects( 'activarPropuesta' )->once()->with( 60, Mockery::any() )->andReturn( true );
+
+		$gestorSalaRevision = new GestorSalaRevision(
+			$piezasParaGestor,
+			Mockery::mock( RepositorioColaPublicacionInterface::class ),
+			$periodistas,
+			new Transicionador( $piezasParaGestor, $this->auditoriaPermisiva(), new RelojFijo() )
+		);
+
+		$this->construir(
+			array(
+				'periodistas'        => $periodistas,
+				'gestorSalaRevision' => $gestorSalaRevision,
+			)
+		)->ejecutarTick();
+
+		$this->expectNotToPerformAssertions();
+	}
+
+	/**
+	 * Guarda dura del banco: un periodista Propuesto que TODAVÍA está
+	 * dentro de su ventana de veto no se toca — el editor puede seguir
+	 * viéndolo/editándolo/descartándolo sin que el motor se adelante.
+	 */
+	public function test_un_periodista_propuesto_dentro_de_la_ventana_de_veto_no_se_toca(): void {
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$diales    = new Diales( 60, 40, 20, 60, 50, 50, 60, 50 );
+		$reglas    = new ReglasConducta( 'línea', array(), array(), array(), TratamientoLector::Tu, '¿Y tú?' );
+		$matriz    = MatrizTonos::desdeFilas( array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) ) );
+		$conducta  = new ConductaVersion( 1, 61, $diales, $reglas, $matriz, false, new DateTimeImmutable( '2026-07-22T11:00:00+00:00' ) );
+		$propuesto = new Periodista( 61, 'Propuesto reciente', null, 'bio', RolPeriodista::Cronista, array(), EstadoPeriodista::Propuesto, $conducta, new DateTimeImmutable( '2026-07-22T11:00:00+00:00' ), new DateTimeImmutable( '2026-07-22T11:00:00+00:00' ) );
+
+		$piezasParaGestor = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezasParaGestor->allows( 'obtenerPorEstado' )->andReturn( array() );
+
+		$periodistas = Mockery::mock( RepositorioPeriodistasInterface::class );
+		$periodistas->allows( 'obtenerPorId' )->andReturn( null );
+		$periodistas->allows( 'obtenerPropuestos' )->andReturn( array( $propuesto ) );
+		$periodistas->expects( 'activarPropuesta' )->never();
+
+		$gestorSalaRevision = new GestorSalaRevision(
+			$piezasParaGestor,
+			Mockery::mock( RepositorioColaPublicacionInterface::class ),
+			$periodistas,
+			new Transicionador( $piezasParaGestor, $this->auditoriaPermisiva(), new RelojFijo() )
+		);
+
+		$this->construir(
+			array(
+				'periodistas'        => $periodistas,
+				'gestorSalaRevision' => $gestorSalaRevision,
 			)
 		)->ejecutarTick();
 

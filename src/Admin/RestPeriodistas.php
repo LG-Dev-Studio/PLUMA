@@ -9,6 +9,10 @@ use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Kernel\Capacidades;
 use Pluma\Kernel\RelojInterface;
+use Pluma\Pipeline\AccionNoDisponibleException;
+use Pluma\Pipeline\GestorSalaRevision;
+use Pluma\Pipeline\Orquestador;
+use Pluma\Pipeline\PeriodistaNoEncontradoException;
 use Pluma\Redaccion\Diales;
 use Pluma\Redaccion\EntradaMemoria;
 use Pluma\Redaccion\Especialidad;
@@ -48,6 +52,11 @@ final class RestPeriodistas {
 	private const RUTA_CLONAR    = '/periodistas/(?P<id>\d+)/clonar';
 	private const RUTA_CONDUCTA  = '/periodistas/(?P<id>\d+)/conducta';
 	private const RUTA_JUBILAR   = '/periodistas/(?P<id>\d+)/jubilar';
+	// Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	// acciones humanas sobre un periodista Propuesto antes de que expire su
+	// ventana de veto — mismo patrón que RestSalaRevision::aprobarAhora()/descartar().
+	private const RUTA_APROBAR_PROPUESTA_AHORA = '/periodistas/(?P<id>\d+)/aprobar-ahora';
+	private const RUTA_DESCARTAR_PROPUESTA     = '/periodistas/(?P<id>\d+)/propuesta';
 
 	private const LIMITE_MEMORIA_RECIENTE = 20;
 
@@ -75,6 +84,7 @@ final class RestPeriodistas {
 		private readonly RepositorioMemoriaEditorialInterface $memoria,
 		private readonly GeneradorVistaPrevia $generadorVistaPrevia,
 		private readonly RelojInterface $reloj,
+		private readonly GestorSalaRevision $gestorSalaRevision,
 	) {
 	}
 
@@ -187,6 +197,28 @@ final class RestPeriodistas {
 				'args'                => $this->argumentoId(),
 			)
 		);
+
+		register_rest_route(
+			'pluma/v1',
+			self::RUTA_APROBAR_PROPUESTA_AHORA,
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'aprobarPropuestaAhora' ),
+				'permission_callback' => array( $this, 'autorizado' ),
+				'args'                => $this->argumentoId(),
+			)
+		);
+
+		register_rest_route(
+			'pluma/v1',
+			self::RUTA_DESCARTAR_PROPUESTA,
+			array(
+				'methods'             => 'DELETE',
+				'callback'            => array( $this, 'descartarPropuesta' ),
+				'permission_callback' => array( $this, 'autorizado' ),
+				'args'                => $this->argumentoId(),
+			)
+		);
 	}
 
 	public function autorizado(): bool {
@@ -253,6 +285,7 @@ final class RestPeriodistas {
 				'respuestasHabilitadas' => $periodista->conductaActual->respuestasHabilitadas,
 				'metricas'              => $this->piezas->metricasPorPeriodista( $periodista->id ),
 				'memoriaReciente'       => $memoriaReciente,
+				'ventanaVetoExpiraEn'   => $this->ventanaVetoExpiraEn( $periodista ),
 			),
 			200
 		);
@@ -543,6 +576,49 @@ final class RestPeriodistas {
 	}
 
 	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * promueve un periodista Propuesto a Activo antes de que expire su
+	 * ventana de veto, y reanuda de inmediato las Piezas que ya cubre
+	 * (`GestorSalaRevision::promoverPeriodistaPropuesto()`).
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function aprobarPropuestaAhora( WP_REST_Request $request ) {
+		$periodistaId = (int) $request->get_param( 'id' );
+
+		try {
+			$this->gestorSalaRevision->promoverPeriodistaPropuesto( $periodistaId, $this->reloj->ahora() );
+		} catch ( PeriodistaNoEncontradoException $e ) {
+			return $this->errorNoEncontrado();
+		} catch ( AccionNoDisponibleException $e ) {
+			return new WP_Error( 'pluma_periodista_no_propuesto', $e->getMessage(), array( 'status' => 409 ) );
+		}
+
+		return new WP_REST_Response( array( 'id' => $periodistaId ), 200 );
+	}
+
+	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * descarta una propuesta rechazada por el editor — las Piezas
+	 * contribuyentes quedan intactas en SIN_PERIODISTA_IDONEO.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function descartarPropuesta( WP_REST_Request $request ) {
+		$periodistaId = (int) $request->get_param( 'id' );
+
+		try {
+			$this->gestorSalaRevision->descartarPeriodistaPropuesto( $periodistaId );
+		} catch ( PeriodistaNoEncontradoException $e ) {
+			return $this->errorNoEncontrado();
+		} catch ( AccionNoDisponibleException $e ) {
+			return new WP_Error( 'pluma_periodista_no_propuesto', $e->getMessage(), array( 'status' => 409 ) );
+		}
+
+		return new WP_REST_Response( array( 'id' => $periodistaId ), 200 );
+	}
+
+	/**
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function vistaPrevia( WP_REST_Request $request ) {
@@ -604,14 +680,32 @@ final class RestPeriodistas {
 	 */
 	private function resumenTarjeta( Periodista $periodista ): array {
 		return array(
-			'id'             => $periodista->id,
-			'nombre'         => $periodista->nombre,
-			'avatarUrl'      => $periodista->avatarUrl,
-			'rol'            => $periodista->rol->value,
-			'especialidades' => array_map( static fn ( $e ): array => $e->aArray(), $periodista->especialidades ),
-			'estado'         => $periodista->estado->value,
-			'metricas'       => $this->piezas->metricasPorPeriodista( $periodista->id ),
+			'id'                  => $periodista->id,
+			'nombre'              => $periodista->nombre,
+			'avatarUrl'           => $periodista->avatarUrl,
+			'rol'                 => $periodista->rol->value,
+			'especialidades'      => array_map( static fn ( $e ): array => $e->aArray(), $periodista->especialidades ),
+			'estado'              => $periodista->estado->value,
+			'metricas'            => $this->piezas->metricasPorPeriodista( $periodista->id ),
+			'ventanaVetoExpiraEn' => $this->ventanaVetoExpiraEn( $periodista ),
 		);
+	}
+
+	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * mismo cálculo que `GestorSalaRevision::obtenerColaDeVeto()` hace para
+	 * Piezas (`horaLimiteVeto`) — el servidor hace la aritmética de fechas,
+	 * nunca el cliente, y solo tiene sentido para un periodista Propuesto.
+	 */
+	private function ventanaVetoExpiraEn( Periodista $periodista ): ?string {
+		if ( EstadoPeriodista::Propuesto !== $periodista->estado ) {
+			return null;
+		}
+
+		$ventanaVetoHoras = get_option( Orquestador::OPCION_VENTANA_VETO_HORAS, 2 );
+		$horas            = is_numeric( $ventanaVetoHoras ) ? (int) $ventanaVetoHoras : 2;
+
+		return $periodista->creadoEn->modify( "+{$horas} hours" )->format( DATE_ATOM );
 	}
 
 	private function errorNoEncontrado(): WP_Error {

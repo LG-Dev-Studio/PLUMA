@@ -91,6 +91,11 @@ function textosBancoDeEjemplo(): TextosBancoPeriodistas {
         sinVerticales: 'sin verticales',
         estadoActivo: 'Activo',
         estadoJubilado: 'Jubilado',
+        estadoPropuesto: 'Propuesto',
+        ventanaVetoRestante: 'Se activa solo en',
+        aprobarAhora: 'Aprobar ahora',
+        descartarPropuesta: 'Descartar',
+        confirmarDescartarPropuesta: '¿Descartar esta propuesta?',
         crearDesdePlantilla: 'Crear desde plantilla',
         crearPersonalizado: 'Crear personalizado',
         elegirPlantilla: 'Elegir plantilla',
@@ -231,6 +236,7 @@ function detalleDeEjemplo(): DetallePeriodista {
         respuestasHabilitadas: false,
         metricas: { piezasPublicadas: 0, verticalesTop: [] },
         memoriaReciente: [],
+        ventanaVetoExpiraEn: null,
     };
 }
 

@@ -4,14 +4,21 @@ declare(strict_types=1);
 
 namespace Pluma\Pipeline;
 
+use DateTimeImmutable;
 use Pluma\Compuertas\ModoOperacion;
 use Pluma\Datos\RepositorioColaPublicacionInterface;
+use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
+use Pluma\Redaccion\EstadoPeriodista;
 
 /**
  * Sala de Revisión (Libro Cap. 10.2): "la bandeja de lo que espera decisión
  * humana" — piezas RETENIDAS y, en modo Copiloto, la cola de veto con
  * cuenta regresiva. Tres acciones: aprobar / devolver con nota / descartar.
+ *
+ * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+ * también gobierna la ventana de veto de un periodista Propuesto — mismo
+ * principio de supervisión humana, misma bandeja conceptual.
  */
 final class GestorSalaRevision {
 
@@ -20,6 +27,7 @@ final class GestorSalaRevision {
 	public function __construct(
 		private readonly RepositorioPiezasInterface $piezas,
 		private readonly RepositorioColaPublicacionInterface $colaPublicacion,
+		private readonly RepositorioPeriodistasInterface $periodistas,
 		private readonly Transicionador $transicionador,
 	) {
 	}
@@ -173,6 +181,64 @@ final class GestorSalaRevision {
 		}
 
 		$this->colaPublicacion->marcarAprobacionActiva( $ranura->id );
+	}
+
+	/**
+	 * Promueve un periodista Propuesto a Activo — al expirar su ventana de
+	 * veto (`Orquestador::procesarPeriodistasPropuestosVencidos()`) o por
+	 * "Aprobar ahora" del editor — y reanuda de inmediato las Piezas
+	 * `SIN_PERIODISTA_IDONEO` que el vertical de este periodista ya cubre
+	 * (`Periodista::dominioDe()`, misma regla de asignación real, nunca una
+	 * comparación de texto propia), cerrando el ciclo sin intervención
+	 * manual adicional.
+	 *
+	 * @throws PeriodistaNoEncontradoException
+	 * @throws AccionNoDisponibleException si el periodista no está Propuesto
+	 */
+	public function promoverPeriodistaPropuesto( int $periodistaId, DateTimeImmutable $ahora ): void {
+		$periodista = $this->periodistas->obtenerPorId( $periodistaId );
+
+		if ( null === $periodista ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- mensaje de excepción interno, nunca se imprime como HTML.
+			throw new PeriodistaNoEncontradoException( $periodistaId );
+		}
+
+		if ( EstadoPeriodista::Propuesto !== $periodista->estado ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- mensaje de excepción interno, nunca se imprime como HTML.
+			throw new AccionNoDisponibleException( "El periodista {$periodistaId} no está Propuesto." );
+		}
+
+		$this->periodistas->activarPropuesta( $periodistaId, $ahora );
+
+		foreach ( $this->piezas->obtenerPorEstado( EstadoPieza::SinPeriodistaIdoneo, self::LIMITE_DEFECTO ) as $pieza ) {
+			if ( null !== $pieza->temaSinCubrir && $periodista->dominioDe( $pieza->temaSinCubrir ) > 0 ) {
+				$this->reanudarSinPeriodistaIdoneo( $pieza->id );
+			}
+		}
+	}
+
+	/**
+	 * Descarta una propuesta rechazada por el editor. Las Piezas
+	 * contribuyentes quedan intactas en SIN_PERIODISTA_IDONEO — nada
+	 * regresiona, el editor puede seguir ajustando el banco manualmente.
+	 *
+	 * @throws PeriodistaNoEncontradoException
+	 * @throws AccionNoDisponibleException si el periodista no está Propuesto
+	 */
+	public function descartarPeriodistaPropuesto( int $periodistaId ): void {
+		$periodista = $this->periodistas->obtenerPorId( $periodistaId );
+
+		if ( null === $periodista ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- mensaje de excepción interno, nunca se imprime como HTML.
+			throw new PeriodistaNoEncontradoException( $periodistaId );
+		}
+
+		if ( EstadoPeriodista::Propuesto !== $periodista->estado ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- mensaje de excepción interno, nunca se imprime como HTML.
+			throw new AccionNoDisponibleException( "El periodista {$periodistaId} no está Propuesto." );
+		}
+
+		$this->periodistas->descartarPropuesta( $periodistaId );
 	}
 
 	public function descartar( int $piezaId, string $origen = 'la Sala de Revisión' ): void {

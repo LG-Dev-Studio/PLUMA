@@ -14,16 +14,31 @@ use Pluma\Compuertas\DiagnosticoOriginalidad;
 use Pluma\Compuertas\DiagnosticoRiesgo;
 use Pluma\Datos\RepositorioAuditoriaInterface;
 use Pluma\Datos\RepositorioColaPublicacionInterface;
+use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Pipeline\AccionNoDisponibleException;
 use Pluma\Pipeline\EstadoColaPublicacion;
 use Pluma\Pipeline\EstadoPieza;
 use Pluma\Pipeline\GestorSalaRevision;
+use Pluma\Pipeline\PeriodistaNoEncontradoException;
 use Pluma\Pipeline\Pieza;
 use Pluma\Pipeline\PiezaNoEncontradaException;
 use Pluma\Pipeline\RanuraPublicacion;
 use Pluma\Pipeline\Transicionador;
 use Pluma\Pipeline\TransicionInvalidaException;
+use Pluma\Redaccion\ConductaVersion;
+use Pluma\Redaccion\Diales;
+use Pluma\Redaccion\EntradaMatrizTono;
+use Pluma\Redaccion\Especialidad;
+use Pluma\Redaccion\EstadoPeriodista;
+use Pluma\Redaccion\MatrizTonos;
+use Pluma\Redaccion\NivelSatiraPermitida;
+use Pluma\Redaccion\Periodista;
+use Pluma\Redaccion\ReglasConducta;
+use Pluma\Redaccion\RolPeriodista;
+use Pluma\Redaccion\TipoNoticia;
+use Pluma\Redaccion\Tono;
+use Pluma\Redaccion\TratamientoLector;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
 use Pluma\Tests\Unit\Dobles\RelojFijo;
 
@@ -39,6 +54,35 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$reloj = new RelojFijo();
 
 		return new Pieza( $id, 100, $estado, null, null, $reloj->ahora(), $reloj->ahora(), null, null, null, $resultado );
+	}
+
+	private function piezaSinPeriodistaIdoneo( int $id, string $tema ): Pieza {
+		$reloj = new RelojFijo();
+
+		return new Pieza( $id, 100, EstadoPieza::SinPeriodistaIdoneo, null, null, $reloj->ahora(), $reloj->ahora(), temaSinCubrir: $tema );
+	}
+
+	private function periodistaPropuesto( string $vertical = 'deportes' ): Periodista {
+		$reloj    = new RelojFijo();
+		$diales   = new Diales( 60, 40, 20, 60, 50, 50, 60, 50 );
+		$reglas   = new ReglasConducta( 'línea', array(), array(), array(), TratamientoLector::Tu, '¿Y tú?' );
+		$matriz   = MatrizTonos::desdeFilas(
+			array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) )
+		);
+		$conducta = new ConductaVersion( 1, 30, $diales, $reglas, $matriz, false, $reloj->ahora() );
+
+		return new Periodista(
+			30,
+			'Periodista Propuesto',
+			null,
+			'biografía',
+			RolPeriodista::Cronista,
+			array( new Especialidad( $vertical, 4 ) ),
+			EstadoPeriodista::Propuesto,
+			$conducta,
+			$reloj->ahora(),
+			$reloj->ahora()
+		);
 	}
 
 	private function resultado( ModoOperacion $modo ): ResultadoEvaluacion {
@@ -62,6 +106,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$gestor = new GestorSalaRevision(
 			$piezas,
 			Mockery::mock( RepositorioColaPublicacionInterface::class ),
+			Mockery::mock( RepositorioPeriodistasInterface::class ),
 			new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() )
 		);
 
@@ -83,6 +128,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$gestor = new GestorSalaRevision(
 			$piezas,
 			$cola,
+			Mockery::mock( RepositorioPeriodistasInterface::class ),
 			new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() )
 		);
 
@@ -105,7 +151,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$auditoria = Mockery::mock( RepositorioAuditoriaInterface::class );
 		$auditoria->allows( 'registrar' );
 
-		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
+		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), Mockery::mock( RepositorioPeriodistasInterface::class ), new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
 
 		$gestor->aprobar( 4 );
 
@@ -125,7 +171,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$auditoria->expects( 'registrar' )
 			->with( 41, EstadoPieza::Retenida, EstadoPieza::Aprobada, Mockery::any(), Mockery::on( static fn ( string $motivo ): bool => str_contains( $motivo, 'la Mesa Editorial' ) ), Mockery::any(), null );
 
-		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
+		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), Mockery::mock( RepositorioPeriodistasInterface::class ), new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
 
 		$gestor->aprobar( 41, 'la Mesa Editorial' );
 
@@ -139,7 +185,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$piezas->allows( 'obtenerPorId' )->with( 42 )->andReturn( $pieza );
 		$piezas->expects( 'actualizarEstado' )->never();
 
-		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), Mockery::mock( RepositorioPeriodistasInterface::class ), new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
 
 		$this->expectException( TransicionInvalidaException::class );
 
@@ -159,7 +205,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$auditoria->expects( 'registrar' )
 			->with( 5, EstadoPieza::Retenida, EstadoPieza::Optimizada, Mockery::any(), Mockery::on( static fn ( string $motivo ): bool => str_contains( $motivo, 'falta contexto' ) ), Mockery::any(), null );
 
-		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
+		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), Mockery::mock( RepositorioPeriodistasInterface::class ), new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
 
 		$gestor->devolver( 5, 'falta contexto' );
 
@@ -182,7 +228,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$cola->expects( 'obtenerProgramadaPorPieza' )->never();
 		$cola->expects( 'marcarExpirada' )->never();
 
-		$gestor = new GestorSalaRevision( $piezas, $cola, new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
+		$gestor = new GestorSalaRevision( $piezas, $cola, Mockery::mock( RepositorioPeriodistasInterface::class ), new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
 
 		$gestor->descartar( 6 );
 
@@ -200,7 +246,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$cola->expects( 'obtenerProgramadaPorPieza' )->with( 10 )->andReturn( $ranura );
 		$cola->expects( 'marcarAprobacionActiva' )->once()->with( 20 );
 
-		$gestor = new GestorSalaRevision( $piezas, $cola, new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+		$gestor = new GestorSalaRevision( $piezas, $cola, Mockery::mock( RepositorioPeriodistasInterface::class ), new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
 
 		$gestor->aprobarAhora( 10 );
 
@@ -216,7 +262,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$cola = Mockery::mock( RepositorioColaPublicacionInterface::class );
 		$cola->expects( 'obtenerProgramadaPorPieza' )->never();
 
-		$gestor = new GestorSalaRevision( $piezas, $cola, new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+		$gestor = new GestorSalaRevision( $piezas, $cola, Mockery::mock( RepositorioPeriodistasInterface::class ), new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
 
 		$this->expectException( AccionNoDisponibleException::class );
 
@@ -232,7 +278,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$cola = Mockery::mock( RepositorioColaPublicacionInterface::class );
 		$cola->expects( 'obtenerProgramadaPorPieza' )->never();
 
-		$gestor = new GestorSalaRevision( $piezas, $cola, new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+		$gestor = new GestorSalaRevision( $piezas, $cola, Mockery::mock( RepositorioPeriodistasInterface::class ), new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
 
 		$this->expectException( AccionNoDisponibleException::class );
 
@@ -248,7 +294,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$cola = Mockery::mock( RepositorioColaPublicacionInterface::class );
 		$cola->expects( 'obtenerProgramadaPorPieza' )->with( 13 )->andReturn( null );
 
-		$gestor = new GestorSalaRevision( $piezas, $cola, new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+		$gestor = new GestorSalaRevision( $piezas, $cola, Mockery::mock( RepositorioPeriodistasInterface::class ), new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
 
 		$this->expectException( AccionNoDisponibleException::class );
 
@@ -259,7 +305,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
 		$piezas->allows( 'obtenerPorId' )->andReturn( null );
 
-		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), Mockery::mock( RepositorioPeriodistasInterface::class ), new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
 
 		$this->expectException( PiezaNoEncontradaException::class );
 
@@ -283,7 +329,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$cola->expects( 'obtenerProgramadaPorPieza' )->with( 7 )->andReturn( $ranura );
 		$cola->expects( 'marcarExpirada' )->once()->with( 9 );
 
-		$gestor = new GestorSalaRevision( $piezas, $cola, new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
+		$gestor = new GestorSalaRevision( $piezas, $cola, Mockery::mock( RepositorioPeriodistasInterface::class ), new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
 
 		$gestor->descartar( 7 );
 
@@ -294,10 +340,97 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
 		$piezas->allows( 'obtenerPorId' )->andReturn( null );
 
-		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), Mockery::mock( RepositorioPeriodistasInterface::class ), new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
 
 		$this->expectException( PiezaNoEncontradaException::class );
 
 		$gestor->descartar( 999 );
+	}
+
+	public function test_promover_periodista_propuesto_lo_activa_y_reanuda_solo_las_piezas_que_ya_cubre(): void {
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$periodista = $this->periodistaPropuesto( 'deportes' );
+
+		$piezaCubierta   = $this->piezaSinPeriodistaIdoneo( 50, 'deportes' );
+		$piezaNoCubierta = $this->piezaSinPeriodistaIdoneo( 51, 'economia' );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$piezas->allows( 'obtenerPorEstado' )->with( EstadoPieza::SinPeriodistaIdoneo, Mockery::any() )->andReturn( array( $piezaCubierta, $piezaNoCubierta ) );
+		$piezas->allows( 'obtenerPorId' )->with( 50 )->andReturn( $piezaCubierta );
+		$piezas->expects( 'actualizarEstado' )->once()->with( 50, EstadoPieza::SinPeriodistaIdoneo, EstadoPieza::Investigada, Mockery::any() )->andReturn( true );
+		$piezas->expects( 'actualizarEstado' )->with( 51, Mockery::any(), Mockery::any(), Mockery::any() )->never();
+
+		$periodistas = Mockery::mock( RepositorioPeriodistasInterface::class );
+		$periodistas->allows( 'obtenerPorId' )->with( 30 )->andReturn( $periodista );
+		$periodistas->expects( 'activarPropuesta' )->once()->with( 30, Mockery::any() )->andReturn( true );
+
+		$auditoria = Mockery::mock( RepositorioAuditoriaInterface::class );
+		$auditoria->allows( 'registrar' );
+
+		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), $periodistas, new Transicionador( $piezas, $auditoria, new RelojFijo() ) );
+
+		$gestor->promoverPeriodistaPropuesto( 30, ( new RelojFijo() )->ahora() );
+
+		$this->expectNotToPerformAssertions();
+	}
+
+	public function test_promover_un_periodista_inexistente_lanza_excepcion(): void {
+		$periodistas = Mockery::mock( RepositorioPeriodistasInterface::class );
+		$periodistas->allows( 'obtenerPorId' )->andReturn( null );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), $periodistas, new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+
+		$this->expectException( PeriodistaNoEncontradoException::class );
+
+		$gestor->promoverPeriodistaPropuesto( 999, ( new RelojFijo() )->ahora() );
+	}
+
+	public function test_promover_un_periodista_que_no_esta_propuesto_lanza_excepcion(): void {
+		$reloj      = new RelojFijo();
+		$diales     = new Diales( 60, 40, 20, 60, 50, 50, 60, 50 );
+		$reglas     = new ReglasConducta( 'línea', array(), array(), array(), TratamientoLector::Tu, '¿Y tú?' );
+		$matriz     = MatrizTonos::desdeFilas( array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) ) );
+		$conducta   = new ConductaVersion( 1, 31, $diales, $reglas, $matriz, false, $reloj->ahora() );
+		$periodista = new Periodista( 31, 'Ya activo', null, 'bio', RolPeriodista::Cronista, array( new Especialidad( 'deportes', 4 ) ), EstadoPeriodista::Activo, $conducta, $reloj->ahora(), $reloj->ahora() );
+
+		$periodistas = Mockery::mock( RepositorioPeriodistasInterface::class );
+		$periodistas->allows( 'obtenerPorId' )->with( 31 )->andReturn( $periodista );
+		$periodistas->expects( 'activarPropuesta' )->never();
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), $periodistas, new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+
+		$this->expectException( AccionNoDisponibleException::class );
+
+		$gestor->promoverPeriodistaPropuesto( 31, $reloj->ahora() );
+	}
+
+	public function test_descartar_periodista_propuesto_delega_al_repositorio(): void {
+		$periodista = $this->periodistaPropuesto();
+
+		$periodistas = Mockery::mock( RepositorioPeriodistasInterface::class );
+		$periodistas->allows( 'obtenerPorId' )->with( 30 )->andReturn( $periodista );
+		$periodistas->expects( 'descartarPropuesta' )->once()->with( 30 )->andReturn( true );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), $periodistas, new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+
+		$gestor->descartarPeriodistaPropuesto( 30 );
+
+		$this->expectNotToPerformAssertions();
+	}
+
+	public function test_descartar_un_periodista_inexistente_lanza_excepcion(): void {
+		$periodistas = Mockery::mock( RepositorioPeriodistasInterface::class );
+		$periodistas->allows( 'obtenerPorId' )->andReturn( null );
+
+		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
+		$gestor = new GestorSalaRevision( $piezas, Mockery::mock( RepositorioColaPublicacionInterface::class ), $periodistas, new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() ) );
+
+		$this->expectException( PeriodistaNoEncontradoException::class );
+
+		$gestor->descartarPeriodistaPropuesto( 999 );
 	}
 }

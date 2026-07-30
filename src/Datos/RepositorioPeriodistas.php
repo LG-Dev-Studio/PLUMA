@@ -48,7 +48,8 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 		ReglasConducta $reglas,
 		MatrizTonos $matrizTonos,
 		DateTimeImmutable $ahora,
-		string $localeEditorial = 'es-ES'
+		string $localeEditorial = 'es-ES',
+		bool $creadoAutomaticamente = false
 	): int {
 		$this->wpdb->insert(
 			$this->tablaPeriodistas(),
@@ -61,10 +62,11 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 				'estado'                     => $estado->value,
 				'version_conducta_actual_id' => 0,
 				'locale_editorial'           => $localeEditorial,
+				'creado_automaticamente'     => $creadoAutomaticamente ? 1 : 0,
 				'creado_en'                  => $ahora->format( 'Y-m-d H:i:s' ),
 				'actualizado_en'             => $ahora->format( 'Y-m-d H:i:s' ),
 			),
-			array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
+			array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s' )
 		);
 
 		$periodistaId = (int) $this->wpdb->insert_id;
@@ -92,6 +94,17 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 		$fila = $this->wpdb->get_row( $sql, ARRAY_A );
 
 		return null !== $fila ? $this->filaAPeriodista( $fila ) : null;
+	}
+
+	public function contarAutomaticosActivos(): int {
+		$sql = $this->wpdb->prepare(
+			"SELECT COUNT(*) FROM {$this->tablaPeriodistas()} WHERE creado_automaticamente = 1 AND estado != %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type
+			EstadoPeriodista::Jubilado->value
+		);
+		assert( null !== $sql );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql ya se construyó con $wpdb->prepare() arriba.
+		return (int) $this->wpdb->get_var( $sql );
 	}
 
 	public function obtenerActivos(): array {
@@ -209,6 +222,61 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 		return false !== $filasAfectadas;
 	}
 
+	public function obtenerPropuestos(): array {
+		$sql = $this->wpdb->prepare( "SELECT * FROM {$this->tablaPeriodistas()} WHERE estado = %s ORDER BY creado_en ASC", EstadoPeriodista::Propuesto->value ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type
+		assert( null !== $sql );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql ya se construyó con $wpdb->prepare() arriba.
+		$filas = $this->wpdb->get_results( $sql, ARRAY_A );
+
+		return array_map( fn ( array $fila ): Periodista => $this->filaAPeriodista( $fila ), $filas ?? array() );
+	}
+
+	public function activarPropuesta( int $periodistaId, DateTimeImmutable $ahora ): bool {
+		$filasAfectadas = $this->wpdb->update(
+			$this->tablaPeriodistas(),
+			array(
+				'estado'         => EstadoPeriodista::Activo->value,
+				'actualizado_en' => $ahora->format( 'Y-m-d H:i:s' ),
+			),
+			array(
+				'id'     => $periodistaId,
+				'estado' => EstadoPeriodista::Propuesto->value,
+			),
+			array( '%s', '%s' ),
+			array( '%d', '%s' )
+		);
+
+		if ( false === $filasAfectadas ) {
+			return false;
+		}
+
+		if ( $filasAfectadas > 0 ) {
+			return true;
+		}
+
+		// Mismo defecto de MySQL corregido antes en esta sesión
+		// (RepositorioTendencias/RepositorioPeriodistas::actualizarIdentidad):
+		// un UPDATE que no cambia nada reporta 0 filas afectadas — no debe
+		// confundirse con "no encontrado o no estaba Propuesto".
+		$periodista = $this->obtenerPorId( $periodistaId );
+
+		return null !== $periodista && EstadoPeriodista::Activo === $periodista->estado;
+	}
+
+	public function descartarPropuesta( int $periodistaId ): bool {
+		$periodista = $this->obtenerPorId( $periodistaId );
+
+		if ( null === $periodista || EstadoPeriodista::Propuesto !== $periodista->estado ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- borrado real acotado por periodista_id, sin caché aplicable.
+		$this->wpdb->delete( $this->tablaVersiones(), array( 'periodista_id' => $periodistaId ), array( '%d' ) );
+
+		return false !== $this->wpdb->delete( $this->tablaPeriodistas(), array( 'id' => $periodistaId ), array( '%d' ) );
+	}
+
 	private function insertarVersion(
 		int $periodistaId,
 		Diales $diales,
@@ -254,7 +322,8 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 			$conductaActual,
 			new DateTimeImmutable( (string) $fila['creado_en'] ),
 			new DateTimeImmutable( (string) $fila['actualizado_en'] ),
-			isset( $fila['locale_editorial'] ) && is_string( $fila['locale_editorial'] ) ? $fila['locale_editorial'] : 'es-ES'
+			isset( $fila['locale_editorial'] ) && is_string( $fila['locale_editorial'] ) ? $fila['locale_editorial'] : 'es-ES',
+			isset( $fila['creado_automaticamente'] ) && '1' === (string) $fila['creado_automaticamente']
 		);
 	}
 

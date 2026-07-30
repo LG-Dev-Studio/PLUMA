@@ -63,8 +63,12 @@ export interface TarjetaPeriodista {
     avatarUrl: string | null;
     rol: string;
     especialidades: Especialidad[];
-    estado: 'activo' | 'jubilado';
+    estado: 'activo' | 'jubilado' | 'propuesto';
     metricas: MetricasPeriodista;
+    // Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+    // solo no nulo cuando estado === 'propuesto' (calculado en el servidor,
+    // mismo criterio que la cola de veto de Piezas).
+    ventanaVetoExpiraEn: string | null;
 }
 
 export interface EntradaMemoria {
@@ -81,13 +85,14 @@ export interface DetallePeriodista {
     biografia: string;
     rol: string;
     especialidades: Especialidad[];
-    estado: 'activo' | 'jubilado';
+    estado: 'activo' | 'jubilado' | 'propuesto';
     diales: Diales;
     reglasConducta: ReglasConducta;
     matrizTonos: MatrizTonos;
     respuestasHabilitadas: boolean;
     metricas: MetricasPeriodista;
     memoriaReciente: EntradaMemoria[];
+    ventanaVetoExpiraEn: string | null;
 }
 
 export interface PlantillaResumen {
@@ -108,6 +113,11 @@ export interface TextosBancoPeriodistas {
     sinVerticales: string;
     estadoActivo: string;
     estadoJubilado: string;
+    estadoPropuesto: string;
+    ventanaVetoRestante: string;
+    aprobarAhora: string;
+    descartarPropuesta: string;
+    confirmarDescartarPropuesta: string;
     crearDesdePlantilla: string;
     crearPersonalizado: string;
     elegirPlantilla: string;
@@ -236,6 +246,48 @@ export function PantallaBancoPeriodistas({ restUrl, nonce, textos }: Props) {
             .catch(() => setError(textos.errorAccion));
     };
 
+    // Trabajo posterior a la Etapa 9 (creación automática de periodistas).
+    const aprobarPropuestaAhora = (periodistaId: number) => {
+        fetch(`${restUrl}pluma/v1/periodistas/${periodistaId}/aprobar-ahora`, {
+            method: 'POST',
+            headers: cabeceras,
+        })
+            .then((respuesta) => {
+                if (!respuesta.ok) {
+                    throw new Error('respuesta no OK');
+                }
+                cargarLista();
+            })
+            .catch(() => setError(textos.errorAccion));
+    };
+
+    const descartarPropuesta = (periodistaId: number) => {
+        // eslint-disable-next-line no-alert -- confirmación de una acción real e irreversible en el banco.
+        if (!window.confirm(textos.confirmarDescartarPropuesta)) {
+            return;
+        }
+
+        fetch(`${restUrl}pluma/v1/periodistas/${periodistaId}/propuesta`, {
+            method: 'DELETE',
+            headers: cabeceras,
+        })
+            .then((respuesta) => {
+                if (!respuesta.ok) {
+                    throw new Error('respuesta no OK');
+                }
+                cargarLista();
+            })
+            .catch(() => setError(textos.errorAccion));
+    };
+
+    const textoEstado = (tarjeta: TarjetaPeriodista): string => {
+        if ('propuesto' === tarjeta.estado) {
+            return textos.estadoPropuesto;
+        }
+
+        return 'activo' === tarjeta.estado ? textos.estadoActivo : textos.estadoJubilado;
+    };
+
     if (null !== error) {
         return (
             <div className="pluma-banco pluma-banco--error" role="alert">
@@ -282,14 +334,27 @@ export function PantallaBancoPeriodistas({ restUrl, nonce, textos }: Props) {
                                 <p className="pluma-banco__verticales">
                                     {tarjeta.metricas.verticalesTop.length > 0 ? tarjeta.metricas.verticalesTop.join(', ') : textos.sinVerticales}
                                 </p>
-                                <span className="pluma-banco__estado">
-                                    {'activo' === tarjeta.estado ? textos.estadoActivo : textos.estadoJubilado}
-                                </span>
+                                <span className="pluma-banco__estado">{textoEstado(tarjeta)}</span>
+                                {'propuesto' === tarjeta.estado && null !== tarjeta.ventanaVetoExpiraEn && (
+                                    <p className="pluma-banco__ventana-veto">
+                                        {textos.ventanaVetoRestante} {new Date(tarjeta.ventanaVetoExpiraEn).toLocaleString()}
+                                    </p>
+                                )}
                             </button>
                             {'activo' === tarjeta.estado && (
                                 <button type="button" className="pluma-banco__jubilar" onClick={() => jubilar(tarjeta.id)}>
                                     {textos.jubilar}
                                 </button>
+                            )}
+                            {'propuesto' === tarjeta.estado && (
+                                <div className="pluma-banco__acciones-propuesta">
+                                    <button type="button" onClick={() => aprobarPropuestaAhora(tarjeta.id)}>
+                                        {textos.aprobarAhora}
+                                    </button>
+                                    <button type="button" onClick={() => descartarPropuesta(tarjeta.id)}>
+                                        {textos.descartarPropuesta}
+                                    </button>
+                                </div>
                             )}
                         </li>
                     ))}

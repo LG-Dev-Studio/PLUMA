@@ -26,6 +26,18 @@ final class EsquemaTest extends CasoDePruebaUnitario {
 		);
 	}
 
+	public function test_sentencias_reversa_desde_0_24_0_a_0_23_0_elimina_tema_sin_cubrir_y_creado_automaticamente(): void {
+		$sentencias = Esquema::sentenciasReversaDesde( new wpdb(), '0.24.0', '0.23.0' );
+
+		self::assertSame(
+			array(
+				'ALTER TABLE wp_pluma_piezas DROP COLUMN tema_sin_cubrir;',
+				'ALTER TABLE wp_pluma_periodistas DROP COLUMN creado_automaticamente;',
+			),
+			$sentencias
+		);
+	}
+
 	public function test_sentencias_reversa_desde_una_transicion_no_registrada_lanza_excepcion(): void {
 		$this->expectException( ReversaNoDisponibleException::class );
 

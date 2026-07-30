@@ -264,6 +264,11 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 		$repoPiezas = $this->createMock( RepositorioPiezasInterface::class );
 		$repoPiezas->method( 'contarAsignadasDesde' )->willReturn( 0 );
 		$repoPiezas->expects( self::never() )->method( 'asignarPeriodista' );
+		// Trabajo posterior a la Etapa 9 (creación automática de
+		// periodistas): el tema ya calculado por ClasificadorNoticia se
+		// persiste en la Pieza en el momento exacto en que cae a
+		// SIN_PERIODISTA_IDONEO — señal real para CreadorAutomaticoPeriodistas.
+		$repoPiezas->expects( self::once() )->method( 'actualizarTemaSinCubrir' )->with( 5, 'economia' );
 
 		$redactor = new RedactorConFallbackMecanico(
 			new DecisionEditorial(

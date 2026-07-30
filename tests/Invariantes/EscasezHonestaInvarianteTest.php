@@ -31,6 +31,7 @@ use Pluma\Datos\RepositorioVocabularioInterface;
 use Pluma\Investigacion\DetectorHuecos;
 use Pluma\Investigacion\InvestigadorInterface;
 use Pluma\Investigacion\ResolutorDisputas;
+use Pluma\Pipeline\GestorSalaRevision;
 use Pluma\Pipeline\LectorConfiguracionCadencia;
 use Pluma\Pipeline\Orquestador;
 use Pluma\Pipeline\ProgramadorCadencia;
@@ -41,7 +42,9 @@ use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
 use Pluma\Publicacion\CreadorBorradorInterface;
 use Pluma\Publicacion\LectorComentariosInterface;
 use Pluma\Publicacion\PublicadorInterface;
+use Pluma\Redaccion\AgrupadorTemasSinCobertura;
 use Pluma\Redaccion\AnalizadorAudiencia;
+use Pluma\Redaccion\CreadorAutomaticoPeriodistas;
 use Pluma\Redaccion\GeneradorRespuestaComentario;
 use Pluma\Redaccion\GeneradorTitularAlternativo;
 use Pluma\Redaccion\RedactorInterface;
@@ -158,7 +161,7 @@ final class EscasezHonestaInvarianteTest extends CasoDePruebaUnitario {
 			new VerificadorComentarioSustantivo(),
 			Mockery::mock( RepositorioMemoriaEditorialInterface::class ),
 			Mockery::mock( RepositorioRespuestasComentariosInterface::class ),
-			Mockery::mock( RepositorioPeriodistasInterface::class ),
+			Mockery::mock( RepositorioPeriodistasInterface::class )->allows( 'obtenerPropuestos' )->andReturn( array() )->getMock(),
 			new RelojFijo(),
 			new ResolutorDisputas( Mockery::mock( LenguajeInterface::class ) ),
 			new DetectorHuecos( Mockery::mock( LenguajeInterface::class ) ),
@@ -183,6 +186,18 @@ final class EscasezHonestaInvarianteTest extends CasoDePruebaUnitario {
 				Mockery::mock( RepositorioPeriodistasInterface::class ),
 				new GeneradorTitularAlternativo( Mockery::mock( LenguajeInterface::class ) ),
 				new RelojFijo()
+			),
+			new CreadorAutomaticoPeriodistas(
+				$piezas,
+				Mockery::mock( RepositorioPeriodistasInterface::class ),
+				new AgrupadorTemasSinCobertura( Mockery::mock( LenguajeInterface::class ), new PresupuestoLenguaje( new RelojFijo() ) ),
+				new RelojFijo()
+			),
+			new GestorSalaRevision(
+				$piezas,
+				$colaPublicacion,
+				Mockery::mock( RepositorioPeriodistasInterface::class )->allows( 'obtenerPropuestos' )->andReturn( array() )->getMock(),
+				new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() )
 			)
 		);
 

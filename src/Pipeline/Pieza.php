@@ -40,6 +40,11 @@ final readonly class Pieza {
 		// de las Piezas nunca lo necesitan). `tipo` por defecto `Original`.
 		public ?int $historiaId = null,
 		public TipoPieza $tipo = TipoPieza::Original,
+		// Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+		// el `$clasificacion->tema` que `NingunPeriodistaIdoneoException` ya
+		// calculaba y descartaba — nulo salvo cuando el estado es
+		// SIN_PERIODISTA_IDONEO (ver `conTemaSinCubrir()`).
+		public ?string $temaSinCubrir = null,
 	) {
 	}
 
@@ -60,7 +65,8 @@ final readonly class Pieza {
 			$this->resultadoTaxonomia,
 			$this->piezaOriginalId,
 			$this->historiaId,
-			$this->tipo
+			$this->tipo,
+			$this->temaSinCubrir
 		);
 	}
 
@@ -81,7 +87,8 @@ final readonly class Pieza {
 			$this->resultadoTaxonomia,
 			$this->piezaOriginalId,
 			$this->historiaId,
-			$this->tipo
+			$this->tipo,
+			$this->temaSinCubrir
 		);
 	}
 
@@ -102,7 +109,8 @@ final readonly class Pieza {
 			$this->resultadoTaxonomia,
 			$this->piezaOriginalId,
 			$this->historiaId,
-			$this->tipo
+			$this->tipo,
+			$this->temaSinCubrir
 		);
 	}
 
@@ -123,7 +131,8 @@ final readonly class Pieza {
 			$this->resultadoTaxonomia,
 			$this->piezaOriginalId,
 			$this->historiaId,
-			$this->tipo
+			$this->tipo,
+			$this->temaSinCubrir
 		);
 	}
 
@@ -144,7 +153,8 @@ final readonly class Pieza {
 			$this->resultadoTaxonomia,
 			$this->piezaOriginalId,
 			$this->historiaId,
-			$this->tipo
+			$this->tipo,
+			$this->temaSinCubrir
 		);
 	}
 
@@ -165,7 +175,8 @@ final readonly class Pieza {
 			$this->resultadoTaxonomia,
 			$this->piezaOriginalId,
 			$this->historiaId,
-			$this->tipo
+			$this->tipo,
+			$this->temaSinCubrir
 		);
 	}
 
@@ -186,7 +197,8 @@ final readonly class Pieza {
 			$this->resultadoTaxonomia,
 			$this->piezaOriginalId,
 			$this->historiaId,
-			$this->tipo
+			$this->tipo,
+			$this->temaSinCubrir
 		);
 	}
 
@@ -207,7 +219,8 @@ final readonly class Pieza {
 			$resultado,
 			$this->piezaOriginalId,
 			$this->historiaId,
-			$this->tipo
+			$this->tipo,
+			$this->temaSinCubrir
 		);
 	}
 
@@ -233,7 +246,35 @@ final readonly class Pieza {
 			$this->resultadoTaxonomia,
 			$this->piezaOriginalId,
 			$historiaId,
-			$tipo
+			$tipo,
+			$this->temaSinCubrir
+		);
+	}
+
+	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
+	 * registra el tema que ningún periodista activo pudo cubrir, en el
+	 * momento exacto en que la Pieza cae a SIN_PERIODISTA_IDONEO.
+	 */
+	public function conTemaSinCubrir( string $tema, DateTimeImmutable $ahora ): self {
+		return new self(
+			$this->id,
+			$this->tendenciaId,
+			$this->estado,
+			$this->expediente,
+			$this->postId,
+			$this->creadaEn,
+			$ahora,
+			$this->periodistaId,
+			$this->periodistaVersionId,
+			$this->fichaDecisionEditorial,
+			$this->resultadoCompuertas,
+			$this->datosSeo,
+			$this->resultadoTaxonomia,
+			$this->piezaOriginalId,
+			$this->historiaId,
+			$this->tipo,
+			$tema
 		);
 	}
 }

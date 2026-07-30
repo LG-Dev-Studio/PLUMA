@@ -16,6 +16,11 @@ function textosDeEjemplo(): TextosBancoPeriodistas {
         sinVerticales: 'sin piezas publicadas todavía',
         estadoActivo: 'Activo',
         estadoJubilado: 'Jubilado',
+        estadoPropuesto: 'Propuesto',
+        ventanaVetoRestante: 'Se activa solo en',
+        aprobarAhora: 'Aprobar ahora',
+        descartarPropuesta: 'Descartar',
+        confirmarDescartarPropuesta: '¿Descartar esta propuesta?',
         crearDesdePlantilla: 'Crear desde plantilla',
         crearPersonalizado: 'Crear personalizado',
         elegirPlantilla: 'Elegir plantilla',
@@ -156,6 +161,7 @@ function detalleDeEjemplo(sobrescribir: Partial<DetallePeriodista> = {}): Detall
         respuestasHabilitadas: false,
         metricas: { piezasPublicadas: 12, verticalesTop: ['economia'] },
         memoriaReciente: [],
+        ventanaVetoExpiraEn: null,
         ...sobrescribir,
     };
 }

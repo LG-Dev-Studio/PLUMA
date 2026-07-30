@@ -432,38 +432,43 @@ final class PantallaPanel {
 	 */
 	private function textosBancoPeriodistas(): array {
 		return array(
-			'titulo'              => __( 'Banco de Periodistas', 'pluma-engine' ),
-			'cargando'            => __( 'Cargando…', 'pluma-engine' ),
-			'errorCarga'          => __( 'No se pudo cargar el Banco de Periodistas. Reintenta en unos segundos.', 'pluma-engine' ),
-			'errorAccion'         => __( 'La acción no se pudo completar. Reintenta en unos segundos.', 'pluma-engine' ),
-			'sinPeriodistas'      => __( 'todavía no hay ningún periodista en el banco', 'pluma-engine' ),
-			'piezasPublicadas'    => __( 'piezas publicadas', 'pluma-engine' ),
-			'verticalesTop'       => __( 'Verticales donde más publica', 'pluma-engine' ),
-			'sinVerticales'       => __( 'sin piezas publicadas todavía', 'pluma-engine' ),
-			'estadoActivo'        => __( 'Activo', 'pluma-engine' ),
-			'estadoJubilado'      => __( 'Jubilado', 'pluma-engine' ),
-			'crearDesdePlantilla' => __( 'Crear desde plantilla', 'pluma-engine' ),
-			'crearPersonalizado'  => __( 'Crear personalizado', 'pluma-engine' ),
-			'elegirPlantilla'     => __( 'Elegir plantilla', 'pluma-engine' ),
-			'nombreOpcional'      => __( 'Nombre (opcional, por defecto el de la plantilla)', 'pluma-engine' ),
-			'crear'               => __( 'Crear', 'pluma-engine' ),
-			'cancelar'            => __( 'Cancelar', 'pluma-engine' ),
-			'jubilar'             => __( 'Jubilar', 'pluma-engine' ),
-			'confirmarJubilar'    => __( '¿Jubilar a este periodista? Sus piezas quedan, pero deja de recibir asignaciones nuevas.', 'pluma-engine' ),
-			'cerrar'              => __( 'Cerrar', 'pluma-engine' ),
-			'estudioDeConducta'   => __( 'Estudio de Conducta', 'pluma-engine' ),
-			'identidad'           => __( 'Identidad', 'pluma-engine' ),
-			'nombre'              => __( 'Nombre', 'pluma-engine' ),
-			'biografia'           => __( 'Biografía', 'pluma-engine' ),
-			'avatarUrl'           => __( 'URL del avatar (opcional)', 'pluma-engine' ),
-			'rol'                 => array(
+			'titulo'                      => __( 'Banco de Periodistas', 'pluma-engine' ),
+			'cargando'                    => __( 'Cargando…', 'pluma-engine' ),
+			'errorCarga'                  => __( 'No se pudo cargar el Banco de Periodistas. Reintenta en unos segundos.', 'pluma-engine' ),
+			'errorAccion'                 => __( 'La acción no se pudo completar. Reintenta en unos segundos.', 'pluma-engine' ),
+			'sinPeriodistas'              => __( 'todavía no hay ningún periodista en el banco', 'pluma-engine' ),
+			'piezasPublicadas'            => __( 'piezas publicadas', 'pluma-engine' ),
+			'verticalesTop'               => __( 'Verticales donde más publica', 'pluma-engine' ),
+			'sinVerticales'               => __( 'sin piezas publicadas todavía', 'pluma-engine' ),
+			'estadoActivo'                => __( 'Activo', 'pluma-engine' ),
+			'estadoJubilado'              => __( 'Jubilado', 'pluma-engine' ),
+			'estadoPropuesto'             => __( 'Propuesto', 'pluma-engine' ),
+			'ventanaVetoRestante'         => __( 'Se activa solo en', 'pluma-engine' ),
+			'aprobarAhora'                => __( 'Aprobar ahora', 'pluma-engine' ),
+			'descartarPropuesta'          => __( 'Descartar', 'pluma-engine' ),
+			'confirmarDescartarPropuesta' => __( '¿Descartar esta propuesta de periodista? Las noticias que la originaron quedan intactas, esperando otra solución.', 'pluma-engine' ),
+			'crearDesdePlantilla'         => __( 'Crear desde plantilla', 'pluma-engine' ),
+			'crearPersonalizado'          => __( 'Crear personalizado', 'pluma-engine' ),
+			'elegirPlantilla'             => __( 'Elegir plantilla', 'pluma-engine' ),
+			'nombreOpcional'              => __( 'Nombre (opcional, por defecto el de la plantilla)', 'pluma-engine' ),
+			'crear'                       => __( 'Crear', 'pluma-engine' ),
+			'cancelar'                    => __( 'Cancelar', 'pluma-engine' ),
+			'jubilar'                     => __( 'Jubilar', 'pluma-engine' ),
+			'confirmarJubilar'            => __( '¿Jubilar a este periodista? Sus piezas quedan, pero deja de recibir asignaciones nuevas.', 'pluma-engine' ),
+			'cerrar'                      => __( 'Cerrar', 'pluma-engine' ),
+			'estudioDeConducta'           => __( 'Estudio de Conducta', 'pluma-engine' ),
+			'identidad'                   => __( 'Identidad', 'pluma-engine' ),
+			'nombre'                      => __( 'Nombre', 'pluma-engine' ),
+			'biografia'                   => __( 'Biografía', 'pluma-engine' ),
+			'avatarUrl'                   => __( 'URL del avatar (opcional)', 'pluma-engine' ),
+			'rol'                         => array(
 				'titulo'     => __( 'Rol', 'pluma-engine' ),
 				'analista'   => __( 'Analista', 'pluma-engine' ),
 				'columnista' => __( 'Columnista', 'pluma-engine' ),
 				'cronista'   => __( 'Cronista', 'pluma-engine' ),
 				'satirico'   => __( 'Satírico', 'pluma-engine' ),
 			),
-			'especialidades'      => array(
+			'especialidades'              => array(
 				'titulo'              => __( 'Especialidades', 'pluma-engine' ),
 				'cubreTodosLosTemas'  => __( 'Cubre todos los temas', 'pluma-engine' ),
 				'nivelDominioComodin' => __( 'Nivel de dominio general (1-5)', 'pluma-engine' ),
@@ -473,9 +478,9 @@ final class PantallaPanel {
 				'eliminar'            => __( 'Eliminar', 'pluma-engine' ),
 				'sinEspecialidades'   => __( 'Declara al menos una especialidad, o activa "cubre todos los temas".', 'pluma-engine' ),
 			),
-			'guardarIdentidad'    => __( 'Guardar identidad', 'pluma-engine' ),
-			'errorIdentidad'      => __( 'No se pudo guardar la identidad. Revisa los datos e inténtalo de nuevo.', 'pluma-engine' ),
-			'diales'              => array(
+			'guardarIdentidad'            => __( 'Guardar identidad', 'pluma-engine' ),
+			'errorIdentidad'              => __( 'No se pudo guardar la identidad. Revisa los datos e inténtalo de nuevo.', 'pluma-engine' ),
+			'diales'                      => array(
 				'titulo'            => __( 'Diales de temperamento', 'pluma-engine' ),
 				'agudezaCritica'    => __( 'Agudeza crítica', 'pluma-engine' ),
 				'humor'             => __( 'Humor', 'pluma-engine' ),
@@ -486,7 +491,7 @@ final class PantallaPanel {
 				'densidadDatos'     => __( 'Densidad de datos', 'pluma-engine' ),
 				'longitudPreferida' => __( 'Longitud preferida', 'pluma-engine' ),
 			),
-			'reglas'              => array(
+			'reglas'                      => array(
 				'titulo'               => __( 'Reglas de conducta', 'pluma-engine' ),
 				'lineaEditorial'       => __( 'Línea editorial', 'pluma-engine' ),
 				'lineasRojas'          => __( 'Líneas rojas', 'pluma-engine' ),
@@ -498,7 +503,7 @@ final class PantallaPanel {
 				'estiloPreguntaFinal'  => __( 'Estilo de pregunta final', 'pluma-engine' ),
 				'agregar'              => __( 'Agregar', 'pluma-engine' ),
 			),
-			'matriz'              => array(
+			'matriz'                      => array(
 				'titulo'        => __( 'Matriz de tonos', 'pluma-engine' ),
 				'tipoNoticia'   => array(
 					'anuncio_corporativo' => __( 'Anuncio corporativo', 'pluma-engine' ),
@@ -527,7 +532,7 @@ final class PantallaPanel {
 				),
 				'filaSistema'   => __( 'Informativo empático / Analítico / Sátira bloqueada — regla de sistema, no editable.', 'pluma-engine' ),
 			),
-			'memoria'             => array(
+			'memoria'                     => array(
 				'titulo' => __( 'Memoria editorial reciente', 'pluma-engine' ),
 				'vacia'  => __( 'sin memoria registrada todavía', 'pluma-engine' ),
 				'tipo'   => array(
@@ -536,15 +541,15 @@ final class PantallaPanel {
 					'audiencia' => __( 'Audiencia', 'pluma-engine' ),
 				),
 			),
-			'vistaPrevia'         => array(
+			'vistaPrevia'                 => array(
 				'titulo'           => __( 'Vista previa en vivo', 'pluma-engine' ),
 				'generando'        => __( 'Redactando con esta conducta…', 'pluma-engine' ),
 				'errorPresupuesto' => __( 'Presupuesto diario agotado — la vista previa se pausa igual que la producción real.', 'pluma-engine' ),
 				'errorGeneral'     => __( 'No se pudo generar la vista previa. Reintenta en unos segundos.', 'pluma-engine' ),
 			),
-			'guardarCambios'      => __( 'Guardar cambios', 'pluma-engine' ),
-			'clonar'              => __( 'Clonar', 'pluma-engine' ),
-			'nombreDelClon'       => __( 'Nombre del nuevo periodista clonado', 'pluma-engine' ),
+			'guardarCambios'              => __( 'Guardar cambios', 'pluma-engine' ),
+			'clonar'                      => __( 'Clonar', 'pluma-engine' ),
+			'nombreDelClon'               => __( 'Nombre del nuevo periodista clonado', 'pluma-engine' ),
 		);
 	}
 
@@ -590,10 +595,10 @@ final class PantallaPanel {
 	 */
 	private function textosSalaMaquinas(): array {
 		return array(
-			'cargando'          => __( 'Cargando…', 'pluma-engine' ),
-			'errorCarga'        => __( 'No se pudo cargar. Reintenta en unos segundos.', 'pluma-engine' ),
-			'errorAccion'       => __( 'La acción no se pudo completar. Reintenta en unos segundos.', 'pluma-engine' ),
-			'ejecutarMotor'     => array(
+			'cargando'                      => __( 'Cargando…', 'pluma-engine' ),
+			'errorCarga'                    => __( 'No se pudo cargar. Reintenta en unos segundos.', 'pluma-engine' ),
+			'errorAccion'                   => __( 'La acción no se pudo completar. Reintenta en unos segundos.', 'pluma-engine' ),
+			'ejecutarMotor'                 => array(
 				'titulo'      => __( 'Ejecutar el motor ahora', 'pluma-engine' ),
 				'explicacion' => __( 'En producción el motor lo dispara el cron real del servidor. Si el cron no está configurado, el motor no se ejecuta solo y las piezas no avanzan por su cuenta: úsalo para procesar un ciclo a mano.', 'pluma-engine' ),
 				'boton'       => __( 'Ejecutar un ciclo ahora', 'pluma-engine' ),
@@ -601,7 +606,7 @@ final class PantallaPanel {
 				'resultado'   => __( 'Ciclo completado. Lotes procesados:', 'pluma-engine' ),
 				'error'       => __( 'No se pudo ejecutar el ciclo. Reintenta en unos segundos.', 'pluma-engine' ),
 			),
-			'bitacora'          => array(
+			'bitacora'                      => array(
 				'titulo'     => __( 'Bitácora del motor', 'pluma-engine' ),
 				'vacia'      => __( 'el motor no se ha ejecutado todavía', 'pluma-engine' ),
 				'inicio'     => __( 'Inicio', 'pluma-engine' ),
@@ -611,14 +616,14 @@ final class PantallaPanel {
 				'sinErrores' => __( 'sin errores', 'pluma-engine' ),
 				'enCurso'    => __( 'en curso', 'pluma-engine' ),
 			),
-			'coste'             => array(
+			'coste'                         => array(
 				'titulo'        => __( 'Coste', 'pluma-engine' ),
 				'gastoHoy'      => __( 'Gasto de hoy', 'pluma-engine' ),
 				'limiteDiario'  => __( 'Límite diario (USD)', 'pluma-engine' ),
 				'guardarLimite' => __( 'Guardar límite', 'pluma-engine' ),
 				'guardado'      => __( 'Límite actualizado', 'pluma-engine' ),
 			),
-			'apis'              => array(
+			'apis'                          => array(
 				'titulo'          => __( 'Estado de las APIs conectadas', 'pluma-engine' ),
 				'openRouter'      => __( 'OpenRouter (proveedor de lenguaje)', 'pluma-engine' ),
 				'googleTrends'    => __( 'Google Trends (Radar)', 'pluma-engine' ),
@@ -627,7 +632,7 @@ final class PantallaPanel {
 				'circuitoAbierto' => __( 'en enfriamiento tras fallos repetidos', 'pluma-engine' ),
 				'circuitoCerrado' => __( 'conectada', 'pluma-engine' ),
 			),
-			'llave'             => array(
+			'llave'                         => array(
 				'titulo'          => __( 'Llave de OpenRouter', 'pluma-engine' ),
 				'actual'          => __( 'Llave actual', 'pluma-engine' ),
 				'campoNueva'      => __( 'Nueva llave', 'pluma-engine' ),
@@ -640,7 +645,7 @@ final class PantallaPanel {
 				'quitar'          => __( 'Quitar llave', 'pluma-engine' ),
 				'confirmarQuitar' => __( '¿Quitar la llave? Sin ella, la redacción vuelve al modo mecánico de respaldo.', 'pluma-engine' ),
 			),
-			'searchConsole'     => array(
+			'searchConsole'                 => array(
 				'titulo'               => __( 'Search Console', 'pluma-engine' ),
 				'cargando'             => __( 'Cargando…', 'pluma-engine' ),
 				'errorCarga'           => __( 'No se pudo cargar Search Console. Reintenta en unos segundos.', 'pluma-engine' ),
@@ -672,7 +677,7 @@ final class PantallaPanel {
 				'tablaPosicion'        => __( 'Posición', 'pluma-engine' ),
 				'sinMetricas'          => __( 'todavía no hay métricas sincronizadas', 'pluma-engine' ),
 			),
-			'transparencia'     => array(
+			'transparencia'                 => array(
 				'titulo'           => __( 'Transparencia y cumplimiento', 'pluma-engine' ),
 				'explicacion'      => __( 'Cada pieza redactada por IA lleva un aviso de transparencia visible. Elige su formato; el marcado legible por máquina (Reglamento UE de IA, Art. 50) se añade siempre y no es desactivable.', 'pluma-engine' ),
 				'etiquetaFormato'  => __( 'Formato del aviso visible', 'pluma-engine' ),
@@ -684,7 +689,7 @@ final class PantallaPanel {
 				'errorCarga'       => __( 'No se pudo cargar la configuración de transparencia.', 'pluma-engine' ),
 				'errorAccion'      => __( 'No se pudo guardar. Reintenta en unos segundos.', 'pluma-engine' ),
 			),
-			'riesgoLegal'       => array(
+			'riesgoLegal'                   => array(
 				'titulo'          => __( 'Perfil de riesgo legal', 'pluma-engine' ),
 				'explicacion'     => __( 'Declara el régimen de responsabilidad de tu jurisdicción real para difamación. En régimen penal, toda pieza con una afirmación negativa sobre una persona u organización identificable exige retención humana y excluye el modo Autónomo, sin excepción — no es un ajuste para relajar protecciones, es un hecho sobre dónde opera tu medio.', 'pluma-engine' ),
 				'etiquetaRegimen' => __( 'Régimen de responsabilidad', 'pluma-engine' ),
@@ -695,7 +700,7 @@ final class PantallaPanel {
 				'errorCarga'      => __( 'No se pudo cargar el perfil de riesgo legal.', 'pluma-engine' ),
 				'errorAccion'     => __( 'No se pudo guardar. Reintenta en unos segundos.', 'pluma-engine' ),
 			),
-			'modeloVerificador' => array(
+			'modeloVerificador'             => array(
 				'titulo'         => __( 'Modelo verificador', 'pluma-engine' ),
 				'explicacion'    => __( 'Declara un modelo distinto al premium para que el Corrector Interno lo use como segunda opinión.', 'pluma-engine' ),
 				'etiquetaModelo' => __( 'Slug del modelo verificador (formato proveedor/modelo)', 'pluma-engine' ),
@@ -705,7 +710,7 @@ final class PantallaPanel {
 				'errorCarga'     => __( 'No se pudo cargar el modelo verificador.', 'pluma-engine' ),
 				'errorAccion'    => __( 'No se pudo guardar. Reintenta en unos segundos.', 'pluma-engine' ),
 			),
-			'modoRespeto'       => array(
+			'modoRespeto'                   => array(
 				'titulo'                 => __( 'Modo respeto', 'pluma-engine' ),
 				'explicacion'            => __( 'Ante una tragedia de gravedad excepcional, congela humor y sátira en TODO el sitio, no solo en la pieza sobre el evento — se activa automáticamente cuando 2 o más tendencias de gravedad máxima coinciden en tema o geografía en una ventana corta, o con un clic manual. Solo el editor lo desactiva, nunca el sistema, y solo tras el piso de duración mínima.', 'pluma-engine' ),
 				'activo'                 => __( 'Activo', 'pluma-engine' ),
@@ -721,7 +726,7 @@ final class PantallaPanel {
 				'errorAccion'            => __( 'No se pudo completar la acción. Reintenta en unos segundos.', 'pluma-engine' ),
 				'aunNoDesactivable'      => __( 'Todavía no se cumple el piso de duración mínima — no puede desactivarse aún.', 'pluma-engine' ),
 			),
-			'imagenDestacada'   => array(
+			'imagenDestacada'               => array(
 				'titulo'          => __( 'Imagen destacada por autoridad de fuente', 'pluma-engine' ),
 				'explicacion'     => __( 'Toma la imagen del artículo, entre las fuentes recolectadas, con mayor nivel de confianza (A, B o C). Desactivado por fábrica.', 'pluma-engine' ),
 				'avisoRiesgo'     => __( 'Aviso legal: usar imágenes de otros medios sin licencia puede infringir derechos de autor. Al activar "enlazada" o "descargada" aceptas asumir ese riesgo — PLUMA no verifica licencias de las imágenes de terceros. Mostrar u ocultar el crédito a la fuente no cambia este riesgo.', 'pluma-engine' ),
@@ -736,7 +741,21 @@ final class PantallaPanel {
 				'errorCarga'      => __( 'No se pudo cargar la configuración de imagen destacada.', 'pluma-engine' ),
 				'errorAccion'     => __( 'No se pudo guardar. Reintenta en unos segundos.', 'pluma-engine' ),
 			),
-			'telemetria'        => array(
+			'creacionAutomaticaPeriodistas' => array(
+				'titulo'            => __( 'Creación automática de periodistas', 'pluma-engine' ),
+				'explicacion'       => __( 'Cuando hay suficientes noticias sin cobertura sobre un mismo tema, el motor puede proponer un periodista nuevo dedicado a ese tema — nunca uno por cada noticia suelta. La propuesta nace "Propuesta" en el Banco de Periodistas, con una ventana de veto antes de activarse sola. Desactivado por fábrica.', 'pluma-engine' ),
+				'activar'           => __( 'Activar creación automática', 'pluma-engine' ),
+				'activada'          => __( 'Creación automática activada', 'pluma-engine' ),
+				'etiquetaMinPiezas' => __( 'Mínimo de noticias sin cobertura para considerar un periodista nuevo', 'pluma-engine' ),
+				'etiquetaVentana'   => __( 'Ventana de días considerados', 'pluma-engine' ),
+				'etiquetaCooldown'  => __( 'Horas mínimas entre evaluaciones', 'pluma-engine' ),
+				'etiquetaMax'       => __( 'Máximo de periodistas automáticos en juego a la vez', 'pluma-engine' ),
+				'guardar'           => __( 'Guardar', 'pluma-engine' ),
+				'guardado'          => __( 'Ajustes actualizados', 'pluma-engine' ),
+				'errorCarga'        => __( 'No se pudo cargar la configuración de creación automática de periodistas.', 'pluma-engine' ),
+				'errorAccion'       => __( 'No se pudo guardar. Verifica que los números sean enteros mayores que cero.', 'pluma-engine' ),
+			),
+			'telemetria'                    => array(
 				'titulo'         => __( 'Telemetría', 'pluma-engine' ),
 				'explicacion'    => __( 'Opcional y anónima: versiones, modo de operación y conteos agregados (nunca contenido de piezas ni llaves). Hoy no se envía a ningún servidor todavía — solo se prepara el dato que se compartiría.', 'pluma-engine' ),
 				'habilitar'      => __( 'Habilitar telemetría', 'pluma-engine' ),
@@ -744,7 +763,7 @@ final class PantallaPanel {
 				'verPayload'     => __( 'Ver qué se compartiría', 'pluma-engine' ),
 				'ocultarPayload' => __( 'Ocultar', 'pluma-engine' ),
 			),
-			'diagnostico'       => array(
+			'diagnostico'                   => array(
 				'titulo'      => __( 'Modo diagnóstico', 'pluma-engine' ),
 				'explicacion' => __( 'Genera un reporte técnico (versiones, bitácora reciente, conflictos detectados) para pegar en un ticket de soporte. Nunca incluye contenido de piezas ni llaves.', 'pluma-engine' ),
 				'descargar'   => __( 'Descargar reporte de diagnóstico', 'pluma-engine' ),

@@ -190,4 +190,99 @@ final class RepositorioPeriodistasTest extends WP_UnitTestCase {
 
 		self::assertFalse( $resultado );
 	}
+
+	/**
+	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas).
+	 */
+	public function test_crear_con_creado_automaticamente_lo_persiste_y_obtener_propuestos_lo_lista(): void {
+		global $wpdb;
+		$repo = new RepositorioPeriodistas( $wpdb );
+
+		$id = $repo->crear(
+			'Periodista automático ' . uniqid(),
+			null,
+			'Bio.',
+			RolPeriodista::Cronista,
+			array( new Especialidad( 'deportes', 4 ) ),
+			EstadoPeriodista::Propuesto,
+			$this->diales(),
+			$this->reglas(),
+			$this->matriz(),
+			new DateTimeImmutable(),
+			creadoAutomaticamente: true
+		);
+
+		$periodista = $repo->obtenerPorId( $id );
+		self::assertNotNull( $periodista );
+		self::assertTrue( $periodista->creadoAutomaticamente );
+		self::assertSame( EstadoPeriodista::Propuesto, $periodista->estado );
+
+		$propuestos = $repo->obtenerPropuestos();
+		self::assertContains( $id, array_map( static fn ( $p ) => $p->id, $propuestos ) );
+		self::assertGreaterThanOrEqual( 1, $repo->contarAutomaticosActivos() );
+	}
+
+	public function test_activar_propuesta_lo_pasa_a_activo_y_ya_no_aparece_como_propuesto(): void {
+		global $wpdb;
+		$repo = new RepositorioPeriodistas( $wpdb );
+
+		$id = $repo->crear(
+			'Periodista a activar ' . uniqid(),
+			null,
+			'Bio.',
+			RolPeriodista::Cronista,
+			array( new Especialidad( 'deportes', 4 ) ),
+			EstadoPeriodista::Propuesto,
+			$this->diales(),
+			$this->reglas(),
+			$this->matriz(),
+			new DateTimeImmutable(),
+			creadoAutomaticamente: true
+		);
+
+		$resultado = $repo->activarPropuesta( $id, new DateTimeImmutable( '+1 minute' ) );
+
+		self::assertTrue( $resultado );
+
+		$periodista = $repo->obtenerPorId( $id );
+		self::assertNotNull( $periodista );
+		self::assertSame( EstadoPeriodista::Activo, $periodista->estado );
+		self::assertNotContains( $id, array_map( static fn ( $p ) => $p->id, $repo->obtenerPropuestos() ) );
+	}
+
+	public function test_activar_propuesta_de_un_periodista_inexistente_devuelve_false(): void {
+		global $wpdb;
+		$repo = new RepositorioPeriodistas( $wpdb );
+
+		self::assertFalse( $repo->activarPropuesta( 999999, new DateTimeImmutable() ) );
+	}
+
+	public function test_descartar_propuesta_la_borra_de_verdad(): void {
+		global $wpdb;
+		$repo = new RepositorioPeriodistas( $wpdb );
+
+		$id = $repo->crear(
+			'Periodista a descartar ' . uniqid(),
+			null,
+			'Bio.',
+			RolPeriodista::Cronista,
+			array( new Especialidad( 'deportes', 4 ) ),
+			EstadoPeriodista::Propuesto,
+			$this->diales(),
+			$this->reglas(),
+			$this->matriz(),
+			new DateTimeImmutable(),
+			creadoAutomaticamente: true
+		);
+
+		self::assertTrue( $repo->descartarPropuesta( $id ) );
+		self::assertNull( $repo->obtenerPorId( $id ) );
+	}
+
+	public function test_descartar_propuesta_de_un_periodista_inexistente_devuelve_false(): void {
+		global $wpdb;
+		$repo = new RepositorioPeriodistas( $wpdb );
+
+		self::assertFalse( $repo->descartarPropuesta( 999999 ) );
+	}
 }
