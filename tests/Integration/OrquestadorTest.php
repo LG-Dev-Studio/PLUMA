@@ -10,7 +10,6 @@ use Pluma\Datos\CandadoGlobal;
 use Pluma\Kernel\Activador;
 use Pluma\Kernel\Nucleo;
 use Pluma\Kernel\RelojSistema;
-use Pluma\Pipeline\Orquestador;
 use WP_REST_Request;
 use WP_UnitTestCase;
 
@@ -65,9 +64,8 @@ final class OrquestadorTest extends WP_UnitTestCase {
 	}
 
 	public function test_endpoint_del_cron_rechaza_peticiones_sin_token(): void {
-		$nucleo      = new Nucleo();
-		$orquestador = $nucleo->contenedor()->obtener( Orquestador::class );
-		( new RestOrquestador( $orquestador ) )->registrar();
+		$nucleo = new Nucleo();
+		$nucleo->contenedor()->obtener( RestOrquestador::class )->registrar();
 		do_action( 'rest_api_init' );
 
 		$servidor  = rest_get_server();
@@ -80,9 +78,8 @@ final class OrquestadorTest extends WP_UnitTestCase {
 	public function test_endpoint_del_cron_rechaza_token_invalido(): void {
 		Activador::activar( new RelojSistema(), '0.9.0' );
 
-		$nucleo      = new Nucleo();
-		$orquestador = $nucleo->contenedor()->obtener( Orquestador::class );
-		( new RestOrquestador( $orquestador ) )->registrar();
+		$nucleo = new Nucleo();
+		$nucleo->contenedor()->obtener( RestOrquestador::class )->registrar();
 		do_action( 'rest_api_init' );
 
 		$servidor = rest_get_server();
@@ -98,9 +95,8 @@ final class OrquestadorTest extends WP_UnitTestCase {
 		$token = get_option( Activador::OPCION_MOTOR_TOKEN );
 		self::assertIsString( $token );
 
-		$nucleo      = new Nucleo();
-		$orquestador = $nucleo->contenedor()->obtener( Orquestador::class );
-		( new RestOrquestador( $orquestador ) )->registrar();
+		$nucleo = new Nucleo();
+		$nucleo->contenedor()->obtener( RestOrquestador::class )->registrar();
 		do_action( 'rest_api_init' );
 
 		$servidor = rest_get_server();

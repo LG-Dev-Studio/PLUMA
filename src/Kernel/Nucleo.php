@@ -67,6 +67,8 @@ use Pluma\Datos\RepositorioSuscriptores;
 use Pluma\Datos\RepositorioSuscriptoresInterface;
 use Pluma\Datos\RepositorioHistorias;
 use Pluma\Datos\RepositorioHistoriasInterface;
+use Pluma\Datos\RepositorioLlamadasModelo;
+use Pluma\Datos\RepositorioLlamadasModeloInterface;
 use Pluma\Datos\RepositorioMemoriaEditorial;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioMetricasSearchConsole;
@@ -99,10 +101,12 @@ use Pluma\Pipeline\LectorConfiguracionCadencia;
 use Pluma\Pipeline\Orquestador;
 use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Pipeline\Transicionador;
+use Pluma\Proveedores\EmbeddingsInstrumentado;
 use Pluma\Proveedores\EmbeddingsInterface;
 use Pluma\Proveedores\EnrutadorModelos;
 use Pluma\Proveedores\ExtractorImagenFuente;
 use Pluma\Proveedores\ExtractorImagenFuenteInterface;
+use Pluma\Proveedores\LenguajeInstrumentado;
 use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Proveedores\ProveedorGoogleTrends;
@@ -212,6 +216,10 @@ final class Nucleo {
 
 	private function registrarServicios(): void {
 		$this->contenedor->registrar( RelojInterface::class, static fn (): RelojSistema => new RelojSistema() );
+		// NCP-1 (`ADR 0010`): una instancia por petición, mutada una vez en el
+		// punto de entrada real y leída por los decoradores de instrumentación
+		// más abajo.
+		$this->contenedor->registrar( ContextoEjecucion::class, static fn (): ContextoEjecucion => new ContextoEjecucion() );
 		$this->contenedor->registrar( AzarInterface::class, static fn (): AzarSistema => new AzarSistema() );
 
 		$this->contenedor->registrar(
@@ -401,17 +409,37 @@ final class Nucleo {
 			PresupuestoLenguaje::class,
 			fn ( Contenedor $c ): PresupuestoLenguaje => new PresupuestoLenguaje( $c->obtener( RelojInterface::class ) )
 		);
+		// NCP-1 (`ADR 0010`): único lugar con `$wpdb` para `pluma_llamadas_modelo`.
+		$this->contenedor->registrar(
+			RepositorioLlamadasModeloInterface::class,
+			fn ( Contenedor $c ): RepositorioLlamadasModelo => new RepositorioLlamadasModelo( $c->obtener( 'wpdb' ) )
+		);
+		// NCP-1 (`ADR 0010`): `LenguajeInterface::class` resuelve SIEMPRE a la
+		// variante instrumentada — es el único punto de registro del
+		// contenedor para este contrato, así que los 21 consumidores reales
+		// quedan medidos sin tocar ni una línea suya (§5.1.2). Pin de este
+		// invariante en `tests/Invariantes/`.
 		$this->contenedor->registrar(
 			LenguajeInterface::class,
-			fn ( Contenedor $c ): ProveedorOpenRouter => new ProveedorOpenRouter(
+			fn ( Contenedor $c ): LenguajeInstrumentado => new LenguajeInstrumentado(
+				new ProveedorOpenRouter(
+					$c->obtener( EnrutadorModelos::class ),
+					$c->obtener( PresupuestoLenguaje::class ),
+					$c->obtener( RelojInterface::class )
+				),
 				$c->obtener( EnrutadorModelos::class ),
-				$c->obtener( PresupuestoLenguaje::class ),
-				$c->obtener( RelojInterface::class )
+				$c->obtener( RepositorioLlamadasModeloInterface::class ),
+				$c->obtener( ContextoEjecucion::class ),
+				$c->obtener( RelojInterface::class ),
+				'openrouter'
 			)
 		);
 		// Registro adicional del tipo concreto (Sala de Máquinas, Cap. 10.2:
 		// "estado de cada API conectada" + "prueba en vivo" de la llave) —
 		// métodos propios de OpenRouter, no del contrato `LenguajeInterface`.
+		// Deliberadamente SIN instrumentar: `probarLlave()`/`circuitoAbierto()`
+		// no llaman a `completar()`/`embed()`, y el invariante de arriba
+		// verifica que ninguna otra capa use este registro para `completar()`.
 		$this->contenedor->registrar(
 			ProveedorOpenRouter::class,
 			fn ( Contenedor $c ): ProveedorOpenRouter => new ProveedorOpenRouter(
@@ -422,12 +450,20 @@ final class Nucleo {
 		);
 		// EmbeddingsInterface (Nivel Dos A.5 + Nivel Tres J.3): misma cuenta de
 		// OpenRouter, mismo circuito, otro endpoint — ver `ProveedorOpenRouter`.
+		// Mismo criterio de instrumentación que `LenguajeInterface` arriba.
 		$this->contenedor->registrar(
 			EmbeddingsInterface::class,
-			fn ( Contenedor $c ): ProveedorOpenRouter => new ProveedorOpenRouter(
+			fn ( Contenedor $c ): EmbeddingsInstrumentado => new EmbeddingsInstrumentado(
+				new ProveedorOpenRouter(
+					$c->obtener( EnrutadorModelos::class ),
+					$c->obtener( PresupuestoLenguaje::class ),
+					$c->obtener( RelojInterface::class )
+				),
 				$c->obtener( EnrutadorModelos::class ),
-				$c->obtener( PresupuestoLenguaje::class ),
-				$c->obtener( RelojInterface::class )
+				$c->obtener( RepositorioLlamadasModeloInterface::class ),
+				$c->obtener( ContextoEjecucion::class ),
+				$c->obtener( RelojInterface::class ),
+				'openrouter'
 			)
 		);
 
@@ -741,13 +777,17 @@ final class Nucleo {
 				$c->obtener( GestorHistorias::class ),
 				$c->obtener( GestorExperimentosTitular::class ),
 				$c->obtener( CreadorAutomaticoPeriodistas::class ),
-				$c->obtener( GestorSalaRevision::class )
+				$c->obtener( GestorSalaRevision::class ),
+				$c->obtener( RepositorioLlamadasModeloInterface::class )
 			)
 		);
 
 		$this->contenedor->registrar(
 			RestOrquestador::class,
-			fn ( Contenedor $c ): RestOrquestador => new RestOrquestador( $c->obtener( Orquestador::class ) )
+			fn ( Contenedor $c ): RestOrquestador => new RestOrquestador(
+				$c->obtener( Orquestador::class ),
+				$c->obtener( ContextoEjecucion::class )
+			)
 		);
 
 		$this->contenedor->registrar(
@@ -948,7 +988,8 @@ final class Nucleo {
 				$c->obtener( RepositorioMemoriaEditorialInterface::class ),
 				$c->obtener( GeneradorVistaPrevia::class ),
 				$c->obtener( RelojInterface::class ),
-				$c->obtener( GestorSalaRevision::class )
+				$c->obtener( GestorSalaRevision::class ),
+				$c->obtener( ContextoEjecucion::class )
 			)
 		);
 		$this->contenedor->registrar(
@@ -970,7 +1011,10 @@ final class Nucleo {
 				$c->obtener( TelemetriaInterface::class ),
 				$c->obtener( ExportadorDiagnostico::class ),
 				$c->obtener( Orquestador::class ),
-				$c->obtener( CreadorAutomaticoPeriodistas::class )
+				$c->obtener( CreadorAutomaticoPeriodistas::class ),
+				$c->obtener( ContextoEjecucion::class ),
+				$c->obtener( RepositorioLlamadasModeloInterface::class ),
+				$c->obtener( RelojInterface::class )
 			)
 		);
 		$this->contenedor->registrar(

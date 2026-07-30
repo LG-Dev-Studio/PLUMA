@@ -32,6 +32,7 @@ use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Datos\RepositorioRespuestasComentariosInterface;
 use Pluma\Datos\RepositorioHistoriasInterface;
+use Pluma\Datos\RepositorioLlamadasModeloInterface;
 use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabularioInterface;
@@ -216,6 +217,15 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		return $bitacora;
 	}
 
+	// NCP-1 (`ADR 0010`): la purga de `pluma_llamadas_modelo` corre en todo
+	// tick — permisivo de fábrica para los tests que no se ocupan de ella.
+	private function llamadasModeloPermisivo(): RepositorioLlamadasModeloInterface {
+		$llamadasModelo = Mockery::mock( RepositorioLlamadasModeloInterface::class );
+		$llamadasModelo->allows( 'purgarAnterioresA' )->andReturn( 0 );
+
+		return $llamadasModelo;
+	}
+
 	private function piezasPermisivas(): RepositorioPiezasInterface {
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
 		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
@@ -371,7 +381,8 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			$overrides['gestorHistorias'] ?? $this->gestorHistoriasPermisivo(),
 			$overrides['gestorExperimentosTitular'] ?? $this->gestorExperimentosTitularPermisivo(),
 			$overrides['creadorAutomaticoPeriodistas'] ?? $this->creadorAutomaticoPeriodistasPermisivo( $piezas ),
-			$overrides['gestorSalaRevision'] ?? new GestorSalaRevision( $piezas, $colaPublicacion, $this->periodistasPermisivo(), new Transicionador( $piezas, $this->auditoriaPermisiva(), new RelojFijo() ) )
+			$overrides['gestorSalaRevision'] ?? new GestorSalaRevision( $piezas, $colaPublicacion, $this->periodistasPermisivo(), new Transicionador( $piezas, $this->auditoriaPermisiva(), new RelojFijo() ) ),
+			$overrides['llamadasModelo'] ?? $this->llamadasModeloPermisivo()
 		);
 	}
 

@@ -8,6 +8,7 @@ use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Kernel\Capacidades;
+use Pluma\Kernel\ContextoEjecucion;
 use Pluma\Kernel\RelojInterface;
 use Pluma\Pipeline\AccionNoDisponibleException;
 use Pluma\Pipeline\GestorSalaRevision;
@@ -24,6 +25,7 @@ use Pluma\Redaccion\PlantillaPeriodista;
 use Pluma\Redaccion\PlantillasSiembra;
 use Pluma\Redaccion\ReglasConducta;
 use Pluma\Redaccion\RolPeriodista;
+use Pluma\Proveedores\OrigenLlamada;
 use Pluma\Proveedores\ProveedorLenguajeException;
 use WP_Error;
 use WP_REST_Request;
@@ -85,6 +87,7 @@ final class RestPeriodistas {
 		private readonly GeneradorVistaPrevia $generadorVistaPrevia,
 		private readonly RelojInterface $reloj,
 		private readonly GestorSalaRevision $gestorSalaRevision,
+		private readonly ContextoEjecucion $contextoEjecucion,
 	) {
 	}
 
@@ -641,6 +644,11 @@ final class RestPeriodistas {
 		}
 
 		[$diales, $reglas, $matriz] = $conducta;
+
+		// NCP-1 (`ADR 0010`): la vista previa en vivo del Estudio de Conducta
+		// dispara una llamada real al modelo desde una sesión de panel
+		// autenticada por capacidad — origen `panel`, nunca `visitante`.
+		$this->contextoEjecucion->declarar( OrigenLlamada::Panel );
 
 		try {
 			$texto = $this->generadorVistaPrevia->generar( $periodista, $diales, $reglas, $matriz );

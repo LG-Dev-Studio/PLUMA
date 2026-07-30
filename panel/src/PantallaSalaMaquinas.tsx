@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { BloqueLlamadasModelo, type TextosLlamadasModelo } from './BloqueLlamadasModelo';
 import { BloqueLlaveOpenRouter } from './BloqueLlaveOpenRouter';
 import { BloqueModeloVerificador, type TextosModeloVerificador } from './BloqueModeloVerificador';
 import { BloqueSearchConsole, type TextosSearchConsole } from './BloqueSearchConsole';
@@ -132,6 +133,7 @@ export interface TextosSalaMaquinas {
         descargar: string;
         descargando: string;
     };
+    llamadasModelo: TextosLlamadasModelo;
 }
 
 interface Props {
@@ -429,6 +431,8 @@ function SeccionesMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: st
                     {descargandoDiagnostico ? textos.diagnostico.descargando : textos.diagnostico.descargar}
                 </button>
             </section>
+
+            <BloqueLlamadasModelo restUrl={restUrl} nonce={nonce} textos={textos.llamadasModelo} />
 
             <section className="pluma-maquinas__seccion">
                 <h2>{textos.bitacora.titulo}</h2>

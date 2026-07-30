@@ -26,6 +26,22 @@ final class EsquemaTest extends CasoDePruebaUnitario {
 		);
 	}
 
+	public function test_sentencias_reversa_desde_0_25_0_a_0_24_0_elimina_la_tabla_de_llamadas_modelo(): void {
+		$sentencias = Esquema::sentenciasReversaDesde( new wpdb(), '0.25.0', '0.24.0' );
+
+		self::assertSame(
+			array( 'DROP TABLE IF EXISTS wp_pluma_llamadas_modelo;' ),
+			$sentencias
+		);
+	}
+
+	public function test_la_tabla_de_llamadas_modelo_se_elimina_al_desinstalar_sin_conservar_datos(): void {
+		// El instrumento de NCP-1 guarda gasto real del cliente: si no
+		// estuviera en `nombresTablas()`, una desinstalación con "no
+		// conservar datos" dejaría la tabla huérfana (GOVERNANCE §5.4).
+		self::assertContains( 'wp_pluma_llamadas_modelo', Esquema::nombresTablas( new wpdb() ) );
+	}
+
 	public function test_sentencias_reversa_desde_0_24_0_a_0_23_0_elimina_tema_sin_cubrir_y_creado_automaticamente(): void {
 		$sentencias = Esquema::sentenciasReversaDesde( new wpdb(), '0.24.0', '0.23.0' );
 

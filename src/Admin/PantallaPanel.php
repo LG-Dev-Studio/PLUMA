@@ -769,6 +769,20 @@ final class PantallaPanel {
 				'descargar'   => __( 'Descargar reporte de diagnóstico', 'pluma-engine' ),
 				'descargando' => __( 'Generando…', 'pluma-engine' ),
 			),
+			'llamadasModelo'                => array(
+				'titulo'          => __( 'Llamadas al modelo de IA', 'pluma-engine' ),
+				'explicacion'     => __( 'Gasto real de los últimos 30 días, por propósito, origen y resultado — quién disparó cada llamada (cron, panel o un visitante) y si tuvo éxito.', 'pluma-engine' ),
+				'vacio'           => __( 'sin llamadas registradas en los últimos 30 días', 'pluma-engine' ),
+				'errorCarga'      => __( 'No se pudo cargar el resumen de llamadas al modelo.', 'pluma-engine' ),
+				'proposito'       => __( 'Propósito', 'pluma-engine' ),
+				'origen'          => __( 'Origen', 'pluma-engine' ),
+				'resultado'       => __( 'Resultado', 'pluma-engine' ),
+				'llamadas'        => __( 'Llamadas', 'pluma-engine' ),
+				'costeUsd'        => __( 'Coste (USD)', 'pluma-engine' ),
+				'origenCron'      => __( 'Cron', 'pluma-engine' ),
+				'origenPanel'     => __( 'Panel', 'pluma-engine' ),
+				'origenVisitante' => __( 'Visitante', 'pluma-engine' ),
+			),
 		);
 	}
 

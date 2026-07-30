@@ -32,7 +32,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		$rol->expects( 'add_cap' )->times( 3 );
 		Functions\expect( 'get_role' )->once()->with( 'administrator' )->andReturn( $rol );
 
-		Functions\expect( 'dbDelta' )->times( 21 )->andReturn( array() );
+		Functions\expect( 'dbDelta' )->times( 22 )->andReturn( array() );
 		Functions\expect( 'get_option' )->once()->with( 'pluma_db_version', '0.0.0' )->andReturn( '0.0.0' );
 		Functions\expect( 'get_option' )->once()->with( ClavesVapid::OPCION_CLAVE_PUBLICA, false )->andReturn( 'clave-publica-ya-generada' );
 		Functions\expect( 'update_option' )->once()->with( 'pluma_db_version', '0.1.0', false )->andReturn( true );
@@ -74,7 +74,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		$rol = Mockery::mock( 'WP_Role' );
 		$rol->expects( 'add_cap' )->times( 3 );
 		Functions\expect( 'get_role' )->once()->andReturn( $rol );
-		Functions\expect( 'dbDelta' )->times( 21 )->andReturn( array() );
+		Functions\expect( 'dbDelta' )->times( 22 )->andReturn( array() );
 		Functions\expect( 'get_option' )->twice()->andReturn( '0.1.0' );
 		Functions\expect( 'wp_generate_password' )->once()->andReturn( 'token-de-prueba' );
 		Functions\expect( 'add_option' )->times( 3 )->andReturn( true );
@@ -94,7 +94,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		$rol = Mockery::mock( 'WP_Role' );
 		$rol->expects( 'add_cap' )->times( 6 ); // 3 capacidades × 2 sitios
 		Functions\expect( 'get_role' )->twice()->andReturn( $rol );
-		Functions\expect( 'dbDelta' )->times( 42 )->andReturn( array() ); // 21 tablas × 2 sitios
+		Functions\expect( 'dbDelta' )->times( 44 )->andReturn( array() ); // 22 tablas × 2 sitios
 		Functions\expect( 'get_option' )->times( 4 )->andReturn( '0.1.0' ); // (esquema + clave VAPID) × 2 sitios
 		Functions\expect( 'wp_generate_password' )->twice()->andReturn( 'token-de-prueba' );
 		Functions\expect( 'add_option' )->times( 6 )->andReturn( true ); // 3 opciones × 2 sitios
@@ -130,7 +130,7 @@ final class ActivadorTest extends CasoDePruebaUnitario {
 		$rol->expects( 'add_cap' )->times( 3 );
 		Functions\expect( 'get_role' )->once()->with( 'administrator' )->andReturn( $rol );
 
-		Functions\expect( 'dbDelta' )->times( 21 )->andReturn( array() );
+		Functions\expect( 'dbDelta' )->times( 22 )->andReturn( array() );
 		Functions\expect( 'update_option' )->once()->with( 'pluma_db_version', '0.9.0', false )->andReturn( true );
 
 		Functions\expect( 'add_option' )->times( 3 )->andReturn( true );

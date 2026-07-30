@@ -370,6 +370,41 @@ final class Esquema {
                 PRIMARY KEY  (id),
                 KEY iniciada_en (iniciada_en)
             ) {$charset};",
+			// NCP-1, porción 1 (`ADR 0010`): una fila por llamada real al
+			// proveedor de lenguaje o de embeddings. `pluma_bitacora_motor`
+			// registra EJECUCIONES del motor, no gasto de modelo, y
+			// `pluma_gasto_lenguaje` es un único escalar del día que se pisa
+			// al cambiar la fecha — no existía ninguna bitácora contra la que
+			// medir el criterio de salida de NCP-1 ("% de llamadas de pago
+			// eliminadas sobre bitácora real").
+			//
+			// `coste_usd` es NULL en las filas de embeddings: el contrato
+			// `EmbeddingsInterface::embed()` devuelve `list<float>` y el
+			// decorador no puede observar el coste sin romperlo (limitación
+			// declarada en `docs/deuda.md`, no un olvido).
+			//
+			// `origen` es la columna que vuelve medible la violación de
+			// `CEREBRO_PLUMA_v2.md` §5.1.4 ya presente en producción: una
+			// llamada con `origen = visitante` es gasto de API disparado por
+			// una petición anónima.
+			"CREATE TABLE {$prefijo}llamadas_modelo (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                proposito VARCHAR(40) NOT NULL,
+                proveedor VARCHAR(40) NOT NULL,
+                modelo VARCHAR(191) NOT NULL,
+                familia VARCHAR(60) NOT NULL,
+                origen VARCHAR(20) NOT NULL,
+                resultado VARCHAR(30) NOT NULL,
+                tokens_entrada INT UNSIGNED NOT NULL DEFAULT 0,
+                tokens_salida INT UNSIGNED NOT NULL DEFAULT 0,
+                coste_usd DECIMAL(10,6) NULL,
+                latencia_ms INT UNSIGNED NOT NULL DEFAULT 0,
+                truncada TINYINT(1) NOT NULL DEFAULT 0,
+                creada_en DATETIME NOT NULL,
+                PRIMARY KEY  (id),
+                KEY creada_en (creada_en),
+                KEY proposito_creada (proposito, creada_en)
+            ) {$charset};",
 			// Etapa 6, porción 4c (Art. 50 UE, Nivel Tres N.3 (c)): tipo_aprobacion
 			// distingue, solo en la transición programada→publicada, si la pieza
 			// se publicó por aprobación humana activa ("aprobar ahora" en la cola
@@ -520,6 +555,7 @@ final class Esquema {
 			$prefijo . 'correcciones',
 			$prefijo . 'experimentos_titular',
 			$prefijo . 'pistas',
+			$prefijo . 'llamadas_modelo',
 		);
 	}
 
@@ -556,6 +592,9 @@ final class Esquema {
 		$prefijo = $wpdb->prefix . 'pluma_';
 
 		return match ( $versionOrigen . '->' . $versionDestino ) {
+			'0.25.0->0.24.0' => array(
+				"DROP TABLE IF EXISTS {$prefijo}llamadas_modelo;",
+			),
 			'0.24.0->0.23.0' => array(
 				"ALTER TABLE {$prefijo}piezas DROP COLUMN tema_sin_cubrir;",
 				"ALTER TABLE {$prefijo}periodistas DROP COLUMN creado_automaticamente;",

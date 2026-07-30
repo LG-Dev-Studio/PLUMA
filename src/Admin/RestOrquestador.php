@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Pluma\Admin;
 
 use Pluma\Kernel\Activador;
+use Pluma\Kernel\ContextoEjecucion;
 use Pluma\Pipeline\Orquestador;
+use Pluma\Proveedores\OrigenLlamada;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -23,7 +25,10 @@ final class RestOrquestador {
 	private const RATE_LIMIT_SEGUNDOS          = 30;
 	private const PRESUPUESTO_SEGUNDOS_DEFECTO = 90;
 
-	public function __construct( private readonly Orquestador $orquestador ) {
+	public function __construct(
+		private readonly Orquestador $orquestador,
+		private readonly ContextoEjecucion $contextoEjecucion,
+	) {
 	}
 
 	public function registrar(): void {
@@ -70,6 +75,10 @@ final class RestOrquestador {
 
 	public function tick( WP_REST_Request $request ): WP_REST_Response {
 		set_transient( self::TRANSIENT_RATE_LIMIT, 1, self::RATE_LIMIT_SEGUNDOS );
+		// NCP-1 (`ADR 0010`): este es el ÚNICO punto de entrada del cron real
+		// autenticado por token — todo lo que dispare `ejecutarTick()` desde
+		// aquí es origen `cron` para la bitácora de llamadas al modelo.
+		$this->contextoEjecucion->declarar( OrigenLlamada::Cron );
 
 		$resultado = $this->orquestador->ejecutarTick( $this->presupuestoSolicitado( $request ) );
 

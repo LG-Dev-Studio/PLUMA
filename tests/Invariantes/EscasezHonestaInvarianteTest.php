@@ -21,6 +21,7 @@ use Pluma\Datos\RepositorioBitacoraInterface;
 use Pluma\Datos\RepositorioBorradoresInterface;
 use Pluma\Datos\RepositorioColaPublicacionInterface;
 use Pluma\Datos\RepositorioExperimentosTitularInterface;
+use Pluma\Datos\RepositorioLlamadasModeloInterface;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
@@ -198,7 +199,8 @@ final class EscasezHonestaInvarianteTest extends CasoDePruebaUnitario {
 				$colaPublicacion,
 				Mockery::mock( RepositorioPeriodistasInterface::class )->allows( 'obtenerPropuestos' )->andReturn( array() )->getMock(),
 				new Transicionador( $piezas, Mockery::mock( RepositorioAuditoriaInterface::class ), new RelojFijo() )
-			)
+			),
+			Mockery::mock( RepositorioLlamadasModeloInterface::class )->allows( 'purgarAnterioresA' )->andReturn( 0 )->getMock()
 		);
 
 		$resultado = $orquestador->ejecutarTick();

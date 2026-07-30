@@ -13,6 +13,7 @@ use Pluma\Datos\CandadoGlobalInterface;
 use Pluma\Datos\RepositorioBitacoraInterface;
 use Pluma\Datos\RepositorioBorradoresInterface;
 use Pluma\Datos\RepositorioColaPublicacionInterface;
+use Pluma\Datos\RepositorioLlamadasModeloInterface;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
@@ -66,6 +67,10 @@ final class Orquestador {
 	private const LIMITE_PIEZAS_COMENTARIOS          = 5;
 	private const DIAS_VENTANA_COMENTARIOS           = 30;
 	private const LIMITE_COMENTARIOS_POR_LOTE        = 10;
+	// NCP-1 (`ADR 0010`): retención de la bitácora de llamadas al modelo —
+	// mismo criterio de mantenimiento que el resto del pipeline, sin
+	// acumular indefinidamente filas que ya no informan ninguna decisión.
+	private const DIAS_RETENCION_LLAMADAS_MODELO = 90;
 
 	public const OPCION_MODO_OPERACION     = 'pluma_modo_operacion';
 	public const OPCION_VENTANA_VETO_HORAS = 'pluma_ventana_veto_horas';
@@ -111,6 +116,7 @@ final class Orquestador {
 		private readonly GestorExperimentosTitular $gestorExperimentosTitular,
 		private readonly CreadorAutomaticoPeriodistas $creadorAutomaticoPeriodistas,
 		private readonly GestorSalaRevision $gestorSalaRevision,
+		private readonly RepositorioLlamadasModeloInterface $llamadasModelo,
 	) {
 	}
 
@@ -145,6 +151,7 @@ final class Orquestador {
 			$this->procesarComentarios( $errores );
 			$this->verificarEscasezHonesta( $errores );
 			$this->procesarHistoriasInactivas( $errores );
+			$this->purgarLlamadasModeloAntiguas( $errores );
 			$this->gestorExperimentosTitular->consolidarVencidos();
 			$errores = array( ...$errores, ...$this->evaluarCreacionAutomaticaPeriodistas() );
 			$this->procesarPeriodistasPropuestosVencidos( $errores );
@@ -637,6 +644,21 @@ final class Orquestador {
 			$this->gestorHistorias->marcarInactivasVencidas();
 		} catch ( Throwable $error ) {
 			$errores[] = 'historias inactivas (no bloqueante): ' . $error->getMessage();
+		}
+	}
+
+	/**
+	 * NCP-1 (`ADR 0010`): mantenimiento periódico de `pluma_llamadas_modelo`
+	 * — mismo criterio no bloqueante que `procesarHistoriasInactivas()`.
+	 *
+	 * @param list<string> $errores
+	 */
+	private function purgarLlamadasModeloAntiguas( array &$errores ): void {
+		try {
+			$limite = $this->reloj->ahora()->modify( '-' . self::DIAS_RETENCION_LLAMADAS_MODELO . ' days' );
+			$this->llamadasModelo->purgarAnterioresA( $limite );
+		} catch ( Throwable $error ) {
+			$errores[] = 'purga de llamadas al modelo (no bloqueante): ' . $error->getMessage();
 		}
 	}
 

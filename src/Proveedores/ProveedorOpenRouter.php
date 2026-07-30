@@ -304,7 +304,10 @@ final class ProveedorOpenRouter implements LenguajeInterface, EmbeddingsInterfac
 	 */
 	private function verificarCircuitoCerrado(): void {
 		if ( $this->circuitoAbierto() ) {
-			throw new ProveedorLenguajeException( 'Circuito abierto: OpenRouter falló repetidamente; en enfriamiento.' );
+			throw new ProveedorLenguajeException(
+				'Circuito abierto: OpenRouter falló repetidamente; en enfriamiento.',
+				circuitoAbierto: true
+			);
 		}
 	}
 

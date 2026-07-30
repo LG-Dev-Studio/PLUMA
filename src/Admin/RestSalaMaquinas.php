@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Pluma\Admin;
 
 use Pluma\Datos\RepositorioBitacoraInterface;
+use Pluma\Datos\RepositorioLlamadasModeloInterface;
 use Pluma\Kernel\Activador;
 use Pluma\Kernel\Capacidades;
 use Pluma\Kernel\Cifrado;
+use Pluma\Kernel\ContextoEjecucion;
 use Pluma\Kernel\ExportadorDiagnostico;
+use Pluma\Kernel\RelojInterface;
 use Pluma\Pipeline\Orquestador;
+use Pluma\Proveedores\OrigenLlamada;
 use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Proveedores\ProveedorGoogleTrends;
 use Pluma\Proveedores\ProveedorOpenRouter;
@@ -47,8 +51,13 @@ final class RestSalaMaquinas {
 	private const RUTA_EJECUTAR     = '/motor/ejecutar';
 	// Trabajo posterior a la Etapa 9 (creación automática de periodistas).
 	private const RUTA_CREACION_AUTOMATICA_PERIODISTAS = '/motor/creacion-automatica-periodistas';
+	// NCP-1 (`ADR 0010`): instrumento de medición de llamadas al modelo.
+	private const RUTA_LLAMADAS_MODELO = '/motor/llamadas-modelo';
 
 	private const LIMITE_BITACORA = 20;
+	// Misma ventana que la auditoría de NCP-1 espera consultar por defecto:
+	// suficiente para ver una tendencia semanal sin cargar toda la bitácora.
+	private const DIAS_VENTANA_LLAMADAS_MODELO = 30;
 
 	public function __construct(
 		private readonly RepositorioBitacoraInterface $bitacora,
@@ -59,6 +68,9 @@ final class RestSalaMaquinas {
 		private readonly ExportadorDiagnostico $exportadorDiagnostico,
 		private readonly Orquestador $orquestador,
 		private readonly CreadorAutomaticoPeriodistas $creadorAutomaticoPeriodistas,
+		private readonly ContextoEjecucion $contextoEjecucion,
+		private readonly RepositorioLlamadasModeloInterface $llamadasModelo,
+		private readonly RelojInterface $reloj,
 	) {
 	}
 
@@ -160,6 +172,16 @@ final class RestSalaMaquinas {
 
 		register_rest_route(
 			'pluma/v1',
+			self::RUTA_LLAMADAS_MODELO,
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'llamadasModelo' ),
+				'permission_callback' => array( $this, 'autorizado' ),
+			)
+		);
+
+		register_rest_route(
+			'pluma/v1',
 			self::RUTA_DIAGNOSTICO,
 			array(
 				'methods'             => 'GET',
@@ -189,6 +211,11 @@ final class RestSalaMaquinas {
 	 * si el cron real corre a la vez, la segunda ejecución sale en silencio.
 	 */
 	public function ejecutar(): WP_REST_Response {
+		// NCP-1 (`ADR 0010`): esta es la ejecución manual del motor desde el
+		// panel (sesión autenticada por capacidad) — origen `panel` para la
+		// bitácora de llamadas al modelo, nunca `visitante`.
+		$this->contextoEjecucion->declarar( OrigenLlamada::Panel );
+
 		return new WP_REST_Response( $this->orquestador->ejecutarTick(), 200 );
 	}
 
@@ -198,6 +225,19 @@ final class RestSalaMaquinas {
 
 	public function bitacora(): WP_REST_Response {
 		return new WP_REST_Response( $this->bitacora->obtenerRecientes( self::LIMITE_BITACORA ), 200 );
+	}
+
+	/**
+	 * NCP-1 (`ADR 0010`): resumen agregado por propósito/origen/resultado de
+	 * los últimos {@see self::DIAS_VENTANA_LLAMADAS_MODELO} días — el dato
+	 * crudo que hace visible en el panel la instrumentación de esta porción,
+	 * incluida la exposición real de §5.1.4 (filas con origen `visitante`).
+	 */
+	public function llamadasModelo(): WP_REST_Response {
+		$hasta = $this->reloj->ahora();
+		$desde = $hasta->modify( '-' . self::DIAS_VENTANA_LLAMADAS_MODELO . ' days' );
+
+		return new WP_REST_Response( $this->llamadasModelo->resumirEntre( $desde, $hasta ), 200 );
 	}
 
 	public function estado(): WP_REST_Response {

@@ -211,6 +211,20 @@ function textosDeEjemplo(): TextosSalaMaquinas {
             descargar: 'Descargar reporte de diagnóstico',
             descargando: 'Generando…',
         },
+        llamadasModelo: {
+            titulo: 'Llamadas al modelo de IA',
+            explicacion: 'Gasto real de los últimos 30 días.',
+            vacio: 'sin llamadas registradas en los últimos 30 días',
+            errorCarga: 'No se pudo cargar el resumen de llamadas al modelo.',
+            proposito: 'Propósito',
+            origen: 'Origen',
+            resultado: 'Resultado',
+            llamadas: 'Llamadas',
+            costeUsd: 'Coste (USD)',
+            origenCron: 'Cron',
+            origenPanel: 'Panel',
+            origenVisitante: 'Visitante',
+        },
     };
 }
 
@@ -269,6 +283,9 @@ function stubFetch(bitacora: EjecucionBitacora[], estado: EstadoMotor, telemetri
         }
         if (url.endsWith('/motor/llave-openrouter/probar')) {
             return Promise.resolve({ ok: true, json: () => Promise.resolve({ valida: true }) });
+        }
+        if (url.endsWith('/motor/llamadas-modelo')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
         }
         return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
     });
