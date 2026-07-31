@@ -104,6 +104,7 @@ use Pluma\Proveedores\ExtractorImagenFuenteInterface;
 use Pluma\Proveedores\LenguajeInstrumentado;
 use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
+use Pluma\Proveedores\ProveedorCerebroRemoto;
 use Pluma\Proveedores\ProveedorGoogleTrends;
 use Pluma\Proveedores\ProveedorOpenRouter;
 use Pluma\Proveedores\ProveedorPushWeb;
@@ -228,6 +229,32 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			DetectorConflictos::class,
 			static fn (): DetectorConflictos => new DetectorConflictos()
+		);
+
+		// NCP-1 · Sonda de Capacidades (`ADR 0013`): sensor + resolutor puro +
+		// almacén con snapshot cacheado. Ver docblocks de cada clase.
+		$this->contenedor->registrar(
+			ProveedorCerebroRemoto::class,
+			static fn (): ProveedorCerebroRemoto => new ProveedorCerebroRemoto()
+		);
+		$this->contenedor->registrar(
+			SensorCapacidades::class,
+			fn ( Contenedor $c ): SensorCapacidades => new SensorCapacidades(
+				$c->obtener( LenguajeInterface::class ),
+				$c->obtener( ProveedorCerebroRemoto::class )
+			)
+		);
+		$this->contenedor->registrar(
+			ResolutorPerfilEntorno::class,
+			static fn (): ResolutorPerfilEntorno => new ResolutorPerfilEntorno()
+		);
+		$this->contenedor->registrar(
+			AlmacenPerfilEntornoInterface::class,
+			fn ( Contenedor $c ): AlmacenPerfilEntorno => new AlmacenPerfilEntorno(
+				$c->obtener( SensorCapacidades::class ),
+				$c->obtener( ResolutorPerfilEntorno::class ),
+				$c->obtener( RelojInterface::class )
+			)
 		);
 
 		$this->contenedor->registrar(
@@ -731,7 +758,8 @@ final class Nucleo {
 				$c->obtener( GestorExperimentosTitular::class ),
 				$c->obtener( CreadorAutomaticoPeriodistas::class ),
 				$c->obtener( GestorSalaRevision::class ),
-				$c->obtener( RepositorioLlamadasModeloInterface::class )
+				$c->obtener( RepositorioLlamadasModeloInterface::class ),
+				$c->obtener( AlmacenPerfilEntornoInterface::class )
 			)
 		);
 
@@ -936,7 +964,8 @@ final class Nucleo {
 				$c->obtener( DetectorEntorno::class ),
 				$c->obtener( DetectorConflictos::class ),
 				$c->obtener( RepositorioBitacoraInterface::class ),
-				$c->obtener( RelojInterface::class )
+				$c->obtener( RelojInterface::class ),
+				$c->obtener( AlmacenPerfilEntornoInterface::class )
 			)
 		);
 		$this->contenedor->registrar(
@@ -952,7 +981,9 @@ final class Nucleo {
 				$c->obtener( CreadorAutomaticoPeriodistas::class ),
 				$c->obtener( ContextoEjecucion::class ),
 				$c->obtener( RepositorioLlamadasModeloInterface::class ),
-				$c->obtener( RelojInterface::class )
+				$c->obtener( RelojInterface::class ),
+				$c->obtener( ProveedorCerebroRemoto::class ),
+				$c->obtener( AlmacenPerfilEntornoInterface::class )
 			)
 		);
 		$this->contenedor->registrar(
@@ -1058,6 +1089,15 @@ final class Nucleo {
 	public function arrancar( string $archivoPrincipalPlugin, string $versionEsquemaObjetivo ): void {
 		Activador::actualizarEsquemaSiHaceFalta( $this->contenedor->obtener( RelojInterface::class ), $versionEsquemaObjetivo );
 
+		// NCP-1 · Sonda de Capacidades (`ADR 0013`): "en instalación" se
+		// resuelve aquí, no en `Activador::activar()` (sin contenedor DI
+		// disponible en el archivo puente de activación) — mismo patrón
+		// guardián que `actualizarEsquemaSiHaceFalta()` arriba: la primera
+		// carga real tras activar puebla el snapshot una única vez.
+		if ( false === get_option( AlmacenPerfilEntorno::OPCION, false ) ) {
+			$this->contenedor->obtener( AlmacenPerfilEntornoInterface::class )->refrescar();
+		}
+
 		load_plugin_textdomain(
 			'pluma-engine',
 			false,
@@ -1066,7 +1106,8 @@ final class Nucleo {
 
 		( new PantallaPanel(
 			$this->contenedor->obtener( DetectorEntorno::class ),
-			$this->contenedor->obtener( LenguajeInterface::class )
+			$this->contenedor->obtener( LenguajeInterface::class ),
+			$this->contenedor->obtener( AlmacenPerfilEntornoInterface::class )
 		) )->registrar();
 		$this->contenedor->obtener( RestOrquestador::class )->registrar();
 		$this->contenedor->obtener( RestModoRespeto::class )->registrar();

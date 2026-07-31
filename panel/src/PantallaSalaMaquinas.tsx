@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { BloqueCerebroRemoto, type TextosCerebroRemoto } from './BloqueCerebroRemoto';
 import { BloqueLlamadasModelo, type TextosLlamadasModelo } from './BloqueLlamadasModelo';
 import { BloqueLlaveOpenRouter } from './BloqueLlaveOpenRouter';
 import { BloqueModeloVerificador, type TextosModeloVerificador } from './BloqueModeloVerificador';
@@ -19,6 +20,14 @@ export interface DatosSalud {
     versionEsquemaPlugin: string;
     cronRealConfigurado: boolean;
     esMultisitio: boolean;
+    sondaCapacidades: {
+        transportePrioritario: 't1_en_proceso' | 't2_sidecar_local' | 't3_cerebro_remoto' | 'ninguno';
+        ffiDisponible: boolean;
+        procesoHijoDisponible: boolean;
+        cerebroRemotoConfigurado: boolean;
+        apiPagoConfigurada: boolean;
+        medidoEn: string;
+    };
     textos: {
         titulo: string;
         etiquetaPhp: string;
@@ -31,6 +40,21 @@ export interface DatosSalud {
         etiquetaMultisitio: string;
         multisitioSi: string;
         multisitioNo: string;
+        sondaCapacidades: {
+            titulo: string;
+            leyenda: string;
+            etiquetaTransporte: string;
+            t1EnProceso: string;
+            t2SidecarLocal: string;
+            t3CerebroRemoto: string;
+            ninguno: string;
+            etiquetaFfi: string;
+            etiquetaProcesoHijo: string;
+            etiquetaCerebroRemoto: string;
+            etiquetaApiPago: string;
+            disponible: string;
+            noDisponible: string;
+        };
     };
 }
 
@@ -51,6 +75,11 @@ export interface EstadoMotor {
     };
     googleTrends: {
         circuitoAbierto: boolean;
+    };
+    cerebroRemoto: {
+        configurada: boolean;
+        url: string | null;
+        ultimaPruebaOk: boolean;
     };
 }
 
@@ -112,6 +141,7 @@ export interface TextosSalaMaquinas {
         quitar: string;
         confirmarQuitar: string;
     };
+    cerebroRemoto: TextosCerebroRemoto;
     searchConsole: TextosSearchConsole;
     transparencia: TextosTransparencia;
     riesgoLegal: TextosRiesgoLegal;
@@ -187,6 +217,13 @@ function BotonEjecutarMotor({ restUrl, nonce, textos }: { restUrl: string; nonce
     );
 }
 
+const CLAVES_TEXTO_TRANSPORTE = {
+    t1_en_proceso: 't1EnProceso',
+    t2_sidecar_local: 't2SidecarLocal',
+    t3_cerebro_remoto: 't3CerebroRemoto',
+    ninguno: 'ninguno',
+} as const;
+
 export function PantallaSalaMaquinas({ datos, restUrl, nonce, textos }: Props) {
     const { textos: textosSalud } = datos;
 
@@ -229,6 +266,54 @@ export function PantallaSalaMaquinas({ datos, restUrl, nonce, textos }: Props) {
                     <dd>{datos.esMultisitio ? textosSalud.multisitioSi : textosSalud.multisitioNo}</dd>
                 </div>
             </dl>
+
+            <section className="pluma-maquinas__seccion">
+                <h2>{textosSalud.sondaCapacidades.titulo}</h2>
+                <p className="pluma-maquinas__leyenda">{textosSalud.sondaCapacidades.leyenda}</p>
+                <dl className="pluma-salud__lista">
+                    <div className="pluma-salud__fila">
+                        <dt>{textosSalud.sondaCapacidades.etiquetaTransporte}</dt>
+                        <dd
+                            data-estado={'ninguno' === datos.sondaCapacidades.transportePrioritario ? 'advertencia' : 'ok'}
+                            className={
+                                'ninguno' === datos.sondaCapacidades.transportePrioritario
+                                    ? 'pluma-salud__estado pluma-salud__estado--advertencia'
+                                    : 'pluma-salud__estado pluma-salud__estado--ok'
+                            }
+                        >
+                            {textosSalud.sondaCapacidades[CLAVES_TEXTO_TRANSPORTE[datos.sondaCapacidades.transportePrioritario]]}
+                        </dd>
+                    </div>
+                    <div className="pluma-salud__fila">
+                        <dt>{textosSalud.sondaCapacidades.etiquetaFfi}</dt>
+                        <dd>{datos.sondaCapacidades.ffiDisponible ? textosSalud.sondaCapacidades.disponible : textosSalud.sondaCapacidades.noDisponible}</dd>
+                    </div>
+                    <div className="pluma-salud__fila">
+                        <dt>{textosSalud.sondaCapacidades.etiquetaProcesoHijo}</dt>
+                        <dd>
+                            {datos.sondaCapacidades.procesoHijoDisponible
+                                ? textosSalud.sondaCapacidades.disponible
+                                : textosSalud.sondaCapacidades.noDisponible}
+                        </dd>
+                    </div>
+                    <div className="pluma-salud__fila">
+                        <dt>{textosSalud.sondaCapacidades.etiquetaCerebroRemoto}</dt>
+                        <dd>
+                            {datos.sondaCapacidades.cerebroRemotoConfigurado
+                                ? textosSalud.sondaCapacidades.disponible
+                                : textosSalud.sondaCapacidades.noDisponible}
+                        </dd>
+                    </div>
+                    <div className="pluma-salud__fila">
+                        <dt>{textosSalud.sondaCapacidades.etiquetaApiPago}</dt>
+                        <dd>
+                            {datos.sondaCapacidades.apiPagoConfigurada
+                                ? textosSalud.sondaCapacidades.disponible
+                                : textosSalud.sondaCapacidades.noDisponible}
+                        </dd>
+                    </div>
+                </dl>
+            </section>
 
             <BotonEjecutarMotor restUrl={restUrl} nonce={nonce} textos={textos.ejecutarMotor} />
 
@@ -391,6 +476,16 @@ function SeccionesMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: st
                 configurada={estado.openRouter.configurada}
                 ultimosCuatro={estado.openRouter.ultimosCuatro}
                 textos={textos.llave}
+                alGuardar={cargar}
+                alError={() => setError(textos.errorAccion)}
+            />
+
+            <BloqueCerebroRemoto
+                restUrl={restUrl}
+                nonce={nonce}
+                configurada={estado.cerebroRemoto.configurada}
+                url={estado.cerebroRemoto.url}
+                textos={textos.cerebroRemoto}
                 alGuardar={cargar}
                 alError={() => setError(textos.errorAccion)}
             />

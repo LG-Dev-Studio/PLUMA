@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pluma\Admin;
 
 use Pluma\Datos\Migrador;
+use Pluma\Kernel\AlmacenPerfilEntornoInterface;
 use Pluma\Kernel\Capacidades;
 use Pluma\Kernel\DetectorEntorno;
 use Pluma\Pipeline\EstadoPieza;
@@ -31,6 +32,7 @@ final class PantallaPanel {
 	public function __construct(
 		private readonly DetectorEntorno $detector,
 		private readonly LenguajeInterface $proveedorLenguaje,
+		private readonly AlmacenPerfilEntornoInterface $almacenPerfilEntorno,
 	) {
 	}
 
@@ -149,6 +151,10 @@ final class PantallaPanel {
 	 * @return array<string, mixed>
 	 */
 	private function datosSalud(): array {
+		// NCP-1 · Sonda de Capacidades (`ADR 0013`): `leer()`, nunca
+		// `refrescar()` aquí — la carga de página debe seguir barata.
+		$perfilEntorno = $this->almacenPerfilEntorno->leer();
+
 		return array(
 			'versionPhp'           => $this->detector->versionPhp(),
 			'versionWordPress'     => $this->detector->versionWordPress(),
@@ -156,6 +162,14 @@ final class PantallaPanel {
 			'versionEsquemaPlugin' => get_option( Migrador::OPCION_VERSION, '0.0.0' ),
 			'cronRealConfigurado'  => $this->detector->cronRealConfigurado(),
 			'esMultisitio'         => $this->detector->esMultisitio(),
+			'sondaCapacidades'     => array(
+				'transportePrioritario'    => $perfilEntorno->transportePrioritario->value,
+				'ffiDisponible'            => $perfilEntorno->hechos->ffiDisponible,
+				'procesoHijoDisponible'    => $perfilEntorno->hechos->procesoHijoDisponible,
+				'cerebroRemotoConfigurado' => $perfilEntorno->hechos->cerebroRemotoConfigurado,
+				'apiPagoConfigurada'       => $perfilEntorno->hechos->apiPagoConfigurada,
+				'medidoEn'                 => $perfilEntorno->medidoEn->format( DATE_ATOM ),
+			),
 			'textos'               => array(
 				'titulo'             => __( 'Configuración — Sala de Máquinas', 'pluma-engine' ),
 				'etiquetaPhp'        => __( 'PHP', 'pluma-engine' ),
@@ -168,6 +182,21 @@ final class PantallaPanel {
 				'etiquetaMultisitio' => __( 'Multisitio', 'pluma-engine' ),
 				'multisitioSi'       => __( 'Sí', 'pluma-engine' ),
 				'multisitioNo'       => __( 'No', 'pluma-engine' ),
+				'sondaCapacidades'   => array(
+					'titulo'                => __( 'Sonda de Capacidades', 'pluma-engine' ),
+					'leyenda'               => __( 'Medición del transporte que se usaría si el Plano Semántico existiera. El Plano Semántico (ONNX) todavía no está construido; esto es preparación, no una capacidad activa hoy.', 'pluma-engine' ),
+					'etiquetaTransporte'    => __( 'Transporte prioritario', 'pluma-engine' ),
+					't1EnProceso'           => __( 'En proceso (T1)', 'pluma-engine' ),
+					't2SidecarLocal'        => __( 'Sidecar local (T2)', 'pluma-engine' ),
+					't3CerebroRemoto'       => __( 'Cerebro remoto (T3)', 'pluma-engine' ),
+					'ninguno'               => __( 'Ninguno — modo P0-lite', 'pluma-engine' ),
+					'etiquetaFfi'           => __( 'Extensión FFI', 'pluma-engine' ),
+					'etiquetaProcesoHijo'   => __( 'Proceso hijo disponible', 'pluma-engine' ),
+					'etiquetaCerebroRemoto' => __( 'Cerebro remoto configurado', 'pluma-engine' ),
+					'etiquetaApiPago'       => __( 'API de pago configurada', 'pluma-engine' ),
+					'disponible'            => __( 'Disponible', 'pluma-engine' ),
+					'noDisponible'          => __( 'No disponible', 'pluma-engine' ),
+				),
 			),
 		);
 	}
@@ -618,6 +647,20 @@ final class PantallaPanel {
 				'cambiar'         => __( 'Cambiar llave', 'pluma-engine' ),
 				'quitar'          => __( 'Quitar llave', 'pluma-engine' ),
 				'confirmarQuitar' => __( '¿Quitar la llave? Sin ella, la redacción vuelve al modo mecánico de respaldo.', 'pluma-engine' ),
+			),
+			'cerebroRemoto'                 => array(
+				'titulo'          => __( 'Cerebro remoto (T3)', 'pluma-engine' ),
+				'urlActual'       => __( 'URL actual', 'pluma-engine' ),
+				'campoUrl'        => __( 'URL del cerebro remoto', 'pluma-engine' ),
+				'campoToken'      => __( 'Token de autenticación', 'pluma-engine' ),
+				'guardar'         => __( 'Guardar', 'pluma-engine' ),
+				'probar'          => __( 'Probar cerebro remoto', 'pluma-engine' ),
+				'probando'        => __( 'Probando…', 'pluma-engine' ),
+				'valida'          => __( 'El cerebro remoto respondió correctamente.', 'pluma-engine' ),
+				'invalida'        => __( 'No se pudo alcanzar el cerebro remoto con esos datos.', 'pluma-engine' ),
+				'cambiar'         => __( 'Cambiar', 'pluma-engine' ),
+				'quitar'          => __( 'Quitar', 'pluma-engine' ),
+				'confirmarQuitar' => __( '¿Quitar la configuración del cerebro remoto?', 'pluma-engine' ),
 			),
 			'searchConsole'                 => array(
 				'titulo'               => __( 'Search Console', 'pluma-engine' ),

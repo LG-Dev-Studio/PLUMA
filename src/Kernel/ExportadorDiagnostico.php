@@ -29,6 +29,7 @@ final class ExportadorDiagnostico {
 		private readonly DetectorConflictos $detectorConflictos,
 		private readonly RepositorioBitacoraInterface $bitacora,
 		private readonly RelojInterface $reloj,
+		private readonly AlmacenPerfilEntornoInterface $almacenPerfilEntorno,
 	) {
 	}
 
@@ -38,10 +39,16 @@ final class ExportadorDiagnostico {
 	 *     generadoEn: string,
 	 *     entorno: array{versionPlugin: string, versionEsquema: string, versionPhp: string, versionWordPress: string, versionBaseDatos: string, cronRealConfigurado: bool, esMultisitio: bool},
 	 *     conflictos: list<string>,
-	 *     bitacoraReciente: list<array{iniciadaEn: string, finalizadaEn: ?string, lotesProcesados: int, errores: list<string>}>
+	 *     bitacoraReciente: list<array{iniciadaEn: string, finalizadaEn: ?string, lotesProcesados: int, errores: list<string>}>,
+	 *     sondaCapacidades: array{transportePrioritario: string, medidoEn: string, hechos: array<string, bool|int>}
 	 * }
 	 */
 	public function exportar(): array {
+		// NCP-1 · Sonda de Capacidades (`ADR 0013`): lee el snapshot cacheado
+		// (`leer()`), nunca lo refresca aquí — el export de diagnóstico debe
+		// seguir siendo barato y sin red.
+		$perfilEntorno = $this->almacenPerfilEntorno->leer();
+
 		return array(
 			'version'          => self::VERSION_FORMATO,
 			'generadoEn'       => $this->reloj->ahora()->format( DATE_ATOM ),
@@ -56,6 +63,18 @@ final class ExportadorDiagnostico {
 			),
 			'conflictos'       => $this->detectorConflictos->detectar(),
 			'bitacoraReciente' => $this->bitacora->obtenerRecientes( 20 ),
+			'sondaCapacidades' => array(
+				'transportePrioritario' => $perfilEntorno->transportePrioritario->value,
+				'medidoEn'              => $perfilEntorno->medidoEn->format( DATE_ATOM ),
+				'hechos'                => array(
+					'ffiDisponible'                 => $perfilEntorno->hechos->ffiDisponible,
+					'memoriaLimiteMb'               => $perfilEntorno->hechos->memoriaLimiteMb,
+					'tiempoMaximoEjecucionSegundos' => $perfilEntorno->hechos->tiempoMaximoEjecucionSegundos,
+					'procesoHijoDisponible'         => $perfilEntorno->hechos->procesoHijoDisponible,
+					'cerebroRemotoConfigurado'      => $perfilEntorno->hechos->cerebroRemotoConfigurado,
+					'apiPagoConfigurada'            => $perfilEntorno->hechos->apiPagoConfigurada,
+				),
+			),
 		);
 	}
 

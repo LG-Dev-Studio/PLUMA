@@ -19,6 +19,7 @@ use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Investigacion\DetectorHuecos;
 use Pluma\Investigacion\InvestigadorInterface;
 use Pluma\Investigacion\ResolutorDisputas;
+use Pluma\Kernel\AlmacenPerfilEntornoInterface;
 use Pluma\Kernel\RelojInterface;
 use Pluma\Proveedores\ProveedorTendenciasException;
 use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
@@ -98,6 +99,7 @@ final class Orquestador {
 		private readonly CreadorAutomaticoPeriodistas $creadorAutomaticoPeriodistas,
 		private readonly GestorSalaRevision $gestorSalaRevision,
 		private readonly RepositorioLlamadasModeloInterface $llamadasModelo,
+		private readonly AlmacenPerfilEntornoInterface $almacenPerfilEntorno,
 	) {
 	}
 
@@ -132,6 +134,7 @@ final class Orquestador {
 			$this->verificarEscasezHonesta( $errores );
 			$this->procesarHistoriasInactivas( $errores );
 			$this->purgarLlamadasModeloAntiguas( $errores );
+			$this->refrescarPerfilEntorno( $errores );
 			$this->gestorExperimentosTitular->consolidarVencidos();
 			$errores = array( ...$errores, ...$this->evaluarCreacionAutomaticaPeriodistas() );
 			$this->procesarPeriodistasPropuestosVencidos( $errores );
@@ -639,6 +642,23 @@ final class Orquestador {
 			$this->llamadasModelo->purgarAnterioresA( $limite );
 		} catch ( Throwable $error ) {
 			$errores[] = 'purga de llamadas al modelo (no bloqueante): ' . $error->getMessage();
+		}
+	}
+
+	/**
+	 * NCP-1 · Sonda de Capacidades (`ADR 0013`): refresca el snapshot del
+	 * Perfil de Entorno una vez por tick — mismo criterio no bloqueante que
+	 * `purgarLlamadasModeloAntiguas()`. Nunca hace red real: el sensor lee
+	 * hechos de PHP puro y el flag cacheado de la última prueba del cerebro
+	 * remoto, jamás lo prueba en vivo aquí.
+	 *
+	 * @param list<string> $errores
+	 */
+	private function refrescarPerfilEntorno( array &$errores ): void {
+		try {
+			$this->almacenPerfilEntorno->refrescar();
+		} catch ( Throwable $error ) {
+			$errores[] = 'sonda de capacidades (no bloqueante): ' . $error->getMessage();
 		}
 	}
 

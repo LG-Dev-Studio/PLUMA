@@ -7,6 +7,7 @@ namespace Pluma\Tests\Unit\Pipeline;
 use Brain\Monkey\Functions;
 use DateTimeImmutable;
 use Mockery;
+use RuntimeException;
 use Pluma\Compuertas\ClasificadorGravedadTendencia;
 use Pluma\Compuertas\CompuertaCalidad;
 use Pluma\Compuertas\CompuertaOriginalidad;
@@ -42,6 +43,10 @@ use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\InvestigadorInterface;
 use Pluma\Investigacion\NivelVerificacion;
 use Pluma\Investigacion\ResolutorDisputas;
+use Pluma\Kernel\AlmacenPerfilEntornoInterface;
+use Pluma\Kernel\HechosEntorno;
+use Pluma\Kernel\PerfilEntorno;
+use Pluma\Kernel\TransportePlano1;
 use Pluma\Pipeline\EstadoColaPublicacion;
 use Pluma\Pipeline\EstadoPieza;
 use Pluma\Pipeline\GestorHistorias;
@@ -217,6 +222,19 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		return $llamadasModelo;
 	}
 
+	private function almacenPerfilEntornoPermisivo(): AlmacenPerfilEntornoInterface {
+		$almacen = Mockery::mock( AlmacenPerfilEntornoInterface::class );
+		$almacen->allows( 'refrescar' )->andReturn(
+			new PerfilEntorno(
+				new HechosEntorno( false, 128, 90, false, false, false ),
+				TransportePlano1::Ninguno,
+				( new RelojFijo() )->ahora()
+			)
+		);
+
+		return $almacen;
+	}
+
 	private function piezasPermisivas(): RepositorioPiezasInterface {
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
@@ -326,7 +344,8 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			$overrides['gestorExperimentosTitular'] ?? $this->gestorExperimentosTitularPermisivo(),
 			$overrides['creadorAutomaticoPeriodistas'] ?? $this->creadorAutomaticoPeriodistasPermisivo( $piezas ),
 			$overrides['gestorSalaRevision'] ?? new GestorSalaRevision( $piezas, $colaPublicacion, $this->periodistasPermisivo(), new Transicionador( $piezas, $this->auditoriaPermisiva(), new RelojFijo() ) ),
-			$overrides['llamadasModelo'] ?? $this->llamadasModeloPermisivo()
+			$overrides['llamadasModelo'] ?? $this->llamadasModeloPermisivo(),
+			$overrides['almacenPerfilEntorno'] ?? $this->almacenPerfilEntornoPermisivo()
 		);
 	}
 
@@ -1269,6 +1288,36 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		self::assertTrue( $resultado['ejecutado'] );
 		self::assertNotEmpty(
 			array_filter( $resultado['errores'], static fn ( string $e ): bool => str_contains( $e, 'ranura 2' ) && str_contains( $e, 'el post ya no existe' ) )
+		);
+	}
+
+	public function test_cada_tick_refresca_el_perfil_de_entorno(): void {
+		$almacen = Mockery::mock( AlmacenPerfilEntornoInterface::class );
+		$almacen->expects( 'refrescar' )->once()->andReturn(
+			new PerfilEntorno(
+				new HechosEntorno( false, 128, 90, false, false, false ),
+				TransportePlano1::Ninguno,
+				( new RelojFijo() )->ahora()
+			)
+		);
+
+		$this->construir( array( 'almacenPerfilEntorno' => $almacen ) )->ejecutarTick();
+
+		$this->expectNotToPerformAssertions();
+	}
+
+	public function test_un_fallo_al_refrescar_el_perfil_de_entorno_se_registra_sin_detener_el_resto_del_tick(): void {
+		$almacen = Mockery::mock( AlmacenPerfilEntornoInterface::class );
+		$almacen->expects( 'refrescar' )->once()->andThrow( new RuntimeException( 'ini_get no disponible' ) );
+
+		$resultado = $this->construir( array( 'almacenPerfilEntorno' => $almacen ) )->ejecutarTick();
+
+		self::assertTrue( $resultado['ejecutado'] );
+		self::assertNotEmpty(
+			array_filter(
+				$resultado['errores'],
+				static fn ( string $e ): bool => str_contains( $e, 'sonda de capacidades' ) && str_contains( $e, 'ini_get no disponible' )
+			)
 		);
 	}
 

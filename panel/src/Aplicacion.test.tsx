@@ -12,6 +12,14 @@ function saludDeEjemplo(): DatosSalud {
         versionEsquemaPlugin: '0.7.0',
         cronRealConfigurado: true,
         esMultisitio: false,
+        sondaCapacidades: {
+            transportePrioritario: 'ninguno',
+            ffiDisponible: false,
+            procesoHijoDisponible: false,
+            cerebroRemotoConfigurado: false,
+            apiPagoConfigurada: false,
+            medidoEn: '2026-07-31T12:00:00+00:00',
+        },
         textos: {
             titulo: 'Sala de Máquinas — Salud del sistema',
             etiquetaPhp: 'PHP',
@@ -24,6 +32,21 @@ function saludDeEjemplo(): DatosSalud {
             etiquetaMultisitio: 'Multisitio',
             multisitioSi: 'Sí',
             multisitioNo: 'No',
+            sondaCapacidades: {
+                titulo: 'Sonda de Capacidades',
+                leyenda: 'Medición prospectiva del Plano Semántico, que todavía no existe.',
+                etiquetaTransporte: 'Transporte prioritario',
+                t1EnProceso: 'En proceso (T1)',
+                t2SidecarLocal: 'Sidecar local (T2)',
+                t3CerebroRemoto: 'Cerebro remoto (T3)',
+                ninguno: 'Ninguno — modo P0-lite',
+                etiquetaFfi: 'Extensión FFI',
+                etiquetaProcesoHijo: 'Proceso hijo disponible',
+                etiquetaCerebroRemoto: 'Cerebro remoto configurado',
+                etiquetaApiPago: 'API de pago configurada',
+                disponible: 'Disponible',
+                noDisponible: 'No disponible',
+            },
         },
     };
 }
@@ -402,6 +425,20 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
                 quitar: 'Quitar llave',
                 confirmarQuitar: '¿Quitar la llave?',
             },
+            cerebroRemoto: {
+                titulo: 'Cerebro remoto (T3)',
+                urlActual: 'URL actual',
+                campoUrl: 'URL del cerebro remoto',
+                campoToken: 'Token de autenticación',
+                guardar: 'Guardar',
+                probar: 'Probar cerebro remoto',
+                probando: 'Probando…',
+                valida: 'El cerebro remoto respondió correctamente.',
+                invalida: 'No se pudo alcanzar el cerebro remoto.',
+                cambiar: 'Cambiar',
+                quitar: 'Quitar',
+                confirmarQuitar: '¿Quitar la configuración del cerebro remoto?',
+            },
             searchConsole: {
                 titulo: 'Search Console',
                 cargando: 'Cargando…',
@@ -700,6 +737,7 @@ describe('Aplicacion', () => {
                                 limiteDiarioUsd: 5,
                                 openRouter: { configurada: false, ultimosCuatro: null, circuitoAbierto: false },
                                 googleTrends: { circuitoAbierto: false },
+                                cerebroRemoto: { configurada: false, url: null, ultimaPruebaOk: false },
                             }),
                     });
                 }
