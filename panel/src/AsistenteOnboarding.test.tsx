@@ -195,7 +195,6 @@ function textosBancoDeEjemplo(): TextosBancoPeriodistas {
         guardarCambios: 'Guardar cambios',
         clonar: 'Clonar',
         nombreDelClon: 'Nombre del clon',
-        respuestasHabilitadas: 'Responder comentarios automáticamente',
     };
 }
 
@@ -233,7 +232,6 @@ function detalleDeEjemplo(): DetallePeriodista {
             cultura_viral: { tipoNoticia: 'cultura_viral', tonoDominante: 'analitico', tonoApoyo: 'opinion', nivelSatira: 'no' },
             dato_economico: { tipoNoticia: 'dato_economico', tonoDominante: 'analitico', tonoApoyo: 'persuasivo', nivelSatira: 'no' },
         },
-        respuestasHabilitadas: false,
         metricas: { piezasPublicadas: 0, verticalesTop: [] },
         memoriaReciente: [],
         ventanaVetoExpiraEn: null,

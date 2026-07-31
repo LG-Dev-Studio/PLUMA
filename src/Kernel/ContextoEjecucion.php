@@ -21,8 +21,7 @@ use Pluma\Proveedores\OrigenLlamada;
  *
  * El valor por defecto es {@see OrigenLlamada::Visitante}: un camino de
  * ejecución que nadie declaró se cuenta como el peor caso, nunca se
- * subestima la exposición — es exactamente lo que hace medible la violación
- * de §5.1.4 ya presente en `CompuertaComentarios` (que nunca declara nada).
+ * subestima la exposición.
  */
 final class ContextoEjecucion {
 

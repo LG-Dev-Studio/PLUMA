@@ -23,7 +23,6 @@ use Pluma\Admin\RestOrquestador;
 use Pluma\Admin\RestMesaEditorial;
 use Pluma\Admin\RestPeriodistas;
 use Pluma\Admin\RestPortada;
-use Pluma\Admin\RestRespuestasComentarios;
 use Pluma\Admin\RestSalaMaquinas;
 use Pluma\Admin\RestSalaRevision;
 use Pluma\Admin\RestSalaTendencias;
@@ -33,10 +32,8 @@ use Pluma\Admin\RestImagenDestacada;
 use Pluma\Admin\RestModoRespeto;
 use Pluma\Admin\RestRiesgoLegal;
 use Pluma\Admin\RestTransparencia;
-use Pluma\Compuertas\ClasificadorComentarios;
 use Pluma\Compuertas\ClasificadorGravedadTendencia;
 use Pluma\Compuertas\CompuertaCalidad;
-use Pluma\Compuertas\CompuertaComentarios;
 use Pluma\Compuertas\CompuertaOriginalidad;
 use Pluma\Compuertas\CompuertaRiesgo;
 use Pluma\Compuertas\EvaluadorCompuertas;
@@ -79,8 +76,6 @@ use Pluma\Datos\RepositorioPeriodistas;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezas;
 use Pluma\Datos\RepositorioPiezasInterface;
-use Pluma\Datos\RepositorioRespuestasComentarios;
-use Pluma\Datos\RepositorioRespuestasComentariosInterface;
 use Pluma\Datos\RepositorioTendencias;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabulario;
@@ -94,7 +89,6 @@ use Pluma\Investigacion\SelectorImagenPorAutoridad;
 use Pluma\Investigacion\VerificadorProcedenciaDeclaracion;
 use Pluma\Pipeline\GestorCalendarioEditorial;
 use Pluma\Pipeline\GestorHistorias;
-use Pluma\Pipeline\GestorRespuestasComentarios;
 use Pluma\Pipeline\GestorSalaRevision;
 use Pluma\Pipeline\GestorSalaTendencias;
 use Pluma\Pipeline\LectorConfiguracionCadencia;
@@ -129,16 +123,11 @@ use Pluma\Publicacion\GestorCorrecciones;
 use Pluma\Publicacion\GestorPistas;
 use Pluma\Publicacion\GestorDerivadosSociales;
 use Pluma\Publicacion\GestorSuscripciones;
-use Pluma\Publicacion\LectorComentarios;
-use Pluma\Publicacion\LectorComentariosInterface;
 use Pluma\Publicacion\NotificadorSuscripciones;
 use Pluma\Publicacion\WidgetSuscripcionPush;
 use Pluma\Publicacion\Publicador;
-use Pluma\Publicacion\PublicadorComentario;
-use Pluma\Publicacion\PublicadorComentarioInterface;
 use Pluma\Publicacion\PublicadorInterface;
 use Pluma\Redaccion\AgrupadorTemasSinCobertura;
-use Pluma\Redaccion\AnalizadorAudiencia;
 use Pluma\Redaccion\AsignadorPeriodista;
 use Pluma\Redaccion\AvisoTransparenciaIa;
 use Pluma\Redaccion\ClasificadorNoticia;
@@ -152,7 +141,6 @@ use Pluma\Redaccion\GeneradorBloqueEditor;
 use Pluma\Redaccion\GeneradorBoletin;
 use Pluma\Redaccion\GeneradorDerivadoSocial;
 use Pluma\Redaccion\GeneradorEsqueleto;
-use Pluma\Redaccion\GeneradorRespuestaComentario;
 use Pluma\Redaccion\GeneradorTitularAlternativo;
 use Pluma\Redaccion\GeneradorVistaPrevia;
 use Pluma\Redaccion\ImportadorBancoPeriodistas;
@@ -162,7 +150,6 @@ use Pluma\Redaccion\RedactorMecanico;
 use Pluma\Redaccion\RedactorSintetico;
 use Pluma\Redaccion\SegmentadorUnidadesFactuales;
 use Pluma\Redaccion\SelectorAngulo;
-use Pluma\Redaccion\VerificadorComentarioSustantivo;
 use Pluma\Redaccion\VerificadorFalseabilidad;
 use Pluma\Redaccion\VerificadorNGramas;
 use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
@@ -321,11 +308,6 @@ final class Nucleo {
 				$c->obtener( RepositorioPiezasInterface::class )
 			)
 		);
-		$this->contenedor->registrar(
-			RepositorioRespuestasComentariosInterface::class,
-			fn ( Contenedor $c ): RepositorioRespuestasComentarios => new RepositorioRespuestasComentarios( $c->obtener( 'wpdb' ) )
-		);
-
 		$this->contenedor->registrar(
 			Transicionador::class,
 			fn ( Contenedor $c ): Transicionador => new Transicionador(
@@ -630,17 +612,6 @@ final class Nucleo {
 		$this->contenedor->registrar( CompuertaOriginalidad::class, static fn (): CompuertaOriginalidad => new CompuertaOriginalidad() );
 		$this->contenedor->registrar( GestorDegradacion::class, static fn (): GestorDegradacion => new GestorDegradacion() );
 		$this->contenedor->registrar(
-			ClasificadorComentarios::class,
-			fn ( Contenedor $c ): ClasificadorComentarios => new ClasificadorComentarios(
-				$c->obtener( LenguajeInterface::class ),
-				$c->obtener( PresupuestoLenguaje::class )
-			)
-		);
-		$this->contenedor->registrar(
-			CompuertaComentarios::class,
-			fn ( Contenedor $c ): CompuertaComentarios => new CompuertaComentarios( $c->obtener( ClasificadorComentarios::class ) )
-		);
-		$this->contenedor->registrar(
 			EvaluadorCompuertas::class,
 			fn ( Contenedor $c ): EvaluadorCompuertas => new EvaluadorCompuertas(
 				$c->obtener( CompuertaCalidad::class ),
@@ -671,20 +642,6 @@ final class Nucleo {
 				$c->obtener( LenguajeInterface::class ),
 				$c->obtener( PresupuestoLenguaje::class )
 			)
-		);
-		$this->contenedor->registrar( LectorComentariosInterface::class, static fn (): LectorComentarios => new LectorComentarios() );
-		$this->contenedor->registrar( PublicadorComentarioInterface::class, static fn (): PublicadorComentario => new PublicadorComentario() );
-		$this->contenedor->registrar( VerificadorComentarioSustantivo::class, static fn (): VerificadorComentarioSustantivo => new VerificadorComentarioSustantivo() );
-		$this->contenedor->registrar(
-			AnalizadorAudiencia::class,
-			fn ( Contenedor $c ): AnalizadorAudiencia => new AnalizadorAudiencia(
-				$c->obtener( LenguajeInterface::class ),
-				$c->obtener( PresupuestoLenguaje::class )
-			)
-		);
-		$this->contenedor->registrar(
-			GeneradorRespuestaComentario::class,
-			fn ( Contenedor $c ): GeneradorRespuestaComentario => new GeneradorRespuestaComentario( $c->obtener( LenguajeInterface::class ) )
 		);
 		$this->contenedor->registrar(
 			GeneradorBoletin::class,
@@ -760,12 +717,6 @@ final class Nucleo {
 				$c->obtener( CreadorBorradorInterface::class ),
 				$c->obtener( PublicadorInterface::class ),
 				$c->obtener( ComparadorHistorias::class ),
-				$c->obtener( LectorComentariosInterface::class ),
-				$c->obtener( AnalizadorAudiencia::class ),
-				$c->obtener( GeneradorRespuestaComentario::class ),
-				$c->obtener( VerificadorComentarioSustantivo::class ),
-				$c->obtener( RepositorioMemoriaEditorialInterface::class ),
-				$c->obtener( RepositorioRespuestasComentariosInterface::class ),
 				$c->obtener( RepositorioPeriodistasInterface::class ),
 				$c->obtener( RelojInterface::class ),
 				$c->obtener( ResolutorDisputas::class ),
@@ -912,21 +863,6 @@ final class Nucleo {
 		);
 
 		$this->contenedor->registrar(
-			GestorRespuestasComentarios::class,
-			fn ( Contenedor $c ): GestorRespuestasComentarios => new GestorRespuestasComentarios(
-				$c->obtener( RepositorioRespuestasComentariosInterface::class ),
-				$c->obtener( RepositorioPiezasInterface::class ),
-				$c->obtener( RepositorioPeriodistasInterface::class ),
-				$c->obtener( PublicadorComentarioInterface::class ),
-				$c->obtener( RelojInterface::class )
-			)
-		);
-		$this->contenedor->registrar(
-			RestRespuestasComentarios::class,
-			fn ( Contenedor $c ): RestRespuestasComentarios => new RestRespuestasComentarios( $c->obtener( GestorRespuestasComentarios::class ) )
-		);
-
-		$this->contenedor->registrar(
 			RestMesaEditorial::class,
 			fn ( Contenedor $c ): RestMesaEditorial => new RestMesaEditorial(
 				$c->obtener( RepositorioPiezasInterface::class ),
@@ -945,7 +881,6 @@ final class Nucleo {
 				$c->obtener( RepositorioTendenciasInterface::class ),
 				$c->obtener( RepositorioColaPublicacionInterface::class ),
 				$c->obtener( RepositorioBitacoraInterface::class ),
-				$c->obtener( RepositorioRespuestasComentariosInterface::class ),
 				$c->obtener( LectorConfiguracionCadencia::class ),
 				$c->obtener( PresupuestoLenguaje::class ),
 				$c->obtener( RelojInterface::class )
@@ -1049,8 +984,6 @@ final class Nucleo {
 				$c->obtener( RepositorioPiezasInterface::class ),
 				$c->obtener( RepositorioTendenciasInterface::class ),
 				$c->obtener( RepositorioBitacoraInterface::class ),
-				$c->obtener( RepositorioRespuestasComentariosInterface::class ),
-				$c->obtener( RepositorioMemoriaEditorialInterface::class ),
 				$c->obtener( RepositorioPeriodistasInterface::class ),
 				$c->obtener( RelojInterface::class )
 			)
@@ -1160,7 +1093,6 @@ final class Nucleo {
 		$this->contenedor->obtener( RestEstudioSeo::class )->registrar();
 		$this->contenedor->obtener( RestOnboarding::class )->registrar();
 		$this->contenedor->obtener( RestSearchConsole::class )->registrar();
-		$this->contenedor->obtener( RestRespuestasComentarios::class )->registrar();
 		$this->contenedor->obtener( RestInformesEditoriales::class )->registrar();
 		$this->contenedor->obtener( RestTransparencia::class )->registrar();
 		$this->contenedor->obtener( RestRiesgoLegal::class )->registrar();
@@ -1171,6 +1103,5 @@ final class Nucleo {
 		$this->contenedor->obtener( PaginaMetodologia::class )->registrar();
 		$this->contenedor->obtener( PaginaHistorialCorrecciones::class )->registrar();
 		$this->contenedor->obtener( SitemapNoticias::class )->registrar();
-		$this->contenedor->obtener( CompuertaComentarios::class )->registrar();
 	}
 }

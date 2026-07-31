@@ -70,10 +70,7 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 		);
 
 		$periodistaId = (int) $this->wpdb->insert_id;
-		// Un periodista nuevo/clonado nunca arranca respondiendo comentarios
-		// automáticamente (decisión del propietario, 2026-07-23) — el editor
-		// lo activa explícitamente después, vía `nuevaVersionConducta()`.
-		$versionId = $this->insertarVersion( $periodistaId, $diales, $reglas, $matrizTonos, false, $ahora );
+		$versionId    = $this->insertarVersion( $periodistaId, $diales, $reglas, $matrizTonos, $ahora );
 
 		$this->wpdb->update(
 			$this->tablaPeriodistas(),
@@ -139,10 +136,9 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 		Diales $diales,
 		ReglasConducta $reglas,
 		MatrizTonos $matrizTonos,
-		bool $respuestasHabilitadas,
 		DateTimeImmutable $ahora
 	): int {
-		$versionId = $this->insertarVersion( $periodistaId, $diales, $reglas, $matrizTonos, $respuestasHabilitadas, $ahora );
+		$versionId = $this->insertarVersion( $periodistaId, $diales, $reglas, $matrizTonos, $ahora );
 
 		$this->wpdb->update(
 			$this->tablaPeriodistas(),
@@ -282,20 +278,18 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 		Diales $diales,
 		ReglasConducta $reglas,
 		MatrizTonos $matrizTonos,
-		bool $respuestasHabilitadas,
 		DateTimeImmutable $ahora
 	): int {
 		$this->wpdb->insert(
 			$this->tablaVersiones(),
 			array(
-				'periodista_id'          => $periodistaId,
-				'diales'                 => wp_json_encode( $diales->aArray() ),
-				'reglas_conducta'        => wp_json_encode( $reglas->aArray() ),
-				'matriz_tonos'           => wp_json_encode( $matrizTonos->aArray() ),
-				'respuestas_habilitadas' => $respuestasHabilitadas ? 1 : 0,
-				'creada_en'              => $ahora->format( 'Y-m-d H:i:s' ),
+				'periodista_id'   => $periodistaId,
+				'diales'          => wp_json_encode( $diales->aArray() ),
+				'reglas_conducta' => wp_json_encode( $reglas->aArray() ),
+				'matriz_tonos'    => wp_json_encode( $matrizTonos->aArray() ),
+				'creada_en'       => $ahora->format( 'Y-m-d H:i:s' ),
 			),
-			array( '%d', '%s', '%s', '%s', '%d', '%s' )
+			array( '%d', '%s', '%s', '%s', '%s' )
 		);
 
 		return (int) $this->wpdb->insert_id;
@@ -346,7 +340,6 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 			Diales::desdeArray( $dialesJson ),
 			ReglasConducta::desdeArray( $reglasJson ),
 			MatrizTonos::desdeArray( $matrizJson ),
-			(bool) $fila['respuestas_habilitadas'],
 			new DateTimeImmutable( (string) $fila['creada_en'] )
 		);
 	}

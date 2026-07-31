@@ -120,22 +120,6 @@ final class RepositorioPiezas implements RepositorioPiezasInterface {
 		return null !== $fila ? $this->filaAPieza( $fila ) : null;
 	}
 
-	public function obtenerPublicadasParaSincronizarComentarios( int $diasVentana, int $limite, DateTimeImmutable $ahora ): array {
-		$sql = $this->wpdb->prepare(
-			"SELECT * FROM {$this->tabla()} WHERE estado = %s AND post_id IS NOT NULL AND actualizada_en >= DATE_SUB(%s, INTERVAL %d DAY) ORDER BY actualizada_en DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type
-			EstadoPieza::Publicada->value,
-			$ahora->format( 'Y-m-d H:i:s' ),
-			$diasVentana,
-			$limite
-		);
-		assert( null !== $sql );
-
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql ya se construyó con $wpdb->prepare() arriba.
-		$filas = $this->wpdb->get_results( $sql, ARRAY_A );
-
-		return array_map( fn ( array $fila ): Pieza => $this->filaAPieza( $fila ), $filas ?? array() );
-	}
-
 	public function obtenerPorEstado( EstadoPieza $estado, int $limite ): array {
 		$sql = $this->wpdb->prepare(
 			"SELECT * FROM {$this->tabla()} WHERE estado = %s ORDER BY prioridad DESC, actualizada_en ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tabla interna. @phpstan-ignore-line argument.type

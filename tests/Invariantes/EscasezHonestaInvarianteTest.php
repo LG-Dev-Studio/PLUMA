@@ -25,7 +25,6 @@ use Pluma\Datos\RepositorioLlamadasModeloInterface;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
-use Pluma\Datos\RepositorioRespuestasComentariosInterface;
 use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabularioInterface;
@@ -41,15 +40,11 @@ use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
 use Pluma\Publicacion\CreadorBorradorInterface;
-use Pluma\Publicacion\LectorComentariosInterface;
 use Pluma\Publicacion\PublicadorInterface;
 use Pluma\Redaccion\AgrupadorTemasSinCobertura;
-use Pluma\Redaccion\AnalizadorAudiencia;
 use Pluma\Redaccion\CreadorAutomaticoPeriodistas;
-use Pluma\Redaccion\GeneradorRespuestaComentario;
 use Pluma\Redaccion\GeneradorTitularAlternativo;
 use Pluma\Redaccion\RedactorInterface;
-use Pluma\Redaccion\VerificadorComentarioSustantivo;
 use Pluma\Sensores\ComparadorHistorias;
 use Pluma\Datos\RepositorioHistoriasInterface;
 use Pluma\Pipeline\GestorHistorias;
@@ -104,7 +99,6 @@ final class EscasezHonestaInvarianteTest extends CasoDePruebaUnitario {
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 
 		$sensor = Mockery::mock( SensorInterface::class );
 		$sensor->allows( 'detectar' )->andReturn( array() );
@@ -156,12 +150,6 @@ final class EscasezHonestaInvarianteTest extends CasoDePruebaUnitario {
 			Mockery::mock( CreadorBorradorInterface::class ),
 			Mockery::mock( PublicadorInterface::class ),
 			new ComparadorHistorias( Mockery::mock( LenguajeInterface::class ), new PresupuestoLenguaje( new RelojFijo() ) ),
-			Mockery::mock( LectorComentariosInterface::class )->allows( 'obtenerAprobadosDe' )->andReturn( array() )->getMock(),
-			new AnalizadorAudiencia( Mockery::mock( LenguajeInterface::class ), new PresupuestoLenguaje( new RelojFijo() ) ),
-			new GeneradorRespuestaComentario( Mockery::mock( LenguajeInterface::class ) ),
-			new VerificadorComentarioSustantivo(),
-			Mockery::mock( RepositorioMemoriaEditorialInterface::class ),
-			Mockery::mock( RepositorioRespuestasComentariosInterface::class ),
 			Mockery::mock( RepositorioPeriodistasInterface::class )->allows( 'obtenerPropuestos' )->andReturn( array() )->getMock(),
 			new RelojFijo(),
 			new ResolutorDisputas( Mockery::mock( LenguajeInterface::class ) ),

@@ -141,18 +141,16 @@ final class RepositoriosPeriodistasTest extends WP_UnitTestCase {
 		$primeraVersionId = $repo->obtenerPorId( $id )->conductaActual->id;
 
 		$dialesNuevos     = new Diales( 90, 55, 40, 60, 65, 50, 70, 50 );
-		$segundaVersionId = $repo->nuevaVersionConducta( $id, $dialesNuevos, $this->reglasDePrueba(), $this->matrizDePrueba(), true, $reloj->ahora() );
+		$segundaVersionId = $repo->nuevaVersionConducta( $id, $dialesNuevos, $this->reglasDePrueba(), $this->matrizDePrueba(), $reloj->ahora() );
 
 		self::assertNotSame( $primeraVersionId, $segundaVersionId );
 
 		$versionVieja = $repo->obtenerVersionConducta( $primeraVersionId );
 		self::assertNotNull( $versionVieja );
 		self::assertSame( 80, $versionVieja->diales->agudezaCritica, 'La versión vieja debe seguir intacta.' );
-		self::assertFalse( $versionVieja->respuestasHabilitadas, 'Un periodista nuevo/clonado nunca arranca respondiendo comentarios automáticamente.' );
 
 		$periodistaActualizado = $repo->obtenerPorId( $id );
 		self::assertSame( 90, $periodistaActualizado->conductaActual->diales->agudezaCritica );
-		self::assertTrue( $periodistaActualizado->conductaActual->respuestasHabilitadas, 'La nueva versión debe reflejar el respuestasHabilitadas que se pidió activar.' );
 	}
 
 	public function test_jubilar_saca_al_periodista_de_los_activos(): void {

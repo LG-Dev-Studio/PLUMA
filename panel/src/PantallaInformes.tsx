@@ -28,13 +28,6 @@ export interface DatosInformeEditorial {
         lotesProcesados: number;
         ejecucionesConErrores: number;
     };
-    audiencia: {
-        comentariosProcesados: number;
-        aprendizajesRegistrados: number;
-        sentimiento: { positivo: number; negativo: number; mixto: number; neutral: number };
-        respuestasAprobadas: number;
-        respuestasDescartadas: number;
-    };
 }
 
 export interface TextosInformes {
@@ -66,18 +59,6 @@ export interface TextosInformes {
         ejecuciones: string;
         lotesProcesados: string;
         ejecucionesConErrores: string;
-    };
-    audiencia: {
-        titulo: string;
-        comentariosProcesados: string;
-        aprendizajesRegistrados: string;
-        sentimiento: string;
-        positivo: string;
-        negativo: string;
-        mixto: string;
-        neutral: string;
-        respuestasAprobadas: string;
-        respuestasDescartadas: string;
     };
 }
 
@@ -216,47 +197,6 @@ export function PantallaInformes({ restUrl, nonce, textos }: Props) {
                     <div>
                         <dt>{textos.motor.ejecucionesConErrores}</dt>
                         <dd>{informe.motor.ejecucionesConErrores}</dd>
-                    </div>
-                </dl>
-            </section>
-
-            <section className="pluma-informes__seccion" aria-label={textos.audiencia.titulo}>
-                <h2>{textos.audiencia.titulo}</h2>
-                <dl className="pluma-informes__contadores">
-                    <div>
-                        <dt>{textos.audiencia.comentariosProcesados}</dt>
-                        <dd>{informe.audiencia.comentariosProcesados}</dd>
-                    </div>
-                    <div>
-                        <dt>{textos.audiencia.aprendizajesRegistrados}</dt>
-                        <dd>{informe.audiencia.aprendizajesRegistrados}</dd>
-                    </div>
-                    <div>
-                        <dt>{textos.audiencia.respuestasAprobadas}</dt>
-                        <dd>{informe.audiencia.respuestasAprobadas}</dd>
-                    </div>
-                    <div>
-                        <dt>{textos.audiencia.respuestasDescartadas}</dt>
-                        <dd>{informe.audiencia.respuestasDescartadas}</dd>
-                    </div>
-                </dl>
-                <h3>{textos.audiencia.sentimiento}</h3>
-                <dl className="pluma-informes__contadores">
-                    <div>
-                        <dt>{textos.audiencia.positivo}</dt>
-                        <dd>{informe.audiencia.sentimiento.positivo}</dd>
-                    </div>
-                    <div>
-                        <dt>{textos.audiencia.negativo}</dt>
-                        <dd>{informe.audiencia.sentimiento.negativo}</dd>
-                    </div>
-                    <div>
-                        <dt>{textos.audiencia.mixto}</dt>
-                        <dd>{informe.audiencia.sentimiento.mixto}</dd>
-                    </div>
-                    <div>
-                        <dt>{textos.audiencia.neutral}</dt>
-                        <dd>{informe.audiencia.sentimiento.neutral}</dd>
                     </div>
                 </dl>
             </section>

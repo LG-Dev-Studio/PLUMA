@@ -7,10 +7,8 @@ namespace Pluma\Tests\Integration;
 use DateTimeImmutable;
 use Pluma\Admin\RestInformesEditoriales;
 use Pluma\Datos\RepositorioBitacora;
-use Pluma\Datos\RepositorioMemoriaEditorial;
 use Pluma\Datos\RepositorioPeriodistas;
 use Pluma\Datos\RepositorioPiezas;
-use Pluma\Datos\RepositorioRespuestasComentarios;
 use Pluma\Datos\RepositorioTendencias;
 use Pluma\Kernel\Activador;
 use Pluma\Kernel\Nucleo;
@@ -22,14 +20,12 @@ use Pluma\Redaccion\Diales;
 use Pluma\Redaccion\EntradaMatrizTono;
 use Pluma\Redaccion\EsqueletoPieza;
 use Pluma\Redaccion\EstadoPeriodista;
-use Pluma\Redaccion\EstadoRespuestaComentario;
 use Pluma\Redaccion\FichaDecisionEditorial;
 use Pluma\Redaccion\MatrizTonos;
 use Pluma\Redaccion\NivelSatiraPermitida;
 use Pluma\Redaccion\NovedadNoticia;
 use Pluma\Redaccion\ReglasConducta;
 use Pluma\Redaccion\RolPeriodista;
-use Pluma\Redaccion\TipoMemoria;
 use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\TratamientoLector;
@@ -84,8 +80,6 @@ final class RestInformesEditorialesTest extends WP_UnitTestCase {
 		$repoPiezas      = new RepositorioPiezas( $wpdb );
 		$repoPeriodistas = new RepositorioPeriodistas( $wpdb );
 		$repoBitacora    = new RepositorioBitacora( $wpdb );
-		$repoRespuestas  = new RepositorioRespuestasComentarios( $wpdb );
-		$repoMemoria     = new RepositorioMemoriaEditorial( $wpdb );
 		$reloj           = new RelojSistema();
 		$ahora           = $reloj->ahora();
 
@@ -124,21 +118,6 @@ final class RestInformesEditorialesTest extends WP_UnitTestCase {
 		$bitacoraId = $repoBitacora->iniciarEjecucion( $ahora );
 		$repoBitacora->finalizarEjecucion( $bitacoraId, $ahora, 2, array( 'fallo de proveedor' ) );
 
-		// Memoria de audiencia + una respuesta aprobada esta semana.
-		$repoMemoria->registrar(
-			$periodistaId,
-			TipoMemoria::Audiencia,
-			'economia',
-			array(
-				'resumen'     => 'x',
-				'sentimiento' => 'positivo',
-			),
-			$piezaPublicadaId,
-			$ahora
-		);
-		$respuestaId = $repoRespuestas->registrar( $piezaPublicadaId, random_int( 1000000, 9999999 ), $periodistaId, 'borrador', EstadoRespuestaComentario::PendienteAprobacion, $ahora );
-		$repoRespuestas->marcarResuelta( $respuestaId, EstadoRespuestaComentario::Aprobado, random_int( 1000000, 9999999 ), $ahora );
-
 		$this->registrarRuta();
 
 		$respuesta = rest_get_server()->dispatch( new WP_REST_Request( 'GET', '/pluma/v1/panel/informes' ) );
@@ -164,11 +143,5 @@ final class RestInformesEditorialesTest extends WP_UnitTestCase {
 		self::assertGreaterThanOrEqual( 1, $datos['motor']['ejecuciones'] );
 		self::assertGreaterThanOrEqual( 2, $datos['motor']['lotesProcesados'] );
 		self::assertGreaterThanOrEqual( 1, $datos['motor']['ejecucionesConErrores'] );
-
-		self::assertGreaterThanOrEqual( 1, $datos['audiencia']['comentariosProcesados'] );
-		self::assertGreaterThanOrEqual( 1, $datos['audiencia']['aprendizajesRegistrados'] );
-		self::assertGreaterThanOrEqual( 1, $datos['audiencia']['sentimiento']['positivo'] );
-		self::assertGreaterThanOrEqual( 1, $datos['audiencia']['respuestasAprobadas'] );
-		self::assertSame( 0, $datos['audiencia']['respuestasDescartadas'] );
 	}
 }

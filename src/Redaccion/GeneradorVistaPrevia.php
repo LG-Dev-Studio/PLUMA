@@ -67,7 +67,7 @@ final class GeneradorVistaPrevia {
 			$periodista->rol,
 			$periodista->especialidades,
 			$periodista->estado,
-			new ConductaVersion( 0, $periodista->id, $dialesCandidatos, $reglasCandidatas, $matrizCandidata, false, new DateTimeImmutable() ),
+			new ConductaVersion( 0, $periodista->id, $dialesCandidatos, $reglasCandidatas, $matrizCandidata, new DateTimeImmutable() ),
 			$periodista->creadoEn,
 			$periodista->actualizadoEn,
 			$periodista->localeEditorial

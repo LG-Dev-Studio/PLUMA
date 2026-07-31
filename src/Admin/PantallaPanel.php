@@ -135,7 +135,6 @@ final class PantallaPanel {
 			'textosSalaRevision'        => $this->textosSalaRevision(),
 			'textosSalaMaquinas'        => $this->textosSalaMaquinas(),
 			'textosEstudioSeo'          => $this->textosEstudioSeo(),
-			'textosComentarios'         => $this->textosComentarios(),
 			'textosInformes'            => $this->textosInformesEditoriales(),
 			// Sin credenciales de IA toda Pieza muere en investigación
 			// (`PLUMA-E9-19`): el panel lo avisa en vez de dejar que el editor
@@ -178,18 +177,18 @@ final class PantallaPanel {
 	 */
 	private function textosPortada(): array {
 		return array(
-			'titulo'                        => __( 'Portada', 'pluma-engine' ),
-			'navPortada'                    => __( 'Portada', 'pluma-engine' ),
-			'navSalud'                      => __( 'Configuración', 'pluma-engine' ),
-			'cronNoConfigurado'             => __( 'El motor lleva horas sin ejecutarse: las piezas no avanzarán por su cuenta. Comprueba que el cron real de tu servidor esté llamando a PLUMA, o ejecuta un ciclo a mano desde la pestaña Configuración.', 'pluma-engine' ),
-			'cargando'                      => __( 'Cargando…', 'pluma-engine' ),
-			'errorCarga'                    => __( 'No se pudo cargar la Portada. Reintenta en unos segundos.', 'pluma-engine' ),
-			'modo'                          => array(
+			'titulo'            => __( 'Portada', 'pluma-engine' ),
+			'navPortada'        => __( 'Portada', 'pluma-engine' ),
+			'navSalud'          => __( 'Configuración', 'pluma-engine' ),
+			'cronNoConfigurado' => __( 'El motor lleva horas sin ejecutarse: las piezas no avanzarán por su cuenta. Comprueba que el cron real de tu servidor esté llamando a PLUMA, o ejecuta un ciclo a mano desde la pestaña Configuración.', 'pluma-engine' ),
+			'cargando'          => __( 'Cargando…', 'pluma-engine' ),
+			'errorCarga'        => __( 'No se pudo cargar la Portada. Reintenta en unos segundos.', 'pluma-engine' ),
+			'modo'              => array(
 				'piloto'   => __( 'Piloto', 'pluma-engine' ),
 				'copiloto' => __( 'Copiloto', 'pluma-engine' ),
 				'autonomo' => __( 'Autónomo', 'pluma-engine' ),
 			),
-			'cuota'                         => array(
+			'cuota'             => array(
 				'titulo'             => __( 'Cuota de hoy', 'pluma-engine' ),
 				'publicadas'         => __( 'publicadas', 'pluma-engine' ),
 				'programadas'        => __( 'programadas', 'pluma-engine' ),
@@ -198,7 +197,7 @@ final class PantallaPanel {
 				'sinProximo'         => __( 'sin ranuras programadas pendientes', 'pluma-engine' ),
 				'deficit'            => __( 'Déficit de cuota: por debajo del mínimo configurado', 'pluma-engine' ),
 			),
-			'salud'                         => array(
+			'salud'             => array(
 				'titulo'          => __( 'Salud del motor', 'pluma-engine' ),
 				'ultimaEjecucion' => __( 'Última ejecución', 'pluma-engine' ),
 				'nunca'           => __( 'el motor no se ha ejecutado todavía', 'pluma-engine' ),
@@ -206,11 +205,11 @@ final class PantallaPanel {
 				'deLimite'        => __( 'de', 'pluma-engine' ),
 				'errores'         => __( 'con errores en la última ejecución', 'pluma-engine' ),
 			),
-			'pipeline'                      => array(
+			'pipeline'          => array(
 				'titulo'  => __( 'Piezas en el pipeline', 'pluma-engine' ),
 				'estados' => $this->etiquetasEstados(),
 			),
-			'alertas'                       => array(
+			'alertas'           => array(
 				'titulo'                   => __( 'Alertas', 'pluma-engine' ),
 				'retenidas'                => __( 'Retenidas esperando decisión', 'pluma-engine' ),
 				'fallidas'                 => __( 'Fallidas', 'pluma-engine' ),
@@ -219,27 +218,10 @@ final class PantallaPanel {
 				'sinFallidas'              => __( 'ninguna pieza fallida', 'pluma-engine' ),
 				'sinPeriodistaIdoneoVacio' => __( 'ninguna pieza sin periodista idóneo', 'pluma-engine' ),
 			),
-			'tendencias'                    => array(
+			'tendencias'        => array(
 				'titulo' => __( 'Tendencias calientes ahora', 'pluma-engine' ),
 				'vacio'  => __( 'todavía no se ha detectado ninguna tendencia', 'pluma-engine' ),
 			),
-			'borradoresRespuestaPendientes' => __( 'Borradores de respuesta esperando aprobación', 'pluma-engine' ),
-		);
-	}
-
-	/**
-	 * @return array<string, string>
-	 */
-	private function textosComentarios(): array {
-		return array(
-			'titulo'      => __( 'Sala de Comentarios', 'pluma-engine' ),
-			'cargando'    => __( 'Cargando…', 'pluma-engine' ),
-			'errorCarga'  => __( 'No se pudo cargar la Sala de Comentarios. Reintenta en unos segundos.', 'pluma-engine' ),
-			'errorAccion' => __( 'La acción no se pudo completar. Reintenta en unos segundos.', 'pluma-engine' ),
-			'vacio'       => __( 'no hay borradores de respuesta pendientes de aprobación', 'pluma-engine' ),
-			'borrador'    => __( 'Borrador de respuesta', 'pluma-engine' ),
-			'aprobar'     => __( 'Aprobar', 'pluma-engine' ),
-			'descartar'   => __( 'Descartar', 'pluma-engine' ),
 		);
 	}
 
@@ -276,18 +258,6 @@ final class PantallaPanel {
 				'ejecuciones'           => __( 'Ejecuciones', 'pluma-engine' ),
 				'lotesProcesados'       => __( 'Lotes procesados', 'pluma-engine' ),
 				'ejecucionesConErrores' => __( 'Ejecuciones con errores', 'pluma-engine' ),
-			),
-			'audiencia'  => array(
-				'titulo'                  => __( 'Audiencia esta semana', 'pluma-engine' ),
-				'comentariosProcesados'   => __( 'Comentarios procesados', 'pluma-engine' ),
-				'aprendizajesRegistrados' => __( 'Aprendizajes registrados', 'pluma-engine' ),
-				'sentimiento'             => __( 'Sentimiento de los comentarios', 'pluma-engine' ),
-				'positivo'                => __( 'Positivo', 'pluma-engine' ),
-				'negativo'                => __( 'Negativo', 'pluma-engine' ),
-				'mixto'                   => __( 'Mixto', 'pluma-engine' ),
-				'neutral'                 => __( 'Neutral', 'pluma-engine' ),
-				'respuestasAprobadas'     => __( 'Respuestas aprobadas', 'pluma-engine' ),
-				'respuestasDescartadas'   => __( 'Respuestas descartadas', 'pluma-engine' ),
 			),
 		);
 	}

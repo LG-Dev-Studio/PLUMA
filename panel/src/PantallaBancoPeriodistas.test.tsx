@@ -119,7 +119,6 @@ function textosDeEjemplo(): TextosBancoPeriodistas {
         guardarCambios: 'Guardar cambios',
         clonar: 'Clonar',
         nombreDelClon: 'Nombre del nuevo periodista clonado',
-        respuestasHabilitadas: 'Responder comentarios automáticamente',
     };
 }
 
@@ -282,7 +281,6 @@ describe('PantallaBancoPeriodistas', () => {
                 estiloPreguntaFinal: '',
             },
             matrizTonos: {},
-            respuestasHabilitadas: false,
             metricas: { piezasPublicadas: 0, verticalesTop: [] },
             memoriaReciente: [],
             ventanaVetoExpiraEn: null,

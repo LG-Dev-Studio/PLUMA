@@ -40,7 +40,6 @@ function textosDeEjemplo(): TextosPortada {
             sinPeriodistaIdoneoVacio: 'ninguna pieza sin periodista idóneo',
         },
         tendencias: { titulo: 'Tendencias calientes ahora', vacio: 'todavía no se ha detectado ninguna tendencia' },
-        borradoresRespuestaPendientes: 'Borradores de respuesta esperando aprobación',
     };
 }
 
@@ -64,7 +63,6 @@ function portadaDeEjemplo(sobrescribir: Partial<DatosPortada> = {}): DatosPortad
         piezasPorEstado: {},
         alertas: { retenidas: [], fallidas: [], sinPeriodistaIdoneo: [] },
         tendenciasCalientes: [],
-        borradoresRespuestaPendientes: 0,
         ...sobrescribir,
     };
 }

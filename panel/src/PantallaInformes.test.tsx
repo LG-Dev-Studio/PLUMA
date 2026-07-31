@@ -33,18 +33,6 @@ function textosDeEjemplo(): TextosInformes {
             lotesProcesados: 'Lotes procesados',
             ejecucionesConErrores: 'Ejecuciones con errores',
         },
-        audiencia: {
-            titulo: 'Audiencia esta semana',
-            comentariosProcesados: 'Comentarios procesados',
-            aprendizajesRegistrados: 'Aprendizajes registrados',
-            sentimiento: 'Sentimiento de los comentarios',
-            positivo: 'Positivo',
-            negativo: 'Negativo',
-            mixto: 'Mixto',
-            neutral: 'Neutral',
-            respuestasAprobadas: 'Respuestas aprobadas',
-            respuestasDescartadas: 'Respuestas descartadas',
-        },
     };
 }
 
@@ -60,13 +48,6 @@ function informeDeEjemplo(sobrescribir: Partial<DatosInformeEditorial> = {}): Da
         },
         tendencias: { enPipeline: 3, posibleActualizacion: 1, ignoradas: 2, vigiladas: 0, sospechaManipulacion: 0 },
         motor: { ejecuciones: 10, lotesProcesados: 20, ejecucionesConErrores: 1 },
-        audiencia: {
-            comentariosProcesados: 8,
-            aprendizajesRegistrados: 6,
-            sentimiento: { positivo: 3, negativo: 1, mixto: 1, neutral: 1 },
-            respuestasAprobadas: 2,
-            respuestasDescartadas: 1,
-        },
         ...sobrescribir,
     };
 }
@@ -92,7 +73,7 @@ describe('PantallaInformes', () => {
         expect(screen.getByText('economia')).toBeInTheDocument();
     });
 
-    it('muestra los contadores de tendencias, motor y audiencia', async () => {
+    it('muestra los contadores de tendencias y motor', async () => {
         stubFetchConInforme(informeDeEjemplo());
 
         render(<PantallaInformes restUrl="https://ejemplo.test/wp-json/" nonce="n" textos={textosDeEjemplo()} />);
@@ -101,8 +82,6 @@ describe('PantallaInformes', () => {
 
         expect(screen.getByText('En el pipeline').nextElementSibling).toHaveTextContent('3');
         expect(screen.getByText('Ejecuciones').nextElementSibling).toHaveTextContent('10');
-        expect(screen.getByText('Comentarios procesados').nextElementSibling).toHaveTextContent('8');
-        expect(screen.getByText('Positivo').nextElementSibling).toHaveTextContent('3');
     });
 
     it('muestra el mensaje vacío cuando no hay retenidas ni fallidas', async () => {

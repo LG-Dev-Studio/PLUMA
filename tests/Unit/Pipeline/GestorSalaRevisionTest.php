@@ -69,7 +69,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$matriz   = MatrizTonos::desdeFilas(
 			array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) )
 		);
-		$conducta = new ConductaVersion( 1, 30, $diales, $reglas, $matriz, false, $reloj->ahora() );
+		$conducta = new ConductaVersion( 1, 30, $diales, $reglas, $matriz, $reloj->ahora() );
 
 		return new Periodista(
 			30,
@@ -392,7 +392,7 @@ final class GestorSalaRevisionTest extends CasoDePruebaUnitario {
 		$diales     = new Diales( 60, 40, 20, 60, 50, 50, 60, 50 );
 		$reglas     = new ReglasConducta( 'línea', array(), array(), array(), TratamientoLector::Tu, '¿Y tú?' );
 		$matriz     = MatrizTonos::desdeFilas( array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) ) );
-		$conducta   = new ConductaVersion( 1, 31, $diales, $reglas, $matriz, false, $reloj->ahora() );
+		$conducta   = new ConductaVersion( 1, 31, $diales, $reglas, $matriz, $reloj->ahora() );
 		$periodista = new Periodista( 31, 'Ya activo', null, 'bio', RolPeriodista::Cronista, array( new Especialidad( 'deportes', 4 ) ), EstadoPeriodista::Activo, $conducta, $reloj->ahora(), $reloj->ahora() );
 
 		$periodistas = Mockery::mock( RepositorioPeriodistasInterface::class );

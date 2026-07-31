@@ -84,7 +84,6 @@ interface RepositorioPeriodistasInterface {
 		Diales $diales,
 		ReglasConducta $reglas,
 		MatrizTonos $matrizTonos,
-		bool $respuestasHabilitadas,
 		DateTimeImmutable $ahora
 	): int;
 

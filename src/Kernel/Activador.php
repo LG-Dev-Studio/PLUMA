@@ -43,7 +43,9 @@ final class Activador {
 		assert( $wpdb instanceof wpdb );
 
 		Capacidades::instalar();
-		( new Migrador( $wpdb ) )->migrar( $versionEsquemaObjetivo, Esquema::sentenciasCreateTable( $wpdb ) );
+		$migrador = new Migrador( $wpdb );
+		$migrador->migrar( $versionEsquemaObjetivo, Esquema::sentenciasCreateTable( $wpdb ) );
+		$migrador->ejecutarRetiro( Esquema::sentenciasRetiroHasta( $wpdb, $versionEsquemaObjetivo ) );
 		// Nivel Cuatro W.3 (push web): el par de claves VAPID del sitio se
 		// genera una sola vez, aquí, nunca en cada carga de página.
 		ClavesVapid::generarSiNoExisten();

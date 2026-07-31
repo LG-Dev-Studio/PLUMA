@@ -45,7 +45,7 @@ final class AsignadorPeriodistaTest extends CasoDePruebaUnitario {
 		$matriz   = MatrizTonos::desdeFilas(
 			array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) )
 		);
-		$conducta = new ConductaVersion( $id, $id, $diales, $reglas, $matriz, false, new DateTimeImmutable( '2026-07-22T12:00:00+00:00' ) );
+		$conducta = new ConductaVersion( $id, $id, $diales, $reglas, $matriz, new DateTimeImmutable( '2026-07-22T12:00:00+00:00' ) );
 
 		return new Periodista(
 			$id,

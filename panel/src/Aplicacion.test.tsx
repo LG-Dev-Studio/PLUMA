@@ -130,7 +130,6 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
                 sinPeriodistaIdoneoVacio: 'ninguna pieza sin periodista idóneo',
             },
             tendencias: { titulo: 'Tendencias calientes ahora', vacio: 'todavía no se ha detectado ninguna tendencia' },
-            borradoresRespuestaPendientes: 'Borradores de respuesta esperando aprobación',
         },
         textosTendencias: {
             titulo: 'Sala de Tendencias',
@@ -316,7 +315,6 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
             guardarCambios: 'Guardar cambios',
             clonar: 'Clonar',
             nombreDelClon: 'Nombre del nuevo periodista clonado',
-            respuestasHabilitadas: 'Responder comentarios automáticamente',
         },
         textosSalaRevision: {
             sinPeriodistaIdoneo: 'Sin periodista idóneo',
@@ -602,16 +600,6 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
             confirmarDescartar: '¿Descartar esta Pieza?',
             actualizacionDe: 'Actualización de la pieza',
         },
-        textosComentarios: {
-            titulo: 'Sala de Comentarios',
-            cargando: 'Cargando…',
-            errorCarga: 'No se pudo cargar la Sala de Comentarios.',
-            errorAccion: 'La acción no se pudo completar.',
-            vacio: 'no hay borradores de respuesta pendientes de aprobación',
-            borrador: 'Borrador de respuesta',
-            aprobar: 'Aprobar',
-            descartar: 'Descartar',
-        },
         textosInformes: {
             titulo: 'Informes Editoriales',
             cargando: 'Cargando…',
@@ -642,18 +630,6 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
                 lotesProcesados: 'Lotes procesados',
                 ejecucionesConErrores: 'Ejecuciones con errores',
             },
-            audiencia: {
-                titulo: 'Audiencia esta semana',
-                comentariosProcesados: 'Comentarios procesados',
-                aprendizajesRegistrados: 'Aprendizajes registrados',
-                sentimiento: 'Sentimiento de los comentarios',
-                positivo: 'Positivo',
-                negativo: 'Negativo',
-                mixto: 'Mixto',
-                neutral: 'Neutral',
-                respuestasAprobadas: 'Respuestas aprobadas',
-                respuestasDescartadas: 'Respuestas descartadas',
-            },
         },
     };
 }
@@ -666,7 +642,6 @@ function portadaDeEjemplo(): DatosPortada {
         piezasPorEstado: {},
         alertas: { retenidas: [], fallidas: [], sinPeriodistaIdoneo: [] },
         tendenciasCalientes: [],
-        borradoresRespuestaPendientes: 0,
     };
 }
 

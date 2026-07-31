@@ -49,7 +49,7 @@ final class GestorDerivadosSocialesTest extends CasoDePruebaUnitario {
 		$matriz   = MatrizTonos::desdeFilas(
 			array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) )
 		);
-		$conducta = new ConductaVersion( 1, 1, $diales, $reglas, $matriz, true, new DateTimeImmutable( '2026-07-22T12:00:00+00:00' ) );
+		$conducta = new ConductaVersion( 1, 1, $diales, $reglas, $matriz, new DateTimeImmutable( '2026-07-22T12:00:00+00:00' ) );
 
 		return new Periodista( 7, 'Valentina Ruiz', null, 'Bio.', RolPeriodista::Columnista, array(), EstadoPeriodista::Activo, $conducta, new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ), new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ) );
 	}

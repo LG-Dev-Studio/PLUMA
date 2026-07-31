@@ -33,7 +33,7 @@ final class ExportadorBancoPeriodistas {
 	}
 
 	/**
-	 * @return array{version: string, exportadoEn: string, periodistas: list<array{nombre: string, avatarUrl: ?string, biografia: string, rol: string, especialidades: list<array{vertical: string, nivelDominio: int}>, estado: string, localeEditorial: string, versionesConducta: list<array{diales: array<string, mixed>, reglasConducta: array<string, mixed>, matrizTonos: array<string, mixed>, respuestasHabilitadas: bool}>, memoria: list<array{tipo: string, tema: string, contenido: array<string, mixed>}>}>}
+	 * @return array{version: string, exportadoEn: string, periodistas: list<array{nombre: string, avatarUrl: ?string, biografia: string, rol: string, especialidades: list<array{vertical: string, nivelDominio: int}>, estado: string, localeEditorial: string, versionesConducta: list<array{diales: array<string, mixed>, reglasConducta: array<string, mixed>, matrizTonos: array<string, mixed>}>, memoria: list<array{tipo: string, tema: string, contenido: array<string, mixed>}>}>}
 	 */
 	public function exportar(): array {
 		$periodistas = array();
@@ -41,10 +41,9 @@ final class ExportadorBancoPeriodistas {
 		foreach ( $this->repoPeriodistas->obtenerTodos() as $periodista ) {
 			$versiones = array_map(
 				static fn ( ConductaVersion $v ): array => array(
-					'diales'                => $v->diales->aArray(),
-					'reglasConducta'        => $v->reglas->aArray(),
-					'matrizTonos'           => $v->matrizTonos->aArray(),
-					'respuestasHabilitadas' => $v->respuestasHabilitadas,
+					'diales'         => $v->diales->aArray(),
+					'reglasConducta' => $v->reglas->aArray(),
+					'matrizTonos'    => $v->matrizTonos->aArray(),
 				),
 				$this->repoPeriodistas->obtenerHistorialVersiones( $periodista->id )
 			);

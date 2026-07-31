@@ -52,7 +52,7 @@ describe('BloqueLlamadasModelo', () => {
     it('renderiza cada fila con su propósito, origen traducido, resultado y coste', async () => {
         stubFetch([
             { proposito: 'redactar', origen: 'cron', resultado: 'ok', llamadas: 12, costeUsd: 0.4521, tokensEntrada: 100, tokensSalida: 50 },
-            { proposito: 'clasificar_comentario', origen: 'visitante', resultado: 'presupuesto_agotado', llamadas: 3, costeUsd: 0, tokensEntrada: 0, tokensSalida: 0 },
+            { proposito: 'clasificar', origen: 'visitante', resultado: 'presupuesto_agotado', llamadas: 3, costeUsd: 0, tokensEntrada: 0, tokensSalida: 0 },
         ]);
 
         render(<BloqueLlamadasModelo restUrl="https://x.test/wp-json/" nonce="n" textos={textos()} />);
@@ -64,7 +64,7 @@ describe('BloqueLlamadasModelo', () => {
 
         // Evidencia en pantalla del hallazgo 3 (`ADR 0010`): una fila real
         // con origen "visitante" debe ser visible, no solo existir en la BD.
-        const filaVisitante = screen.getByText('clasificar_comentario');
+        const filaVisitante = screen.getByText('clasificar');
         expect(filaVisitante.closest('tr')).toHaveTextContent('Visitante');
         expect(filaVisitante.closest('tr')).toHaveAttribute('data-origen', 'visitante');
     });

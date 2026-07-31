@@ -4,7 +4,6 @@ import { BarraEstado } from './BarraEstado';
 import { PantallaCalendarioEditorial, type TextosCalendarioEditorial } from './PantallaCalendarioEditorial';
 import { PantallaDistribucion, type TextosDistribucion } from './PantallaDistribucion';
 import { PantallaBancoPeriodistas, type TextosBancoPeriodistas } from './PantallaBancoPeriodistas';
-import { PantallaComentarios, type TextosComentarios } from './PantallaComentarios';
 import { PantallaEstudioSeo, type TextosEstudioSeo } from './PantallaEstudioSeo';
 import { PantallaInformes, type TextosInformes } from './PantallaInformes';
 import { PantallaMesaEditorial, type TextosMesaEditorial } from './PantallaMesaEditorial';
@@ -26,7 +25,6 @@ export interface DatosPlumaPanel {
     textosSalaRevision: TextosSalaRevision;
     textosSalaMaquinas: TextosSalaMaquinas;
     textosEstudioSeo: TextosEstudioSeo;
-    textosComentarios: TextosComentarios;
     textosInformes: TextosInformes;
     iaConfigurada: boolean;
     onboardingCompletado: boolean;
@@ -46,7 +44,6 @@ type Ruta =
     | 'periodistas'
     | 'revision'
     | 'estudio-seo'
-    | 'comentarios'
     | 'informes'
     | 'salud';
 
@@ -83,10 +80,6 @@ function leerRuta(): Ruta {
 
     if ('#/estudio-seo' === window.location.hash) {
         return 'estudio-seo';
-    }
-
-    if ('#/comentarios' === window.location.hash) {
-        return 'comentarios';
     }
 
     return '#/informes' === window.location.hash ? 'informes' : 'portada';
@@ -214,12 +207,6 @@ export function Aplicacion({ datos }: Props) {
                     {datos.textosEstudioSeo.titulo}
                 </a>
                 <a
-                    href="#/comentarios"
-                    className={'comentarios' === ruta ? 'pluma-panel__nav-enlace pluma-panel__nav-enlace--activo' : 'pluma-panel__nav-enlace'}
-                >
-                    {datos.textosComentarios.titulo}
-                </a>
-                <a
                     href="#/informes"
                     className={'informes' === ruta ? 'pluma-panel__nav-enlace pluma-panel__nav-enlace--activo' : 'pluma-panel__nav-enlace'}
                 >
@@ -257,9 +244,6 @@ export function Aplicacion({ datos }: Props) {
                 )}
                 {'estudio-seo' === ruta && (
                     <PantallaEstudioSeo restUrl={datos.restUrl} nonce={datos.nonce} textos={datos.textosEstudioSeo} />
-                )}
-                {'comentarios' === ruta && (
-                    <PantallaComentarios restUrl={datos.restUrl} nonce={datos.nonce} textos={datos.textosComentarios} />
                 )}
                 {'informes' === ruta && (
                     <PantallaInformes restUrl={datos.restUrl} nonce={datos.nonce} textos={datos.textosInformes} />

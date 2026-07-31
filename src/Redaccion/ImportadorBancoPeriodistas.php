@@ -110,21 +110,6 @@ final class ImportadorBancoPeriodistas {
 			$localeEditorial
 		);
 
-		// La primera versión creada por `crear()` siempre arranca con las
-		// respuestas deshabilitadas (decisión del propietario, 2026-07-23);
-		// si la exportación original la traía habilitada, se restaura aquí
-		// como una versión nueva para no perder ese dato al importar.
-		if ( $primera['respuestasHabilitadas'] ) {
-			$this->repoPeriodistas->nuevaVersionConducta(
-				$periodistaId,
-				$primera['diales'],
-				$primera['reglasConducta'],
-				$primera['matrizTonos'],
-				true,
-				$ahora
-			);
-		}
-
 		$totalVersiones = count( $versiones );
 
 		for ( $i = 1; $i < $totalVersiones; $i++ ) {
@@ -133,7 +118,6 @@ final class ImportadorBancoPeriodistas {
 				$versiones[ $i ]['diales'],
 				$versiones[ $i ]['reglasConducta'],
 				$versiones[ $i ]['matrizTonos'],
-				$versiones[ $i ]['respuestasHabilitadas'],
 				$ahora
 			);
 		}
@@ -145,7 +129,7 @@ final class ImportadorBancoPeriodistas {
 
 	/**
 	 * @param array<string, mixed> $version
-	 * @return array{diales: Diales, reglasConducta: ReglasConducta, matrizTonos: MatrizTonos, respuestasHabilitadas: bool}
+	 * @return array{diales: Diales, reglasConducta: ReglasConducta, matrizTonos: MatrizTonos}
 	 */
 	private function versionDesdeArray( array $version ): array {
 		if ( ! isset( $version['diales'], $version['reglasConducta'], $version['matrizTonos'] ) || ! is_array( $version['diales'] ) || ! is_array( $version['reglasConducta'] ) || ! is_array( $version['matrizTonos'] ) ) {
@@ -162,14 +146,9 @@ final class ImportadorBancoPeriodistas {
 		$matrizCruda = $version['matrizTonos'];
 
 		return array(
-			'diales'                => Diales::desdeArray( $dialesCrudos ),
-			'reglasConducta'        => ReglasConducta::desdeArray( $reglasCrudas ),
-			'matrizTonos'           => MatrizTonos::desdeArray( $matrizCruda ),
-			// Ausente en exportaciones previas a la Etapa 5 (mismo VERSION_FORMATO
-			// '1.0', campo añadido de forma retrocompatible): por defecto
-			// deshabilitadas, igual que un periodista nuevo (decisión del
-			// propietario, 2026-07-23).
-			'respuestasHabilitadas' => isset( $version['respuestasHabilitadas'] ) && true === $version['respuestasHabilitadas'],
+			'diales'         => Diales::desdeArray( $dialesCrudos ),
+			'reglasConducta' => ReglasConducta::desdeArray( $reglasCrudas ),
+			'matrizTonos'    => MatrizTonos::desdeArray( $matrizCruda ),
 		);
 	}
 

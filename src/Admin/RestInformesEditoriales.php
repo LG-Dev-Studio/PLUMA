@@ -6,17 +6,13 @@ namespace Pluma\Admin;
 
 use DateTimeImmutable;
 use Pluma\Datos\RepositorioBitacoraInterface;
-use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
-use Pluma\Datos\RepositorioRespuestasComentariosInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Kernel\Capacidades;
 use Pluma\Kernel\RelojInterface;
 use Pluma\Pipeline\EstadoPieza;
 use Pluma\Pipeline\Pieza;
-use Pluma\Redaccion\EstadoRespuestaComentario;
-use Pluma\Redaccion\TipoMemoria;
 use Pluma\Sensores\EstadoTendencia;
 use WP_REST_Response;
 
@@ -36,16 +32,13 @@ final class RestInformesEditoriales {
 
 	private const RUTA = '/panel/informes';
 
-	private const DIAS_VENTANA_INFORME          = 7;
-	private const LIMITE_PIEZAS                 = 200;
-	private const LIMITE_MEMORIA_POR_PERIODISTA = 200;
+	private const DIAS_VENTANA_INFORME = 7;
+	private const LIMITE_PIEZAS        = 200;
 
 	public function __construct(
 		private readonly RepositorioPiezasInterface $piezas,
 		private readonly RepositorioTendenciasInterface $tendencias,
 		private readonly RepositorioBitacoraInterface $bitacora,
-		private readonly RepositorioRespuestasComentariosInterface $respuestasComentarios,
-		private readonly RepositorioMemoriaEditorialInterface $memoriaEditorial,
 		private readonly RepositorioPeriodistasInterface $periodistas,
 		private readonly RelojInterface $reloj,
 	) {
@@ -84,7 +77,6 @@ final class RestInformesEditoriales {
 				'piezas'     => $this->piezas( $desde, $hasta ),
 				'tendencias' => $this->tendencias( $desde, $hasta ),
 				'motor'      => $this->motor( $desde, $hasta ),
-				'audiencia'  => $this->audiencia( $desde, $hasta ),
 			),
 			200
 		);
@@ -180,44 +172,6 @@ final class RestInformesEditoriales {
 			'ejecuciones'           => count( $ejecuciones ),
 			'lotesProcesados'       => $lotesProcesados,
 			'ejecucionesConErrores' => $conErrores,
-		);
-	}
-
-	/**
-	 * @return array<string, mixed>
-	 */
-	private function audiencia( DateTimeImmutable $desde, DateTimeImmutable $hasta ): array {
-		$sentimiento  = array(
-			'positivo' => 0,
-			'negativo' => 0,
-			'mixto'    => 0,
-			'neutral'  => 0,
-		);
-		$aprendizajes = 0;
-
-		foreach ( $this->periodistas->obtenerActivos() as $periodista ) {
-			$entradas = $this->memoriaEditorial->obtenerPorPeriodista( $periodista->id, TipoMemoria::Audiencia, self::LIMITE_MEMORIA_POR_PERIODISTA );
-
-			foreach ( $entradas as $entrada ) {
-				if ( $entrada->creadaEn < $desde || $entrada->creadaEn > $hasta ) {
-					continue;
-				}
-
-				++$aprendizajes;
-				$valor = $entrada->contenido['sentimiento'] ?? null;
-
-				if ( is_string( $valor ) && array_key_exists( $valor, $sentimiento ) ) {
-					++$sentimiento[ $valor ];
-				}
-			}
-		}
-
-		return array(
-			'comentariosProcesados'   => $this->respuestasComentarios->contarCreadosEntre( $desde, $hasta ),
-			'aprendizajesRegistrados' => $aprendizajes,
-			'sentimiento'             => $sentimiento,
-			'respuestasAprobadas'     => $this->respuestasComentarios->contarPorEstadoResueltoEntre( EstadoRespuestaComentario::Aprobado, $desde, $hasta ),
-			'respuestasDescartadas'   => $this->respuestasComentarios->contarPorEstadoResueltoEntre( EstadoRespuestaComentario::Descartado, $desde, $hasta ),
 		);
 	}
 

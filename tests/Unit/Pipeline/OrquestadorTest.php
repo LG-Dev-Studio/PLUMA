@@ -30,7 +30,6 @@ use Pluma\Datos\RepositorioExperimentosTitularInterface;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
-use Pluma\Datos\RepositorioRespuestasComentariosInterface;
 use Pluma\Datos\RepositorioHistoriasInterface;
 use Pluma\Datos\RepositorioLlamadasModeloInterface;
 use Pluma\Datos\RepositorioModoRespetoInterface;
@@ -59,16 +58,12 @@ use Pluma\Redaccion\AgrupadorTemasSinCobertura;
 use Pluma\Redaccion\CreadorAutomaticoPeriodistas;
 use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
-use Pluma\Proveedores\ProveedorLenguajeException;
 use Pluma\Proveedores\ProveedorTendenciasException;
 use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
-use Pluma\Publicacion\ComentarioWordPress;
 use Pluma\Publicacion\CreadorBorradorInterface;
-use Pluma\Publicacion\LectorComentariosInterface;
 use Pluma\Publicacion\PublicacionException;
 use Pluma\Publicacion\PublicadorInterface;
 use Pluma\Publicacion\SnapshotPublicacion;
-use Pluma\Redaccion\AnalizadorAudiencia;
 use Pluma\Redaccion\AnotacionCorrector;
 use Pluma\Redaccion\Borrador;
 use Pluma\Redaccion\CandidatoTesis;
@@ -78,9 +73,7 @@ use Pluma\Redaccion\Diales;
 use Pluma\Redaccion\EntradaMatrizTono;
 use Pluma\Redaccion\EsqueletoPieza;
 use Pluma\Redaccion\EstadoPeriodista;
-use Pluma\Redaccion\EstadoRespuestaComentario;
 use Pluma\Redaccion\FichaDecisionEditorial;
-use Pluma\Redaccion\GeneradorRespuestaComentario;
 use Pluma\Redaccion\GeneradorTitularAlternativo;
 use Pluma\Redaccion\MatrizTonos;
 use Pluma\Redaccion\NivelSatiraPermitida;
@@ -91,11 +84,9 @@ use Pluma\Redaccion\RedactorInterface;
 use Pluma\Redaccion\ReglasConducta;
 use Pluma\Redaccion\ResultadoRedaccion;
 use Pluma\Redaccion\RolPeriodista;
-use Pluma\Redaccion\TipoMemoria;
 use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\TratamientoLector;
-use Pluma\Redaccion\VerificadorComentarioSustantivo;
 use Pluma\Sensores\ComparadorHistorias;
 use Pluma\Sensores\EvaluadorLegitimidadInsumo;
 use Pluma\Sensores\PuntuacionOportunidad;
@@ -228,7 +219,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 
 	private function piezasPermisivas(): RepositorioPiezasInterface {
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 
 		return $piezas;
@@ -256,46 +246,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 	 */
 	private function comparadorHistoriasPermisivo(): ComparadorHistorias {
 		return new ComparadorHistorias( Mockery::mock( LenguajeInterface::class ), new PresupuestoLenguaje( new RelojFijo() ) );
-	}
-
-	private function lectorComentariosPermisivo(): LectorComentariosInterface {
-		$lector = Mockery::mock( LectorComentariosInterface::class );
-		$lector->allows( 'obtenerAprobadosDe' )->andReturn( array() );
-
-		return $lector;
-	}
-
-	/**
-	 * `PresupuestoLenguaje` es una clase `final` (mismo criterio que arriba):
-	 * instancia real con un reloj fijo — nunca se invoca de verdad en estos
-	 * tests porque `lectorComentariosPermisivo()` no devuelve comentarios.
-	 */
-	private function analizadorAudienciaPermisivo(): AnalizadorAudiencia {
-		// Proveedor que siempre "cae": mantiene el fail-safe de `analizar()`
-		// aunque un test entregue un comentario real y lo ejercite de verdad.
-		$proveedor = Mockery::mock( LenguajeInterface::class );
-		$proveedor->allows( 'completar' )->andThrow( new ProveedorLenguajeException( 'proveedor caído (doble permisivo)' ) );
-
-		return new AnalizadorAudiencia( $proveedor, new PresupuestoLenguaje( new RelojFijo() ) );
-	}
-
-	private function generadorRespuestaComentarioPermisivo(): GeneradorRespuestaComentario {
-		return new GeneradorRespuestaComentario( Mockery::mock( LenguajeInterface::class ) );
-	}
-
-	private function memoriaEditorialPermisiva(): RepositorioMemoriaEditorialInterface {
-		$memoria = Mockery::mock( RepositorioMemoriaEditorialInterface::class );
-		$memoria->allows( 'registrar' )->andReturn( 1 );
-
-		return $memoria;
-	}
-
-	private function respuestasComentariosPermisivo(): RepositorioRespuestasComentariosInterface {
-		$respuestas = Mockery::mock( RepositorioRespuestasComentariosInterface::class );
-		$respuestas->allows( 'yaProcesado' )->andReturn( false );
-		$respuestas->allows( 'registrar' )->andReturn( 1 );
-
-		return $respuestas;
 	}
 
 	private function periodistasPermisivo(): RepositorioPeriodistasInterface {
@@ -358,12 +308,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			$overrides['creadorBorrador'] ?? Mockery::mock( CreadorBorradorInterface::class ),
 			$overrides['publicador'] ?? Mockery::mock( PublicadorInterface::class ),
 			$overrides['comparadorHistorias'] ?? $this->comparadorHistoriasPermisivo(),
-			$overrides['lectorComentarios'] ?? $this->lectorComentariosPermisivo(),
-			$overrides['analizadorAudiencia'] ?? $this->analizadorAudienciaPermisivo(),
-			$overrides['generadorRespuestaComentario'] ?? $this->generadorRespuestaComentarioPermisivo(),
-			$overrides['verificadorComentarioSustantivo'] ?? new VerificadorComentarioSustantivo(),
-			$overrides['memoriaEditorial'] ?? $this->memoriaEditorialPermisiva(),
-			$overrides['respuestasComentarios'] ?? $this->respuestasComentariosPermisivo(),
 			$overrides['periodistas'] ?? $this->periodistasPermisivo(),
 			new RelojFijo(),
 			$overrides['resolutorDisputas'] ?? new ResolutorDisputas( Mockery::mock( LenguajeInterface::class ) ),
@@ -438,7 +382,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$bitacora->expects( 'finalizarEjecucion' )->once();
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->never();
 
 		$sensor = Mockery::mock( SensorInterface::class );
@@ -467,7 +410,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$bitacora->expects( 'finalizarEjecucion' )->once();
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'crear' )->once()->with( 55, Mockery::any() )->andReturn( 1 );
 
@@ -498,7 +440,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		Functions\when( 'get_option' )->justReturn( false );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'crear' )->never();
 
@@ -532,7 +473,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		);
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'crear' )->never();
 
@@ -581,7 +521,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$piezaDetectada = $this->pieza( 7, EstadoPieza::Detectada );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Detectada, Mockery::any() )->andReturn( array( $piezaDetectada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 7 )->twice()->andReturn(
@@ -632,7 +571,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$hechoDos = new HechoFuente( 'hecho dos', 'https://example.com/2', new DateTimeImmutable( '2026-07-22T12:00:00+00:00' ), NivelVerificacion::Atribuido );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Detectada, Mockery::any() )->andReturn( array( $piezaDetectada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 7 )->twice()->andReturn(
@@ -701,7 +639,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$piezaInvestigada = $this->pieza( 9, EstadoPieza::Investigada, $expediente );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Investigada, Mockery::any() )->andReturn( array( $piezaInvestigada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 9 )->twice()->andReturn(
@@ -743,7 +680,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$piezaInvestigada = $this->pieza( 11, EstadoPieza::Investigada, $expediente );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Investigada, Mockery::any() )->andReturn( array( $piezaInvestigada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 11 )->twice()->andReturn(
@@ -787,7 +723,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$piezaInvestigada = $this->pieza( 11, EstadoPieza::Investigada, $expediente );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Investigada, Mockery::any() )->andReturn( array( $piezaInvestigada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 11 )->twice()->andReturn(
@@ -826,7 +761,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$piezaDetectada = $this->pieza( 3, EstadoPieza::Detectada );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Detectada, Mockery::any() )->andReturn( array( $piezaDetectada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 3 )->twice()->andReturn(
@@ -860,7 +794,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$piezaRedactada = $this->pieza( 13, EstadoPieza::Redactada, new Expediente( 'x', array() ) );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Redactada, Mockery::any() )->andReturn( array( $piezaRedactada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 13 )->andReturn( $piezaRedactada );
@@ -891,7 +824,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Titular editorial' ) );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Redactada, Mockery::any() )->andReturn( array( $piezaRedactada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 15 )->andReturn( $piezaRedactada );
@@ -929,7 +861,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$piezaEnRevision = $this->pieza( 17, EstadoPieza::EnRevision, $expediente, $ficha, 5 );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Optimizada, Mockery::any() )->andReturn( array( $piezaOptimizada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->allows( 'obtenerPorId' )->with( 17 )->andReturn( $piezaOptimizada, $piezaEnRevision );
@@ -961,7 +892,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$piezaEnRevision = $this->pieza( 19, EstadoPieza::EnRevision, $expediente, $ficha, 5 );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Optimizada, Mockery::any() )->andReturn( array( $piezaOptimizada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		// Dos transiciones reales (Optimizada→EnRevision, EnRevision→Aprobada):
@@ -1011,7 +941,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$piezaAprobada = $this->pieza( 21, EstadoPieza::Aprobada, new Expediente( 'x', array() ), $ficha, 5 );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Aprobada, Mockery::any() )->andReturn( array( $piezaAprobada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 21 )->andReturn( $piezaAprobada );
@@ -1043,7 +972,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$piezaAprobada = $this->pieza( 23, EstadoPieza::Aprobada, new Expediente( 'x', array() ), $ficha, 5 );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Aprobada, Mockery::any() )->andReturn( array( $piezaAprobada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'actualizarEstado' )->never();
@@ -1091,7 +1019,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$ranura = new RanuraPublicacion( 1, 25, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, false, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 25 )->twice()->andReturn( $piezaProgramada );
 		$piezas->expects( 'actualizarEstado' )->with( 25, EstadoPieza::Programada, EstadoPieza::Publicada, Mockery::any() )->andReturn( true );
@@ -1158,7 +1085,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$ranura = new RanuraPublicacion( 3, 30, 'economia', 5, new DateTimeImmutable( '2026-07-22T11:00:00+00:00' ), EstadoColaPublicacion::Programada, false, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 30 )->andReturn( $piezaProgramada );
 		$piezas->expects( 'actualizarEstado' )->never();
@@ -1206,7 +1132,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$ranura = new RanuraPublicacion( 4, 31, 'economia', 5, new DateTimeImmutable( '2026-07-22T11:00:00+00:00' ), EstadoColaPublicacion::Programada, true, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 31 )->twice()->andReturn( $piezaProgramada );
 		$piezas->expects( 'actualizarEstado' )->with( 31, EstadoPieza::Programada, EstadoPieza::Publicada, Mockery::any() )->andReturn( true );
@@ -1266,7 +1191,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$ranura = new RanuraPublicacion( 5, 32, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, false, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 32 )->twice()->andReturn( $piezaProgramada );
 		$piezas->expects( 'actualizarEstado' )->with( 32, EstadoPieza::Programada, EstadoPieza::Publicada, Mockery::any() )->andReturn( true );
@@ -1322,7 +1246,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$ranura = new RanuraPublicacion( 2, 27, 'economia', 5, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), EstadoColaPublicacion::Programada, false, new DateTimeImmutable( '2026-07-22T08:00:00+00:00' ) );
 
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
 		$piezas->expects( 'obtenerPorId' )->with( 27 )->andReturn( $piezaProgramada );
 		$piezas->expects( 'actualizarEstado' )->never();
@@ -1362,264 +1285,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		self::assertNotEmpty( array_filter( $resultado['errores'], static fn ( string $e ): bool => str_contains( $e, 'Escasez honesta' ) ) );
 	}
 
-	private function periodistaConRespuestas( bool $habilitadas ): Periodista {
-		$diales   = new Diales( 80, 55, 40, 55, 75, 60, 60, 65 );
-		$reglas   = new ReglasConducta( 'linea', array(), array(), array(), TratamientoLector::Tu, '¿Y tú?' );
-		$matriz   = MatrizTonos::desdeFilas(
-			array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) )
-		);
-		$conducta = new ConductaVersion( 1, 5, $diales, $reglas, $matriz, $habilitadas, new DateTimeImmutable( '2026-07-22T12:00:00+00:00' ) );
-
-		return new Periodista( 5, 'Valentina Ruiz', null, 'Bio.', RolPeriodista::Columnista, array(), EstadoPeriodista::Activo, $conducta, new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ), new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ) );
-	}
-
-	public function test_un_comentario_sustantivo_sin_periodista_solo_se_marca_procesado(): void {
-		$ficha          = $this->ficha();
-		$piezaPublicada = new Pieza( 40, 100, EstadoPieza::Publicada, null, 555, ( new RelojFijo() )->ahora(), ( new RelojFijo() )->ahora(), null, null, $ficha );
-
-		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array( $piezaPublicada ) );
-
-		$comentario = new ComentarioWordPress( 900, 555, 'Lector', 'Un comentario largo y sustantivo sobre el artículo publicado.', new DateTimeImmutable() );
-
-		$lector = Mockery::mock( LectorComentariosInterface::class );
-		$lector->expects( 'obtenerAprobadosDe' )->with( 555 )->andReturn( array( $comentario ) );
-
-		$respuestas = Mockery::mock( RepositorioRespuestasComentariosInterface::class );
-		$respuestas->expects( 'yaProcesado' )->with( 900 )->andReturn( false );
-		$respuestas->expects( 'registrar' )->once()->with( 40, 900, null, null, \Pluma\Redaccion\EstadoRespuestaComentario::Procesado, Mockery::any() )->andReturn( 1 );
-
-		$memoria = Mockery::mock( RepositorioMemoriaEditorialInterface::class );
-		$memoria->expects( 'registrar' )->never();
-
-		$this->construir(
-			array(
-				'piezas'                => $piezas,
-				'lectorComentarios'     => $lector,
-				'respuestasComentarios' => $respuestas,
-				'memoriaEditorial'      => $memoria,
-			)
-		)->ejecutarTick();
-
-		$this->expectNotToPerformAssertions();
-	}
-
-	public function test_un_comentario_sustantivo_con_periodista_registra_memoria_de_audiencia(): void {
-		$ficha          = $this->ficha();
-		$piezaPublicada = new Pieza( 41, 100, EstadoPieza::Publicada, null, 556, ( new RelojFijo() )->ahora(), ( new RelojFijo() )->ahora(), 5, null, $ficha );
-
-		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array( $piezaPublicada ) );
-
-		$comentario = new ComentarioWordPress( 901, 556, 'Lector', 'Un comentario largo y sustantivo sobre el artículo publicado.', new DateTimeImmutable() );
-
-		$lector = Mockery::mock( LectorComentariosInterface::class );
-		$lector->expects( 'obtenerAprobadosDe' )->with( 556 )->andReturn( array( $comentario ) );
-
-		$respuestas = Mockery::mock( RepositorioRespuestasComentariosInterface::class );
-		$respuestas->expects( 'yaProcesado' )->with( 901 )->andReturn( false );
-		$respuestas->expects( 'registrar' )->once()->with( 41, 901, 5, null, \Pluma\Redaccion\EstadoRespuestaComentario::Procesado, Mockery::any() )->andReturn( 1 );
-
-		$memoria = Mockery::mock( RepositorioMemoriaEditorialInterface::class );
-		$memoria->expects( 'registrar' )->once()->with( 5, \Pluma\Redaccion\TipoMemoria::Audiencia, Mockery::any(), Mockery::any(), 41, Mockery::any() )->andReturn( 1 );
-
-		$analizador = new AnalizadorAudiencia(
-			new ProveedorLenguajeFalso( '{"resumen": "Le importa el precio.", "sentimiento": "mixto"}' ),
-			new PresupuestoLenguaje( new RelojFijo() )
-		);
-
-		$periodistas = Mockery::mock( \Pluma\Datos\RepositorioPeriodistasInterface::class );
-		$periodistas->expects( 'obtenerPorId' )->with( 5 )->andReturn( $this->periodistaConRespuestas( false ) );
-		$periodistas->allows( 'obtenerPropuestos' )->andReturn( array() );
-
-		Functions\when( 'get_option' )->justReturn( false );
-
-		$this->construir(
-			array(
-				'piezas'                => $piezas,
-				'lectorComentarios'     => $lector,
-				'respuestasComentarios' => $respuestas,
-				'memoriaEditorial'      => $memoria,
-				'analizadorAudiencia'   => $analizador,
-				'periodistas'           => $periodistas,
-			)
-		)->ejecutarTick();
-
-		$this->expectNotToPerformAssertions();
-	}
-
-	public function test_un_comentario_sustantivo_con_respuestas_habilitadas_registra_un_borrador_pendiente(): void {
-		$ficha          = $this->ficha();
-		$piezaPublicada = new Pieza( 42, 100, EstadoPieza::Publicada, null, 557, ( new RelojFijo() )->ahora(), ( new RelojFijo() )->ahora(), 5, null, $ficha );
-
-		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array( $piezaPublicada ) );
-
-		$comentario = new ComentarioWordPress( 902, 557, 'Lector', 'Un comentario largo y sustantivo sobre el artículo publicado.', new DateTimeImmutable() );
-
-		$lector = Mockery::mock( LectorComentariosInterface::class );
-		$lector->expects( 'obtenerAprobadosDe' )->with( 557 )->andReturn( array( $comentario ) );
-
-		$respuestas = Mockery::mock( RepositorioRespuestasComentariosInterface::class );
-		$respuestas->expects( 'yaProcesado' )->with( 902 )->andReturn( false );
-		$respuestas->expects( 'registrar' )->once()->with( 42, 902, 5, 'Gracias por comentar, ahí va el contexto.', \Pluma\Redaccion\EstadoRespuestaComentario::PendienteAprobacion, Mockery::any() )->andReturn( 1 );
-
-		$memoria = Mockery::mock( RepositorioMemoriaEditorialInterface::class );
-		$memoria->allows( 'registrar' )->andReturn( 1 );
-
-		$generador = new GeneradorRespuestaComentario( new ProveedorLenguajeFalso( '{"respuesta": "Gracias por comentar, ahí va el contexto."}' ) );
-
-		$periodistas = Mockery::mock( \Pluma\Datos\RepositorioPeriodistasInterface::class );
-		$periodistas->expects( 'obtenerPorId' )->with( 5 )->andReturn( $this->periodistaConRespuestas( true ) );
-		$periodistas->allows( 'obtenerPropuestos' )->andReturn( array() );
-
-		Functions\when( 'get_option' )->justReturn( false );
-
-		$this->construir(
-			array(
-				'piezas'                       => $piezas,
-				'lectorComentarios'            => $lector,
-				'respuestasComentarios'        => $respuestas,
-				'memoriaEditorial'             => $memoria,
-				'analizadorAudiencia'          => $this->analizadorAudienciaPermisivo(),
-				'generadorRespuestaComentario' => $generador,
-				'periodistas'                  => $periodistas,
-			)
-		)->ejecutarTick();
-
-		$this->expectNotToPerformAssertions();
-	}
-
-	public function test_un_comentario_de_categoria_odio_no_genera_borrador_de_respuesta(): void {
-		$ficha          = $this->ficha();
-		$piezaPublicada = new Pieza( 42, 100, EstadoPieza::Publicada, null, 557, ( new RelojFijo() )->ahora(), ( new RelojFijo() )->ahora(), 5, null, $ficha );
-
-		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array( $piezaPublicada ) );
-
-		$comentario = new ComentarioWordPress( 904, 557, 'Lector', 'Un comentario largo y sustantivo sobre el artículo publicado.', new DateTimeImmutable(), \Pluma\Compuertas\CategoriaComentario::OdioAtaquePersonal );
-
-		$lector = Mockery::mock( LectorComentariosInterface::class );
-		$lector->expects( 'obtenerAprobadosDe' )->with( 557 )->andReturn( array( $comentario ) );
-
-		$respuestas = Mockery::mock( RepositorioRespuestasComentariosInterface::class );
-		$respuestas->expects( 'yaProcesado' )->with( 904 )->andReturn( false );
-		$respuestas->expects( 'registrar' )->never();
-
-		$this->construir(
-			array(
-				'piezas'                => $piezas,
-				'lectorComentarios'     => $lector,
-				'respuestasComentarios' => $respuestas,
-			)
-		)->ejecutarTick();
-
-		$this->expectNotToPerformAssertions();
-	}
-
-	public function test_un_comentario_de_aporte_informativo_si_genera_borrador_de_respuesta(): void {
-		$ficha          = $this->ficha();
-		$piezaPublicada = new Pieza( 42, 100, EstadoPieza::Publicada, null, 557, ( new RelojFijo() )->ahora(), ( new RelojFijo() )->ahora(), 5, null, $ficha );
-
-		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array( $piezaPublicada ) );
-
-		$comentario = new ComentarioWordPress( 905, 557, 'Lector', 'Un comentario largo y sustantivo sobre el artículo publicado.', new DateTimeImmutable(), \Pluma\Compuertas\CategoriaComentario::AporteInformativo );
-
-		$lector = Mockery::mock( LectorComentariosInterface::class );
-		$lector->expects( 'obtenerAprobadosDe' )->with( 557 )->andReturn( array( $comentario ) );
-
-		$respuestas = Mockery::mock( RepositorioRespuestasComentariosInterface::class );
-		$respuestas->expects( 'yaProcesado' )->with( 905 )->andReturn( false );
-		$respuestas->expects( 'registrar' )->once()->andReturn( 1 );
-
-		$memoria = Mockery::mock( RepositorioMemoriaEditorialInterface::class );
-		$memoria->allows( 'registrar' )->andReturn( 1 );
-
-		$generador = new GeneradorRespuestaComentario( new ProveedorLenguajeFalso( '{"respuesta": "Gracias por el aporte."}' ) );
-
-		$periodistas = Mockery::mock( \Pluma\Datos\RepositorioPeriodistasInterface::class );
-		$periodistas->expects( 'obtenerPorId' )->with( 5 )->andReturn( $this->periodistaConRespuestas( true ) );
-		$periodistas->allows( 'obtenerPropuestos' )->andReturn( array() );
-
-		Functions\when( 'get_option' )->justReturn( false );
-
-		$this->construir(
-			array(
-				'piezas'                       => $piezas,
-				'lectorComentarios'            => $lector,
-				'respuestasComentarios'        => $respuestas,
-				'memoriaEditorial'             => $memoria,
-				'analizadorAudiencia'          => $this->analizadorAudienciaPermisivo(),
-				'generadorRespuestaComentario' => $generador,
-				'periodistas'                  => $periodistas,
-			)
-		)->ejecutarTick();
-
-		$this->expectNotToPerformAssertions();
-	}
-
-	public function test_un_comentario_ya_procesado_se_omite(): void {
-		$ficha          = $this->ficha();
-		$piezaPublicada = new Pieza( 43, 100, EstadoPieza::Publicada, null, 558, ( new RelojFijo() )->ahora(), ( new RelojFijo() )->ahora(), null, null, $ficha );
-
-		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array( $piezaPublicada ) );
-
-		$comentario = new ComentarioWordPress( 903, 558, 'Lector', 'Un comentario largo y sustantivo sobre el artículo publicado.', new DateTimeImmutable() );
-
-		$lector = Mockery::mock( LectorComentariosInterface::class );
-		$lector->expects( 'obtenerAprobadosDe' )->with( 558 )->andReturn( array( $comentario ) );
-
-		$respuestas = Mockery::mock( RepositorioRespuestasComentariosInterface::class );
-		$respuestas->expects( 'yaProcesado' )->with( 903 )->andReturn( true );
-		$respuestas->expects( 'registrar' )->never();
-
-		$this->construir(
-			array(
-				'piezas'                => $piezas,
-				'lectorComentarios'     => $lector,
-				'respuestasComentarios' => $respuestas,
-			)
-		)->ejecutarTick();
-
-		$this->expectNotToPerformAssertions();
-	}
-
-	public function test_un_comentario_no_sustantivo_se_omite(): void {
-		$ficha          = $this->ficha();
-		$piezaPublicada = new Pieza( 44, 100, EstadoPieza::Publicada, null, 559, ( new RelojFijo() )->ahora(), ( new RelojFijo() )->ahora(), null, null, $ficha );
-
-		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
-		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array( $piezaPublicada ) );
-
-		$comentario = new ComentarioWordPress( 904, 559, 'Lector', 'primero!', new DateTimeImmutable() );
-
-		$lector = Mockery::mock( LectorComentariosInterface::class );
-		$lector->expects( 'obtenerAprobadosDe' )->with( 559 )->andReturn( array( $comentario ) );
-
-		$respuestas = Mockery::mock( RepositorioRespuestasComentariosInterface::class );
-		$respuestas->allows( 'yaProcesado' )->andReturn( false );
-		$respuestas->expects( 'registrar' )->never();
-
-		$this->construir(
-			array(
-				'piezas'                => $piezas,
-				'lectorComentarios'     => $lector,
-				'respuestasComentarios' => $respuestas,
-			)
-		)->ejecutarTick();
-
-		$this->expectNotToPerformAssertions();
-	}
-
 	/**
 	 * Trabajo posterior a la Etapa 9 (creación automática de periodistas):
 	 * un periodista Propuesto cuya ventana de veto ya pasó se promueve solo
@@ -1634,7 +1299,7 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$diales    = new Diales( 60, 40, 20, 60, 50, 50, 60, 50 );
 		$reglas    = new ReglasConducta( 'línea', array(), array(), array(), TratamientoLector::Tu, '¿Y tú?' );
 		$matriz    = MatrizTonos::desdeFilas( array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) ) );
-		$conducta  = new ConductaVersion( 1, 60, $diales, $reglas, $matriz, false, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ) );
+		$conducta  = new ConductaVersion( 1, 60, $diales, $reglas, $matriz, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ) );
 		$propuesto = new Periodista( 60, 'Propuesto', null, 'bio', RolPeriodista::Cronista, array(), EstadoPeriodista::Propuesto, $conducta, new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ), new DateTimeImmutable( '2026-07-22T09:00:00+00:00' ) );
 
 		$piezasParaGestor = Mockery::mock( RepositorioPiezasInterface::class );
@@ -1673,7 +1338,7 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$diales    = new Diales( 60, 40, 20, 60, 50, 50, 60, 50 );
 		$reglas    = new ReglasConducta( 'línea', array(), array(), array(), TratamientoLector::Tu, '¿Y tú?' );
 		$matriz    = MatrizTonos::desdeFilas( array( new EntradaMatrizTono( TipoNoticia::DatoEconomico, Tono::Analitico, Tono::Persuasivo, NivelSatiraPermitida::No ) ) );
-		$conducta  = new ConductaVersion( 1, 61, $diales, $reglas, $matriz, false, new DateTimeImmutable( '2026-07-22T11:00:00+00:00' ) );
+		$conducta  = new ConductaVersion( 1, 61, $diales, $reglas, $matriz, new DateTimeImmutable( '2026-07-22T11:00:00+00:00' ) );
 		$propuesto = new Periodista( 61, 'Propuesto reciente', null, 'bio', RolPeriodista::Cronista, array(), EstadoPeriodista::Propuesto, $conducta, new DateTimeImmutable( '2026-07-22T11:00:00+00:00' ), new DateTimeImmutable( '2026-07-22T11:00:00+00:00' ) );
 
 		$piezasParaGestor = Mockery::mock( RepositorioPiezasInterface::class );

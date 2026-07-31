@@ -39,7 +39,7 @@ final class GeneradorVistaPreviaTest extends CasoDePruebaUnitario {
 		$diales   = new Diales( 40, 20, 10, 60, 30, 50, 60, 50 );
 		$reglas   = new ReglasConducta( 'línea original', array(), array(), array(), TratamientoLector::Usted, '¿Y usted qué opina?' );
 		$matriz   = MatrizTonos::desdeFilas( array() );
-		$conducta = new ConductaVersion( 1, 9, $diales, $reglas, $matriz, false, new DateTimeImmutable( '2026-07-23T00:00:00+00:00' ) );
+		$conducta = new ConductaVersion( 1, 9, $diales, $reglas, $matriz, new DateTimeImmutable( '2026-07-23T00:00:00+00:00' ) );
 
 		return new Periodista(
 			9,

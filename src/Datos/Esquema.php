@@ -301,17 +301,12 @@ final class Esquema {
                 PRIMARY KEY  (id),
                 KEY estado (estado)
             ) {$charset};",
-			// Etapa 5 (respuestas asistidas a comentarios, Libro Cap. 5.7) añade
-			// respuestas_habilitadas: interruptor "modo configurable" por
-			// periodista — decisión del propietario, 2026-07-23: vive en la
-			// Conducta, no como opción global del motor.
 			"CREATE TABLE {$prefijo}periodistas_conducta_versiones (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 periodista_id BIGINT UNSIGNED NOT NULL,
                 diales LONGTEXT NOT NULL,
                 reglas_conducta LONGTEXT NOT NULL,
                 matriz_tonos LONGTEXT NOT NULL,
-                respuestas_habilitadas TINYINT(1) NOT NULL DEFAULT 0,
                 creada_en DATETIME NOT NULL,
                 PRIMARY KEY  (id),
                 KEY periodista_id (periodista_id)
@@ -485,28 +480,6 @@ final class Esquema {
                 UNIQUE KEY post_id_consulta (post_id, consulta(100)),
                 KEY pieza_id (pieza_id)
             ) {$charset};",
-			// Etapa 5 (memoria de audiencia + respuestas asistidas, Libro Cap.
-			// 5.7): un comentario real de WordPress procesado como mucho una
-			// vez (UNIQUE comentario_id). "borrador"/"periodista_id" nulos
-			// cuando la Pieza no tiene periodista o tiene las respuestas
-			// deshabilitadas — solo alimenta memoria, sin borrador de
-			// respuesta. "comentario_respuesta_id" queda poblado tras
-			// aprobar (Libro Cap. 5.7: "el editor aprueba con un clic").
-			"CREATE TABLE {$prefijo}respuestas_comentarios (
-                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-                pieza_id BIGINT UNSIGNED NOT NULL,
-                comentario_id BIGINT UNSIGNED NOT NULL,
-                periodista_id BIGINT UNSIGNED NULL,
-                borrador LONGTEXT NULL,
-                estado VARCHAR(30) NOT NULL,
-                comentario_respuesta_id BIGINT UNSIGNED NULL,
-                creada_en DATETIME NOT NULL,
-                resuelta_en DATETIME NULL,
-                PRIMARY KEY  (id),
-                UNIQUE KEY comentario_id (comentario_id),
-                KEY pieza_id (pieza_id),
-                KEY estado (estado)
-            ) {$charset};",
 			// Etapa 8, porción 7a (Nivel Dos F.1-F.3, modo respeto): registro
 			// histórico de activaciones — append-only, nunca se sobrescribe una
 			// fila. El estado ACTUAL es la fila más reciente con
@@ -546,7 +519,6 @@ final class Esquema {
 			$prefijo . 'vocabulario',
 			$prefijo . 'cola_publicacion',
 			$prefijo . 'metricas_search_console',
-			$prefijo . 'respuestas_comentarios',
 			$prefijo . 'modo_respeto',
 			$prefijo . 'historias',
 			$prefijo . 'eventos_programados',
@@ -592,6 +564,30 @@ final class Esquema {
 		$prefijo = $wpdb->prefix . 'pluma_';
 
 		return match ( $versionOrigen . '->' . $versionDestino ) {
+			// `ADR 0011`: retiro de la función de comentarios. Esta reversa
+			// solo restaura la FORMA del esquema (columna con su defecto de
+			// fábrica, tabla vacía) — los datos que el retiro forward ya
+			// borró (Migrador::ejecutarRetiro(), ver
+			// sentenciasRetiroHasta()) no se recuperan; un DROP real nunca es
+			// reversible en datos, solo en forma.
+			'0.26.0->0.25.0' => array(
+				"ALTER TABLE {$prefijo}periodistas_conducta_versiones ADD COLUMN respuestas_habilitadas TINYINT(1) NOT NULL DEFAULT 0;",
+				"CREATE TABLE IF NOT EXISTS {$prefijo}respuestas_comentarios (
+                    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                    pieza_id BIGINT UNSIGNED NOT NULL,
+                    comentario_id BIGINT UNSIGNED NOT NULL,
+                    periodista_id BIGINT UNSIGNED NULL,
+                    borrador LONGTEXT NULL,
+                    estado VARCHAR(30) NOT NULL,
+                    comentario_respuesta_id BIGINT UNSIGNED NULL,
+                    creada_en DATETIME NOT NULL,
+                    resuelta_en DATETIME NULL,
+                    PRIMARY KEY  (id),
+                    UNIQUE KEY comentario_id (comentario_id),
+                    KEY pieza_id (pieza_id),
+                    KEY estado (estado)
+                ) {$wpdb->get_charset_collate()};",
+			),
 			'0.25.0->0.24.0' => array(
 				"DROP TABLE IF EXISTS {$prefijo}llamadas_modelo;",
 			),
@@ -643,5 +639,43 @@ final class Esquema {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- mensaje construido internamente por la propia excepción, sin entrada de usuario.
 			default => throw new ReversaNoDisponibleException( $versionOrigen, $versionDestino ),
 		};
+	}
+
+	/**
+	 * Retiro DEFINITIVO de esquema que una versión ya no usa — a diferencia
+	 * de {@see sentenciasReversaDesde()} (rollback manual, explícitamente
+	 * solicitado), esto se ejecuta automáticamente hacia ADELANTE en cada
+	 * actualización real de cliente ({@see \Pluma\Datos\Migrador::ejecutarRetiro()},
+	 * llamado desde `Pluma\Kernel\Activador::activar()`) cuando una
+	 * funcionalidad que sostenía una tabla/columna se elimina del producto.
+	 *
+	 * Idempotente por construcción: `DROP TABLE IF EXISTS` no falla si ya se
+	 * ejecutó (o si la instalación es nueva y nunca tuvo la tabla); la
+	 * columna se comprueba con `SHOW COLUMNS` antes de intentar el `DROP
+	 * COLUMN` porque, a diferencia de `DROP TABLE`, no todo MySQL/MariaDB
+	 * soportado por el plugin acepta `DROP COLUMN IF EXISTS`.
+	 *
+	 * `ADR 0011`: retiro de la función de comentarios (compuertas +
+	 * Sala de Comentarios) — gastaba crédito de IA en moderación de sitio,
+	 * ajeno al objetivo del producto (generación de contenido).
+	 *
+	 * @return list<string>
+	 */
+	public static function sentenciasRetiroHasta( wpdb $wpdb, string $versionObjetivo ): array {
+		$prefijo    = $wpdb->prefix . 'pluma_';
+		$sentencias = array();
+
+		if ( version_compare( $versionObjetivo, '0.26.0', '>=' ) ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nombre de tabla generado internamente, no hay identificador parametrizable en $wpdb->prepare().
+			$columnas = $wpdb->get_col( "SHOW COLUMNS FROM {$prefijo}periodistas_conducta_versiones" );
+
+			if ( in_array( 'respuestas_habilitadas', $columnas ?? array(), true ) ) {
+				$sentencias[] = "ALTER TABLE {$prefijo}periodistas_conducta_versiones DROP COLUMN respuestas_habilitadas;";
+			}
+
+			$sentencias[] = "DROP TABLE IF EXISTS {$prefijo}respuestas_comentarios;";
+		}
+
+		return $sentencias;
 	}
 }

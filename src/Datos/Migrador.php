@@ -77,6 +77,24 @@ final class Migrador {
 	}
 
 	/**
+	 * Ejecuta el retiro definitivo de esquema ya resuelto por
+	 * {@see Esquema::sentenciasRetiroHasta()} — a diferencia de
+	 * {@see revertirA()}, esto NO cambia `pluma_db_version` (el retiro es
+	 * parte de la migración forward normal hacia la versión objetivo, que
+	 * `migrar()` ya registra) y sus sentencias son idempotentes por
+	 * construcción, así que reejecutarlas en cada carga sin versión nueva no
+	 * tiene coste real más allá de la consulta de comprobación.
+	 *
+	 * @param list<string> $sentenciasRetiro
+	 */
+	public function ejecutarRetiro( array $sentenciasRetiro ): void {
+		foreach ( $sentenciasRetiro as $sentencia ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- sentencias de retiro fijas, resueltas internamente por Esquema::sentenciasRetiroHasta(), sin entrada de usuario.
+			$this->wpdb->query( $sentencia );
+		}
+	}
+
+	/**
 	 * Ejecuta una reversa de esquema ya resuelta (GOVERNANCE §5.1) y deja la
 	 * versión registrada en `$versionObjetivo`. El llamador es responsable de
 	 * obtener `$sentenciasReversa` de {@see Esquema::sentenciasReversaDesde()}

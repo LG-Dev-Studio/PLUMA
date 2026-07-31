@@ -8,7 +8,6 @@ use Pluma\Compuertas\ModoOperacion;
 use Pluma\Datos\RepositorioBitacoraInterface;
 use Pluma\Datos\RepositorioColaPublicacionInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
-use Pluma\Datos\RepositorioRespuestasComentariosInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Kernel\Capacidades;
 use Pluma\Kernel\RelojInterface;
@@ -45,7 +44,6 @@ final class RestPortada {
 		private readonly RepositorioTendenciasInterface $tendencias,
 		private readonly RepositorioColaPublicacionInterface $colaPublicacion,
 		private readonly RepositorioBitacoraInterface $bitacora,
-		private readonly RepositorioRespuestasComentariosInterface $respuestasComentarios,
 		private readonly LectorConfiguracionCadencia $lectorCadencia,
 		private readonly PresupuestoLenguaje $presupuesto,
 		private readonly RelojInterface $reloj,
@@ -75,13 +73,12 @@ final class RestPortada {
 	public function obtener(): WP_REST_Response {
 		return new WP_REST_Response(
 			array(
-				'modoOperacion'                 => $this->modoOperacion()->value,
-				'cuota'                         => $this->cuotaHoy(),
-				'salud'                         => $this->salud(),
-				'piezasPorEstado'               => $this->piezasPorEstado(),
-				'alertas'                       => $this->alertas(),
-				'tendenciasCalientes'           => $this->tendencias->obtenerRecientes( self::LIMITE_TENDENCIAS_CALIENTES ),
-				'borradoresRespuestaPendientes' => $this->respuestasComentarios->contarPendientes(),
+				'modoOperacion'       => $this->modoOperacion()->value,
+				'cuota'               => $this->cuotaHoy(),
+				'salud'               => $this->salud(),
+				'piezasPorEstado'     => $this->piezasPorEstado(),
+				'alertas'             => $this->alertas(),
+				'tendenciasCalientes' => $this->tendencias->obtenerRecientes( self::LIMITE_TENDENCIAS_CALIENTES ),
 			),
 			200
 		);

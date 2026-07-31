@@ -32,19 +32,6 @@ enum PropositoLenguaje: string {
 	 */
 	case CompararHistorias = 'comparar_historias';
 	/**
-	 * Memoria de audiencia (Libro Cap. 5.7, Etapa 5): extrae un aprendizaje
-	 * breve de un comentario sustantivo real. Económico y determinista,
-	 * mismo criterio que `CompararHistorias` — es análisis, no creación.
-	 */
-	case AnalizarAudiencia = 'analizar_audiencia';
-	/**
-	 * Respuestas asistidas a comentarios (Libro Cap. 5.7, Etapa 5): borrador
-	 * de respuesta del periodista a un comentario real, en su propia voz.
-	 * Premium, mismo criterio que `BloqueEditor` — es voz pública del
-	 * periodista, no una clasificación interna.
-	 */
-	case RespuestaComentario = 'respuesta_comentario';
-	/**
 	 * Fase 3.5 del Algoritmo de Decisión Editorial (Nivel Tres O.1): pasada
 	 * adversarial acotada — "usando exclusivamente el expediente, construye
 	 * el caso más fuerte posible en contra de esta tesis exacta". Mecanismo
@@ -52,18 +39,11 @@ enum PropositoLenguaje: string {
 	 */
 	case Falsear = 'falsear';
 	/**
-	 * Compuertas de comentarios (Nivel Cuatro X.1, Etapa 9): "la misma
-	 * filosofía del Capítulo 8, aplicada a la entrada" — clasifica cada
-	 * comentario entrante en tiempo real, síncrono con el envío del
-	 * visitante. Económico y determinista, mismo criterio que `Clasificar`.
-	 */
-	case ClasificarComentario = 'clasificar_comentario';
-	/**
 	 * El boletín como producto del periodista (Nivel Cuatro W.1, Etapa 9):
 	 * párrafo de apertura redactado en la voz del periodista, "mismo
 	 * pipeline, propósito boletin, mismas compuertas de tono" — literal del
-	 * texto fuente. Premium, mismo criterio que `RespuestaComentario`: es
-	 * voz pública del periodista, no una clasificación interna.
+	 * texto fuente. Premium — es voz pública del periodista, no una
+	 * clasificación interna.
 	 */
 	case Boletin = 'boletin';
 	/**
@@ -93,8 +73,8 @@ enum PropositoLenguaje: string {
 	public function esPremium(): bool {
 		// phpcs:ignore PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext -- falso positivo: $this en un método de enum (PHP 8.1) es válido; el sniff aún no reconoce enums.
 		return match ( $this ) {
-			self::Redactar, self::Corregir, self::BloqueEditor, self::RespuestaComentario, self::Boletin, self::DerivadoSocial, self::TitularAlternativo => true,
-			self::Clasificar, self::Angulos, self::Titulares, self::VistaPrevia, self::CompararHistorias, self::AnalizarAudiencia, self::Falsear, self::ClasificarComentario, self::AgruparTemasSinCobertura => false,
+			self::Redactar, self::Corregir, self::BloqueEditor, self::Boletin, self::DerivadoSocial, self::TitularAlternativo => true,
+			self::Clasificar, self::Angulos, self::Titulares, self::VistaPrevia, self::CompararHistorias, self::Falsear, self::AgruparTemasSinCobertura => false,
 		};
 	}
 
@@ -106,10 +86,10 @@ enum PropositoLenguaje: string {
 	public function temperatura(): float {
 		// phpcs:ignore PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext -- falso positivo: $this en un método de enum (PHP 8.1) es válido; el sniff aún no reconoce enums.
 		return match ( $this ) {
-			self::Clasificar, self::CompararHistorias, self::AnalizarAudiencia, self::ClasificarComentario, self::AgruparTemasSinCobertura => 0.0,
+			self::Clasificar, self::CompararHistorias, self::AgruparTemasSinCobertura => 0.0,
 			self::Corregir, self::Falsear => 0.2,
 			self::Angulos, self::Titulares => 0.8,
-			self::Redactar, self::BloqueEditor, self::VistaPrevia, self::RespuestaComentario, self::Boletin, self::DerivadoSocial, self::TitularAlternativo => 0.7,
+			self::Redactar, self::BloqueEditor, self::VistaPrevia, self::Boletin, self::DerivadoSocial, self::TitularAlternativo => 0.7,
 		};
 	}
 }

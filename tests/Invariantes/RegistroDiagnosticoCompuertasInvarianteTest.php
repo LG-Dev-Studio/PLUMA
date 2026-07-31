@@ -26,7 +26,6 @@ use Pluma\Datos\RepositorioLlamadasModeloInterface;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
-use Pluma\Datos\RepositorioRespuestasComentariosInterface;
 use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabularioInterface;
@@ -47,10 +46,8 @@ use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
 use Pluma\Publicacion\CreadorBorradorInterface;
-use Pluma\Publicacion\LectorComentariosInterface;
 use Pluma\Publicacion\PublicadorInterface;
 use Pluma\Redaccion\AgrupadorTemasSinCobertura;
-use Pluma\Redaccion\AnalizadorAudiencia;
 use Pluma\Redaccion\AnotacionCorrector;
 use Pluma\Redaccion\CreadorAutomaticoPeriodistas;
 use Pluma\Redaccion\Borrador;
@@ -58,14 +55,12 @@ use Pluma\Redaccion\CandidatoTesis;
 use Pluma\Redaccion\ClasificacionNoticia;
 use Pluma\Redaccion\EsqueletoPieza;
 use Pluma\Redaccion\FichaDecisionEditorial;
-use Pluma\Redaccion\GeneradorRespuestaComentario;
 use Pluma\Redaccion\GeneradorTitularAlternativo;
 use Pluma\Redaccion\NovedadNoticia;
 use Pluma\Redaccion\PuntoCorrector;
 use Pluma\Redaccion\RedactorInterface;
 use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
-use Pluma\Redaccion\VerificadorComentarioSustantivo;
 use Pluma\Sensores\ComparadorHistorias;
 use Pluma\Datos\RepositorioHistoriasInterface;
 use Pluma\Pipeline\GestorHistorias;
@@ -144,7 +139,6 @@ final class RegistroDiagnosticoCompuertasInvarianteTest extends CasoDePruebaUnit
 		$piezas = Mockery::mock( RepositorioPiezasInterface::class );
 		$piezas->expects( 'obtenerPorEstado' )->with( EstadoPieza::Optimizada, Mockery::any() )->andReturn( array( $piezaOptimizada ) );
 		$piezas->allows( 'obtenerPorEstado' )->andReturn( array() );
-		$piezas->allows( 'obtenerPublicadasParaSincronizarComentarios' )->andReturn( array() );
 		// Dos transiciones reales: Optimizada→EnRevision, y (riesgo de
 		// difamación) EnRevision→Retenida — cada una lee el estado ACTUAL.
 		$piezas->expects( 'obtenerPorId' )->with( 30 )->twice()->andReturn( $piezaOptimizada, $piezaEnRevision );
@@ -226,12 +220,6 @@ final class RegistroDiagnosticoCompuertasInvarianteTest extends CasoDePruebaUnit
 			Mockery::mock( CreadorBorradorInterface::class ),
 			Mockery::mock( PublicadorInterface::class ),
 			new ComparadorHistorias( Mockery::mock( LenguajeInterface::class ), new PresupuestoLenguaje( new RelojFijo() ) ),
-			Mockery::mock( LectorComentariosInterface::class )->allows( 'obtenerAprobadosDe' )->andReturn( array() )->getMock(),
-			new AnalizadorAudiencia( Mockery::mock( LenguajeInterface::class ), new PresupuestoLenguaje( new RelojFijo() ) ),
-			new GeneradorRespuestaComentario( Mockery::mock( LenguajeInterface::class ) ),
-			new VerificadorComentarioSustantivo(),
-			Mockery::mock( RepositorioMemoriaEditorialInterface::class ),
-			Mockery::mock( RepositorioRespuestasComentariosInterface::class ),
 			Mockery::mock( RepositorioPeriodistasInterface::class )->allows( 'obtenerPropuestos' )->andReturn( array() )->getMock(),
 			new RelojFijo(),
 			new ResolutorDisputas( Mockery::mock( LenguajeInterface::class ) ),

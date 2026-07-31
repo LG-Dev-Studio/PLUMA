@@ -40,7 +40,7 @@ final class CorpusVozFixturesTest extends CasoDePruebaUnitario {
 	}
 
 	private function periodista( PlantillaPeriodista $plantilla ): Periodista {
-		$conducta = new ConductaVersion( 1, 1, $plantilla->diales, $plantilla->reglas, $plantilla->matrizTonos, false, new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ) );
+		$conducta = new ConductaVersion( 1, 1, $plantilla->diales, $plantilla->reglas, $plantilla->matrizTonos, new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ) );
 
 		return new Periodista(
 			1,

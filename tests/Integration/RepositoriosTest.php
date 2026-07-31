@@ -549,44 +549,6 @@ final class RepositoriosTest extends WP_UnitTestCase {
 		self::assertSame( $totalAntes + 1, $repo->contarPorEstadoEntre( EstadoTendencia::EnPipeline, $ahora->modify( '-7 days' ), $ahora ) );
 	}
 
-	public function test_obtener_publicadas_para_sincronizar_comentarios_filtra_por_estado_post_id_y_ventana(): void {
-		global $wpdb;
-		$repoTendencias = new RepositorioTendencias( $wpdb );
-		$repoPiezas     = new RepositorioPiezas( $wpdb );
-		$reloj          = new RelojSistema();
-
-		$publicarConPost = function ( int $postId, \DateTimeImmutable $ahora ) use ( $repoTendencias, $repoPiezas ): int {
-			$tendenciaId = $repoTendencias->guardar(
-				new TendenciaDetectada( 'tendencia comentarios ' . uniqid(), PuntuacionOportunidad::calcular( 50, 50 ), $ahora, array(), 'google_trends' ),
-				$ahora
-			);
-			$piezaId     = $repoPiezas->crear( $tendenciaId, $ahora );
-
-			$estadoAnterior = EstadoPieza::Detectada;
-			foreach ( array( EstadoPieza::EnInvestigacion, EstadoPieza::Investigada, EstadoPieza::EnRedaccion, EstadoPieza::Redactada, EstadoPieza::Optimizada, EstadoPieza::EnRevision, EstadoPieza::Aprobada, EstadoPieza::Programada, EstadoPieza::Publicada ) as $siguiente ) {
-				$repoPiezas->actualizarEstado( $piezaId, $estadoAnterior, $siguiente, $ahora );
-				$estadoAnterior = $siguiente;
-			}
-
-			$repoPiezas->actualizarPostId( $piezaId, $postId, $ahora );
-
-			return $piezaId;
-		};
-
-		$piezaConPost = $publicarConPost( 111222, $reloj->ahora() );
-		$piezaSinPost = $repoPiezas->crear( $repoTendencias->guardar( new TendenciaDetectada( 'sin post ' . uniqid(), PuntuacionOportunidad::calcular( 50, 50 ), $reloj->ahora(), array(), 'google_trends' ), $reloj->ahora() ), $reloj->ahora() );
-		$piezaVieja   = $publicarConPost( 333444, $reloj->ahora()->modify( '-31 days' ) );
-
-		$idsEncontrados = array_map(
-			static fn ( $p ) => $p->id,
-			$repoPiezas->obtenerPublicadasParaSincronizarComentarios( 30, 50, $reloj->ahora() )
-		);
-
-		self::assertContains( $piezaConPost, $idsEncontrados, 'Una Pieza Publicada con post_id reciente debe aparecer.' );
-		self::assertNotContains( $piezaSinPost, $idsEncontrados, 'Una Pieza sin post_id (todavía Detectada) nunca debe aparecer.' );
-		self::assertNotContains( $piezaVieja, $idsEncontrados, 'Fuera de la ventana de días no debe aparecer.' );
-	}
-
 	public function test_obtener_ultima_ejecucion_de_la_bitacora(): void {
 		global $wpdb;
 		$repo  = new RepositorioBitacora( $wpdb );

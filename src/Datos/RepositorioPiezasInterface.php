@@ -57,16 +57,6 @@ interface RepositorioPiezasInterface {
 	public function priorizar( int $id, DateTimeImmutable $ahora ): bool;
 
 	/**
-	 * Piezas Publicadas recientes con post real (Libro Cap. 5.7, Etapa 5:
-	 * memoria de audiencia + respuestas asistidas) — el Orquestador solo
-	 * sincroniza comentarios de publicaciones dentro de `$diasVentana`, no de
-	 * todo el histórico del sitio.
-	 *
-	 * @return list<Pieza>
-	 */
-	public function obtenerPublicadasParaSincronizarComentarios( int $diasVentana, int $limite, DateTimeImmutable $ahora ): array;
-
-	/**
 	 * @return list<Pieza>
 	 */
 	public function obtenerPorEstado( EstadoPieza $estado, int $limite ): array;
@@ -74,9 +64,8 @@ interface RepositorioPiezasInterface {
 	/**
 	 * Piezas en `$estado` dentro de una ventana de fechas explícita (Libro
 	 * Cap. 14, Etapa 5: informes editoriales semanales) — a diferencia de
-	 * `obtenerPorEstado()`/`obtenerPublicadasParaSincronizarComentarios()`,
-	 * que acotan "recientes" desde ahora hacia atrás, esta consulta permite
-	 * cualquier rango `[$desde, $hasta]`.
+	 * `obtenerPorEstado()`, que acota "recientes" desde ahora hacia atrás,
+	 * esta consulta permite cualquier rango `[$desde, $hasta]`.
 	 *
 	 * @return list<Pieza>
 	 */
