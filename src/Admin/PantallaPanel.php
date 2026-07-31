@@ -438,6 +438,10 @@ final class PantallaPanel {
 				'cronista'   => __( 'Cronista', 'pluma-engine' ),
 				'satirico'   => __( 'Satírico', 'pluma-engine' ),
 			),
+			'locale'                      => array(
+				'titulo' => __( 'Locale editorial', 'pluma-engine' ),
+				'es-ES'  => __( 'Español (España)', 'pluma-engine' ),
+			),
 			'especialidades'              => array(
 				'titulo'              => __( 'Especialidades', 'pluma-engine' ),
 				'cubreTodosLosTemas'  => __( 'Cubre todos los temas', 'pluma-engine' ),

@@ -259,4 +259,35 @@ final class CreadorAutomaticoPeriodistasTest extends CasoDePruebaUnitario {
 		self::assertNotNull( $proveedor->ultimaPeticion );
 		self::assertSame( 1, substr_count( $proveedor->ultimaPeticion->material, 'TEMA: deportes' ) );
 	}
+
+	/**
+	 * `PLUMA-E9-21`: la deduplicación de temas también pliega diacríticos —
+	 * "Economía" y "economia" deben deduplicarse en una sola muestra.
+	 */
+	public function test_piezas_con_tema_que_solo_difiere_en_diacriticos_se_deduplican(): void {
+		Functions\when( 'get_option' )->alias(
+			// phpcs:ignore WordPress.CodeAnalysis.AssignmentInTernaryCondition.FoundInTernaryCondition -- falso positivo: es una arrow function con `=>`, no una asignación.
+			static fn ( string $opcion, $defecto = false ) => CreadorAutomaticoPeriodistas::OPCION_ACTIVADA === $opcion ? true : $defecto
+		);
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$proveedor       = new ProveedorLenguajeFalso( '{"crearPeriodista": false}' );
+		$repoPeriodistas = $this->createMock( RepositorioPeriodistasInterface::class );
+		$repoPeriodistas->method( 'contarAutomaticosActivos' )->willReturn( 0 );
+
+		[$creador] = $this->construir(
+			array(
+				$this->pieza( 1, 'Economía', 'extracto A' ),
+				$this->pieza( 2, 'economia', 'extracto B' ),
+				$this->pieza( 3, '  ECONOMIA  ', 'extracto C' ),
+			),
+			$proveedor,
+			repoPeriodistasCompartido: $repoPeriodistas
+		);
+
+		$creador->evaluarYProponer();
+
+		self::assertNotNull( $proveedor->ultimaPeticion );
+		self::assertSame( 1, substr_count( $proveedor->ultimaPeticion->material, 'TEMA: economia' ) );
+	}
 }

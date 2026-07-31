@@ -49,6 +49,7 @@ Pluma\Pipeline          → Máquina de estados de Pieza + orquestador. Sin I/O 
 Pluma\Sensores          → Adaptadores de señal (Trends, RSS, social). Solo percepción.
 Pluma\Investigacion     → Protocolo multifuente, expediente, triangulación.
 Pluma\Redaccion         → Periodistas, decisión editorial, corrector interno.
+Pluma\Idioma            → Perfil de idioma/escritura por locale, determinista, Plano 0. Sin dependencias de otras capas de dominio.
 Pluma\Seo               → Capa de optimización. Nunca reescribe argumentos.
 Pluma\Taxonomia         → Reconciliación de entidades y etiquetas.
 Pluma\Compuertas        → Calidad / Riesgo / Originalidad. Solo evaluación, cero mutación.
@@ -61,6 +62,7 @@ Pluma\Dto               → Objetos inmutables `final readonly`. Cero lógica.
 
 Reglas duras:
 - `$wpdb` SOLO en `Pluma\Datos`. `wp_remote_*`/HTTP SOLO en `Pluma\Proveedores`. `wp_insert_post` SOLO en `Pluma\Publicacion`.
+- `Pluma\Idioma` no depende de ninguna otra capa de dominio; cualquier capa puede depender de `Pluma\Idioma`.
 - El frontend público solo recibe, por categoría (`ADR 0009`, 2026-07-29 — la lista es de categorías pre-autorizadas, no una enumeración cerrada que reabrir en cada porción): (a) marcado embebido en la pieza vía filtros de contenido — bloque del editor, schema JSON-LD, banner de corrección opcional, expediente resumido opcional; (b) **páginas virtuales** (rewrite rule + query var + `template_redirect`/`template_include`, nunca `exit` — patrón fijado por `Pluma\Seo\PaginaAutorPeriodista` y reutilizado sin ADR individual por cada página nueva que lo siga: `HistoriaHub`, y desde la Etapa 9 Porción 5 la página de metodología y el historial público de correcciones) — identidad editorial sintética por periodista (Art. 50 del Reglamento (UE) 2024/1689, Nivel Tres N.3), hub de Historia, metodología, correcciones; (c) el service worker + JS mínimo de suscripción a notificaciones push web (Nivel Cuatro W.3, `ADR 0007`), servido solo al lector que se suscribe explícitamente (opt-in), nunca a todo visitante. Peso adicional en frontend ≈ 0 salvo ese service worker. Prohibido encolar assets de admin fuera de las pantallas de PLUMA. Cualquier superficie genuinamente nueva en su MECANISMO (no una página virtual ni un filtro de contenido) sigue exigiendo su propio ADR, como `ADR 0007`.
 - Toda transición de estado dispara evento `pluma/pieza_{estado}` vía `do_action`. Los módulos se comunican por eventos y contratos, jamás por llamadas directas entre capas no adyacentes.
 

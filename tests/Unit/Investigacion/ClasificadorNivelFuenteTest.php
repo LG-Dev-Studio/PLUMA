@@ -65,4 +65,22 @@ final class ClasificadorNivelFuenteTest extends CasoDePruebaUnitario {
 
 		self::assertSame( NivelFuente::A, ( new ClasificadorNivelFuente() )->nivelDe( 'ambiguo.example' ) );
 	}
+
+	/**
+	 * `PLUMA-E9-21`: la comparación normaliza diacríticos, así que un nombre
+	 * de fuente configurado sin tildes calza con la variante acentuada real.
+	 */
+	public function test_calza_una_fuente_configurada_sin_tildes_contra_la_variante_acentuada(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $opcion, $defecto = false ) {
+				if ( ClasificadorNivelFuente::OPCION_FUENTES_NIVEL_A === $opcion ) {
+					return array( 'El Pais' );
+				}
+
+				return $defecto;
+			}
+		);
+
+		self::assertSame( NivelFuente::A, ( new ClasificadorNivelFuente() )->nivelDe( 'El País' ) );
+	}
 }

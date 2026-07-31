@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pluma\Investigacion;
 
+use Pluma\Idioma\PlegadorDiacriticos;
+
 /**
  * Nivel Dos B.3: "nivel A no es infalibilidad, es solo la lista de
  * confianza editable del Capítulo 4.3" — listas de dominios/nombres de
@@ -17,7 +19,7 @@ final class ClasificadorNivelFuente {
 	public const OPCION_FUENTES_NIVEL_B = 'pluma_fuentes_nivel_b';
 
 	public function nivelDe( string $fuente ): NivelFuente {
-		$fuenteNormalizada = mb_strtolower( trim( $fuente ) );
+		$fuenteNormalizada = PlegadorDiacriticos::plegar( mb_strtolower( trim( $fuente ) ) );
 
 		if ( in_array( $fuenteNormalizada, $this->listaConfigurada( self::OPCION_FUENTES_NIVEL_A ), true ) ) {
 			return NivelFuente::A;
@@ -42,7 +44,7 @@ final class ClasificadorNivelFuente {
 
 		return array_values(
 			array_map(
-				static fn ( $f ): string => mb_strtolower( trim( (string) $f ) ),
+				static fn ( $f ): string => PlegadorDiacriticos::plegar( mb_strtolower( trim( (string) $f ) ) ),
 				array_filter( $valor, static fn ( $f ): bool => is_string( $f ) || is_numeric( $f ) )
 			)
 		);

@@ -11,6 +11,11 @@ export const VERTICAL_COMODIN = '*';
 
 export const ROLES_PERIODISTA = ['analista', 'columnista', 'cronista', 'satirico'] as const;
 
+// Solo `es-ES` tiene catálogo léxico curado hoy (`Pluma\Idioma\ResolutorPerfilIdioma`,
+// `ADR 0012`) — el selector nace con una sola opción honesta en vez de
+// fingir soporte multilingüe.
+export const LOCALES_EDITORIALES = ['es-ES'] as const;
+
 /**
  * Estado editable de las especialidades de un periodista: o bien el
  * comodín "cubre todos los temas" (con su propio nivel de dominio), o
@@ -84,6 +89,7 @@ export interface DetallePeriodista {
     avatarUrl: string | null;
     biografia: string;
     rol: string;
+    localeEditorial: string;
     especialidades: Especialidad[];
     estado: 'activo' | 'jubilado' | 'propuesto';
     diales: Diales;
@@ -137,6 +143,10 @@ export interface TextosBancoPeriodistas {
         columnista: string;
         cronista: string;
         satirico: string;
+    };
+    locale: {
+        titulo: string;
+        'es-ES': string;
     };
     especialidades: {
         titulo: string;

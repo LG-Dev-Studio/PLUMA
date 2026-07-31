@@ -16,9 +16,12 @@ namespace Pluma\Redaccion;
  *
  * Nivel Tres Q.1 (Etapa 8, Porción 10): la lista es un artefacto localizado,
  * no traducido — una muletilla de IA en un registro puede ser lenguaje
- * natural en otro. `'es-ES'` es el único locale curado hoy; los demás caen
- * al mismo catálogo hasta que se curen por separado (nunca se genera por
- * traducción automática).
+ * natural en otro. `'es-ES'` es el único locale curado hoy (`ADR 0012`); un
+ * locale sin catálogo devuelve una lista vacía en vez de heredar en
+ * silencio el catálogo de otro idioma — el borde REST (`RestPeriodistas`)
+ * ya rechaza de entrada cualquier `localeEditorial` sin cobertura
+ * (`ResolutorPerfilIdioma`), así que este `default` vacío es un cinturón de
+ * seguridad, no la ruta esperada.
  */
 final class VocabularioProhibidoGlobal {
 
@@ -27,7 +30,7 @@ final class VocabularioProhibidoGlobal {
 	 */
 	public static function muletillasDeTextoIa( string $locale = 'es-ES' ): array {
 		return match ( $locale ) {
-			default => array(
+			'es-ES' => array(
 				'es importante destacar',
 				'es importante señalar',
 				'cabe destacar',
@@ -52,6 +55,7 @@ final class VocabularioProhibidoGlobal {
 				'como modelo de lenguaje',
 				'espero que esta información sea de utilidad',
 			),
+			default => array(),
 		};
 	}
 

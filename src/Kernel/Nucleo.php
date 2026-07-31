@@ -80,6 +80,7 @@ use Pluma\Datos\RepositorioTendencias;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabulario;
 use Pluma\Datos\RepositorioVocabularioInterface;
+use Pluma\Idioma\ResolutorPerfilIdioma;
 use Pluma\Investigacion\ClasificadorNivelFuente;
 use Pluma\Investigacion\DetectorHuecos;
 use Pluma\Investigacion\InvestigadorInterface;
@@ -497,6 +498,7 @@ final class Nucleo {
 			)
 		);
 
+		$this->contenedor->registrar( ResolutorPerfilIdioma::class, static fn (): ResolutorPerfilIdioma => new ResolutorPerfilIdioma() );
 		$this->contenedor->registrar( CompiladorDirectrices::class, static fn (): CompiladorDirectrices => new CompiladorDirectrices() );
 		$this->contenedor->registrar( VerificadorVoz::class, static fn (): VerificadorVoz => new VerificadorVoz() );
 		$this->contenedor->registrar( VerificadorNGramas::class, static fn (): VerificadorNGramas => new VerificadorNGramas() );
@@ -924,7 +926,8 @@ final class Nucleo {
 				$c->obtener( GeneradorVistaPrevia::class ),
 				$c->obtener( RelojInterface::class ),
 				$c->obtener( GestorSalaRevision::class ),
-				$c->obtener( ContextoEjecucion::class )
+				$c->obtener( ContextoEjecucion::class ),
+				$c->obtener( ResolutorPerfilIdioma::class )
 			)
 		);
 		$this->contenedor->registrar(

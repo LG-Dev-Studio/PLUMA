@@ -73,6 +73,17 @@ final class PeriodistaTest extends CasoDePruebaUnitario {
 		self::assertSame( 4, $periodista->dominioDe( 'economía' ) );
 	}
 
+	/**
+	 * `PLUMA-E9-21`: el LLM devuelve el tema con tildes ("Economía"), la
+	 * especialidad declarada por el editor puede no llevarlas — el folding
+	 * de diacríticos (`Pluma\Idioma\PlegadorDiacriticos`) debe hacerlos calzar.
+	 */
+	public function test_normaliza_diacriticos_antes_de_comparar(): void {
+		$periodista = $this->periodista( array( new Especialidad( 'economia', 4 ) ) );
+
+		self::assertSame( 4, $periodista->dominioDe( 'Economía' ) );
+	}
+
 	public function test_el_comodin_responde_cuando_no_hay_match_exacto(): void {
 		$periodista = $this->periodista( array( new Especialidad( Especialidad::VERTICAL_COMODIN, 3 ) ) );
 

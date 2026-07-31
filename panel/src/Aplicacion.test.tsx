@@ -237,6 +237,10 @@ function datosPanelDeEjemplo(): DatosPlumaPanel {
                 cronista: 'Cronista',
                 satirico: 'Satírico',
             },
+            locale: {
+                titulo: 'Locale editorial',
+                'es-ES': 'Español (España)',
+            },
             especialidades: {
                 titulo: 'Especialidades',
                 cubreTodosLosTemas: 'Cubre todos los temas',

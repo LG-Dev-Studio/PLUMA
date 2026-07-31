@@ -17,7 +17,7 @@ final class VerificadorVoz {
 		$reglas            = $periodista->conductaActual->reglas;
 		$cuerpoNormalizado = mb_strtolower( $cuerpo );
 
-		foreach ( VocabularioProhibidoGlobal::combinarCon( $reglas->vocabularioProhibido ) as $frase ) {
+		foreach ( VocabularioProhibidoGlobal::combinarCon( $reglas->vocabularioProhibido, $periodista->localeEditorial ) as $frase ) {
 			if ( str_contains( $cuerpoNormalizado, mb_strtolower( $frase ) ) ) {
 				return new AnotacionCorrector( PuntoCorrector::Voz, false, "Vocabulario prohibido detectado en el texto: «{$frase}»." );
 			}

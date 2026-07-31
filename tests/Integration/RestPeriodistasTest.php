@@ -313,6 +313,60 @@ final class RestPeriodistasTest extends WP_UnitTestCase {
 		self::assertSame( 400, $respuesta->get_status() );
 	}
 
+	/**
+	 * `ADR 0012`: solo `es-ES` tiene cobertura hoy (`Pluma\Idioma\ResolutorPerfilIdioma`)
+	 * — el borde REST rechaza cualquier otro locale en vez de degradar en
+	 * silencio al catálogo de `es-ES`.
+	 */
+	public function test_crear_custom_con_locale_no_soportado_devuelve_400(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->registrarRutas();
+
+		$peticion = new WP_REST_Request( 'POST', '/pluma/v1/periodistas' );
+		$peticion->set_body_params(
+			array(
+				'nombre'              => 'X',
+				'biografia'           => 'Y',
+				'rol'                 => 'analista',
+				'localeEditorial'     => 'fr-FR',
+				'cubreTodosLosTemas'  => true,
+				'nivelDominioComodin' => 3,
+			)
+		);
+		$respuesta = rest_get_server()->dispatch( $peticion );
+
+		self::assertSame( 400, $respuesta->get_status() );
+	}
+
+	public function test_crear_custom_persiste_el_locale_editorial_declarado(): void {
+		Activador::activar( new RelojSistema(), '0.9.0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->registrarRutas();
+
+		$peticion = new WP_REST_Request( 'POST', '/pluma/v1/periodistas' );
+		$peticion->set_body_params(
+			array(
+				'nombre'              => 'X',
+				'biografia'           => 'Y',
+				'rol'                 => 'analista',
+				'localeEditorial'     => 'es-ES',
+				'cubreTodosLosTemas'  => true,
+				'nivelDominioComodin' => 3,
+			)
+		);
+		$respuesta = rest_get_server()->dispatch( $peticion );
+
+		self::assertSame( 201, $respuesta->get_status() );
+
+		global $wpdb;
+		$periodista = ( new RepositorioPeriodistas( $wpdb ) )->obtenerPorId( $respuesta->get_data()['id'] );
+		self::assertNotNull( $periodista );
+		self::assertSame( 'es-ES', $periodista->localeEditorial );
+	}
+
 	public function test_editar_identidad_cambia_especialidades_y_preserva_la_conducta(): void {
 		Activador::activar( new RelojSistema(), '0.9.0' );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );

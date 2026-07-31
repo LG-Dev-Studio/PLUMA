@@ -108,7 +108,8 @@ interface RepositorioPeriodistasInterface {
 		string $biografia,
 		RolPeriodista $rol,
 		array $especialidades,
-		DateTimeImmutable $ahora
+		DateTimeImmutable $ahora,
+		string $localeEditorial = 'es-ES'
 	): bool;
 
 	public function jubilar( int $periodistaId, DateTimeImmutable $ahora ): bool;

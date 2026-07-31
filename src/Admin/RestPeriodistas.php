@@ -7,6 +7,8 @@ namespace Pluma\Admin;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioMemoriaEditorialInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
+use Pluma\Idioma\NivelCobertura;
+use Pluma\Idioma\ResolutorPerfilIdioma;
 use Pluma\Kernel\Capacidades;
 use Pluma\Kernel\ContextoEjecucion;
 use Pluma\Kernel\RelojInterface;
@@ -88,6 +90,7 @@ final class RestPeriodistas {
 		private readonly RelojInterface $reloj,
 		private readonly GestorSalaRevision $gestorSalaRevision,
 		private readonly ContextoEjecucion $contextoEjecucion,
+		private readonly ResolutorPerfilIdioma $resolutorPerfilIdioma,
 	) {
 	}
 
@@ -280,6 +283,7 @@ final class RestPeriodistas {
 				'avatarUrl'           => $periodista->avatarUrl,
 				'biografia'           => $periodista->biografia,
 				'rol'                 => $periodista->rol->value,
+				'localeEditorial'     => $periodista->localeEditorial,
 				'especialidades'      => array_map( static fn ( $e ): array => $e->aArray(), $periodista->especialidades ),
 				'estado'              => $periodista->estado->value,
 				'diales'              => $periodista->conductaActual->diales->aArray(),
@@ -322,7 +326,8 @@ final class RestPeriodistas {
 			$conductaBase->diales,
 			$conductaBase->reglas,
 			$conductaBase->matrizTonos,
-			$this->reloj->ahora()
+			$this->reloj->ahora(),
+			$identidad['localeEditorial']
 		);
 
 		return new WP_REST_Response( array( 'id' => $id ), 201 );
@@ -356,7 +361,8 @@ final class RestPeriodistas {
 			$identidad['biografia'],
 			$identidad['rol'],
 			$identidad['especialidades'],
-			$this->reloj->ahora()
+			$this->reloj->ahora(),
+			$identidad['localeEditorial']
 		);
 
 		return new WP_REST_Response( array( 'id' => $periodistaId ), 200 );
@@ -369,7 +375,7 @@ final class RestPeriodistas {
 	 * `Especialidad` comodín — así el contrato público no depende del valor
 	 * interno del sentinela.
 	 *
-	 * @return array{nombre: string, avatarUrl: ?string, biografia: string, rol: RolPeriodista, especialidades: list<Especialidad>}|WP_Error
+	 * @return array{nombre: string, avatarUrl: ?string, biografia: string, rol: RolPeriodista, especialidades: list<Especialidad>, localeEditorial: string}|WP_Error
 	 */
 	private function identidadDesdeRequest( WP_REST_Request $request ) {
 		$nombre = $request->get_param( 'nombre' );
@@ -394,6 +400,14 @@ final class RestPeriodistas {
 			return $this->errorIdentidadInvalida( __( 'El rol no es válido.', 'pluma-engine' ) );
 		}
 
+		$localeParam     = $request->get_param( 'localeEditorial' );
+		$localeEditorial = is_string( $localeParam ) && '' !== trim( $localeParam ) ? sanitize_text_field( $localeParam ) : 'es-ES';
+		$perfilIdioma    = $this->resolutorPerfilIdioma->resolver( $localeEditorial );
+
+		if ( NivelCobertura::NoSoportado === $perfilIdioma->cobertura ) {
+			return $this->errorIdentidadInvalida( $perfilIdioma->motivoCobertura ?? __( 'El locale editorial no es válido.', 'pluma-engine' ) );
+		}
+
 		$cubreTodosLosTemas = (bool) $request->get_param( 'cubreTodosLosTemas' );
 
 		if ( $cubreTodosLosTemas ) {
@@ -404,11 +418,12 @@ final class RestPeriodistas {
 			}
 
 			return array(
-				'nombre'         => sanitize_text_field( $nombre ),
-				'avatarUrl'      => $avatarUrl,
-				'biografia'      => sanitize_textarea_field( $biografia ),
-				'rol'            => $rol,
-				'especialidades' => array( new Especialidad( Especialidad::VERTICAL_COMODIN, (int) $nivelComodin ) ),
+				'nombre'          => sanitize_text_field( $nombre ),
+				'avatarUrl'       => $avatarUrl,
+				'biografia'       => sanitize_textarea_field( $biografia ),
+				'rol'             => $rol,
+				'especialidades'  => array( new Especialidad( Especialidad::VERTICAL_COMODIN, (int) $nivelComodin ) ),
+				'localeEditorial' => $localeEditorial,
 			);
 		}
 
@@ -440,11 +455,12 @@ final class RestPeriodistas {
 		}
 
 		return array(
-			'nombre'         => sanitize_text_field( $nombre ),
-			'avatarUrl'      => $avatarUrl,
-			'biografia'      => sanitize_textarea_field( $biografia ),
-			'rol'            => $rol,
-			'especialidades' => $especialidades,
+			'nombre'          => sanitize_text_field( $nombre ),
+			'avatarUrl'       => $avatarUrl,
+			'biografia'       => sanitize_textarea_field( $biografia ),
+			'rol'             => $rol,
+			'especialidades'  => $especialidades,
+			'localeEditorial' => $localeEditorial,
 		);
 	}
 

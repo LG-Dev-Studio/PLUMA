@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pluma\Investigacion;
 
+use Pluma\Idioma\PlegadorDiacriticos;
+
 /**
  * Nivel Tres L.1: Protocolo de Verificación de Procedencia de la
  * Declaración — detecta si un hecho es una declaración textual atribuida a
@@ -81,10 +83,10 @@ final class VerificadorProcedenciaDeclaracion {
 		}
 
 		$canalesNormalizados = array_map(
-			static fn ( $c ): string => mb_strtolower( trim( (string) $c ) ),
+			static fn ( $c ): string => PlegadorDiacriticos::plegar( mb_strtolower( trim( (string) $c ) ) ),
 			array_filter( $canales, static fn ( $c ): bool => is_string( $c ) || is_numeric( $c ) )
 		);
 
-		return in_array( mb_strtolower( $host ), $canalesNormalizados, true );
+		return in_array( PlegadorDiacriticos::plegar( mb_strtolower( $host ) ), $canalesNormalizados, true );
 	}
 }

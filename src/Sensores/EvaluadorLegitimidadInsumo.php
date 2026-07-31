@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pluma\Sensores;
 
+use Pluma\Idioma\PlegadorDiacriticos;
+
 /**
  * Nivel Dos G.1 — "El modelo de amenaza del propio Radar": antes de que una
  * tendencia entre a la cola editorial, se verifica su naturalidad de señal
@@ -64,7 +66,7 @@ final class EvaluadorLegitimidadInsumo {
 		return array_values(
 			array_unique(
 				array_map(
-					static fn ( array $articulo ): string => mb_strtolower( trim( (string) $articulo['fuente'] ) ),
+					static fn ( array $articulo ): string => PlegadorDiacriticos::plegar( mb_strtolower( trim( (string) $articulo['fuente'] ) ) ),
 					$tendencia->articulosRelacionados
 				)
 			)

@@ -7,6 +7,7 @@ namespace Pluma\Redaccion;
 use DateTimeImmutable;
 use Pluma\Datos\RepositorioPeriodistasInterface;
 use Pluma\Datos\RepositorioPiezasInterface;
+use Pluma\Idioma\PlegadorDiacriticos;
 use Pluma\Kernel\RelojInterface;
 use Pluma\Pipeline\EstadoPieza;
 use Pluma\Pipeline\Pieza;
@@ -176,7 +177,7 @@ final class CreadorAutomaticoPeriodistas {
 		$porTema = array();
 
 		foreach ( $piezas as $pieza ) {
-			$temaNormalizado = mb_strtolower( trim( (string) $pieza->temaSinCubrir ) );
+			$temaNormalizado = PlegadorDiacriticos::plegar( mb_strtolower( trim( (string) $pieza->temaSinCubrir ) ) );
 
 			if ( isset( $porTema[ $temaNormalizado ] ) ) {
 				continue;

@@ -171,20 +171,22 @@ final class RepositorioPeriodistas implements RepositorioPeriodistasInterface {
 		string $biografia,
 		RolPeriodista $rol,
 		array $especialidades,
-		DateTimeImmutable $ahora
+		DateTimeImmutable $ahora,
+		string $localeEditorial = 'es-ES'
 	): bool {
 		$filasAfectadas = $this->wpdb->update(
 			$this->tablaPeriodistas(),
 			array(
-				'nombre'         => $nombre,
-				'avatar_url'     => $avatarUrl,
-				'biografia'      => $biografia,
-				'rol'            => $rol->value,
-				'especialidades' => wp_json_encode( array_map( static fn ( Especialidad $e ): array => $e->aArray(), $especialidades ) ),
-				'actualizado_en' => $ahora->format( 'Y-m-d H:i:s' ),
+				'nombre'           => $nombre,
+				'avatar_url'       => $avatarUrl,
+				'biografia'        => $biografia,
+				'rol'              => $rol->value,
+				'especialidades'   => wp_json_encode( array_map( static fn ( Especialidad $e ): array => $e->aArray(), $especialidades ) ),
+				'locale_editorial' => $localeEditorial,
+				'actualizado_en'   => $ahora->format( 'Y-m-d H:i:s' ),
 			),
 			array( 'id' => $periodistaId ),
-			array( '%s', '%s', '%s', '%s', '%s', '%s' ),
+			array( '%s', '%s', '%s', '%s', '%s', '%s', '%s' ),
 			array( '%d' )
 		);
 

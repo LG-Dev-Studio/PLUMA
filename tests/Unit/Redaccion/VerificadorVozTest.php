@@ -29,7 +29,7 @@ use Pluma\Tests\Unit\CasoDePruebaUnitario;
  */
 final class VerificadorVozTest extends CasoDePruebaUnitario {
 
-	private function periodista( array $muletillas, array $vocabularioProhibido = array() ): Periodista {
+	private function periodista( array $muletillas, array $vocabularioProhibido = array(), string $localeEditorial = 'es-ES' ): Periodista {
 		$diales   = new Diales( 50, 50, 50, 50, 50, 50, 50, 50 );
 		$reglas   = new ReglasConducta( 'linea', array(), $muletillas, $vocabularioProhibido, TratamientoLector::Tu, '¿Y tú?' );
 		$matriz   = MatrizTonos::desdeFilas(
@@ -47,7 +47,8 @@ final class VerificadorVozTest extends CasoDePruebaUnitario {
 			EstadoPeriodista::Activo,
 			$conducta,
 			new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ),
-			new DateTimeImmutable( '2026-01-01T00:00:00+00:00' )
+			new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ),
+			$localeEditorial
 		);
 	}
 
@@ -93,6 +94,24 @@ final class VerificadorVozTest extends CasoDePruebaUnitario {
 		$anotacion = ( new VerificadorVoz() )->verificar( $periodista, "Es importante señalar que {$muletillaIa} aparece en el texto." );
 
 		self::assertFalse( $anotacion->aprobado );
+	}
+
+	/**
+	 * Regresión del bug real: `VerificadorVoz` llamaba a
+	 * `VocabularioProhibidoGlobal::combinarCon()` sin pasar
+	 * `$periodista->localeEditorial` — cualquier periodista, sin importar su
+	 * locale, quedaba evaluado contra el catálogo global de `es-ES`. Con el
+	 * fix, un periodista de un locale sin catálogo curado (`VocabularioProhibidoGlobal`
+	 * devuelve una lista vacía para `default`) ya no rechaza una muletilla
+	 * que solo está prohibida en `es-ES`.
+	 */
+	public function test_pasa_el_locale_del_periodista_al_vocabulario_global(): void {
+		$periodista  = $this->periodista( array(), array(), 'fr-FR' );
+		$muletillaIa = VocabularioProhibidoGlobal::muletillasDeTextoIa( 'es-ES' )[0];
+
+		$anotacion = ( new VerificadorVoz() )->verificar( $periodista, "Texto que contiene: {$muletillaIa}." );
+
+		self::assertTrue( $anotacion->aprobado );
 	}
 
 	public function test_aprueba_un_texto_limpio_cuando_el_periodista_no_tiene_rasgos_definidos(): void {

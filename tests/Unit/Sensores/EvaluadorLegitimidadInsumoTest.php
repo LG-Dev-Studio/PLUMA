@@ -118,4 +118,22 @@ final class EvaluadorLegitimidadInsumoTest extends CasoDePruebaUnitario {
 
 		self::assertFalse( $diagnosticoConcentrado->legitimo );
 	}
+
+	/**
+	 * `PLUMA-E9-21`: dos artículos de la "misma" fuente, uno con la fuente
+	 * escrita con tilde y otro sin ella, deben contar como una sola fuente
+	 * única tras el folding de diacríticos.
+	 */
+	public function test_fuentes_que_solo_difieren_en_diacriticos_cuentan_como_una_sola(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+
+		$tendencia = $this->tendencia(
+			array( $this->articulo( 'El País' ), $this->articulo( 'El Pais' ), $this->articulo( 'El Pais' ) )
+		);
+
+		$diagnostico = ( new EvaluadorLegitimidadInsumo() )->evaluar( $tendencia );
+
+		self::assertSame( 1, $diagnostico->fuentesUnicas );
+		self::assertFalse( $diagnostico->legitimo );
+	}
 }

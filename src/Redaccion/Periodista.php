@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pluma\Redaccion;
 
 use DateTimeImmutable;
+use Pluma\Idioma\PlegadorDiacriticos;
 
 /**
  * Periodista sintético (Libro Cap. 5.1): identidad persistente + conducta
@@ -48,11 +49,10 @@ final readonly class Periodista {
 	 * Dominio del vertical de `$tema` (Paso 2 del Algoritmo de Decisión
 	 * Editorial: peso alto en la asignación). 0 si no tiene esa especialidad.
 	 *
-	 * Normaliza (minúsculas + recorte de espacios) antes de comparar: el
-	 * `tema` lo genera la IA en texto libre (`ClasificadorNoticia` no usa una
-	 * lista fija), así que "Economía" y "economia " deben calzar igual que
-	 * "economia". El folding de acentos queda fuera de alcance (deuda
-	 * registrada — depende de disponibilidad de `ext-intl` en el hosting).
+	 * Normaliza (minúsculas + recorte de espacios + plegado de diacríticos,
+	 * `PLUMA-E9-21`) antes de comparar: el `tema` lo genera la IA en texto
+	 * libre (`ClasificadorNoticia` no usa una lista fija), así que "Economía"
+	 * y "economia " deben calzar igual que "economia".
 	 *
 	 * Un periodista generalista declara una Especialidad con
 	 * `Especialidad::VERTICAL_COMODIN` en vez de (o además de) filas por
@@ -81,6 +81,6 @@ final readonly class Periodista {
 	}
 
 	private function normalizarVertical( string $vertical ): string {
-		return mb_strtolower( trim( $vertical ) );
+		return PlegadorDiacriticos::plegar( mb_strtolower( trim( $vertical ) ) );
 	}
 }

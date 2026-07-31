@@ -58,4 +58,25 @@ final class VerificadorProcedenciaDeclaracionTest extends CasoDePruebaUnitario {
 
 		self::assertSame( EstadoProcedenciaDeclaracion::VerificadaCanalOficial, $estado );
 	}
+
+	/**
+	 * `PLUMA-E9-21`: la comparación de host normaliza diacríticos en ambos
+	 * lados — un canal configurado con una variante acentuada calza contra
+	 * la URL real sin importar cuál de las dos lleve el diacrítico.
+	 */
+	public function test_calza_un_canal_configurado_con_diacriticos_distintos_a_los_de_la_url(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $opcion, $defecto = false ) {
+				if ( VerificadorProcedenciaDeclaracion::OPCION_CANALES_OFICIALES === $opcion ) {
+					return array( 'canal-oficiál.example' );
+				}
+
+				return $defecto;
+			}
+		);
+
+		$estado = ( new VerificadorProcedenciaDeclaracion() )->detectar( 'El ministro: "vamos a bajar los impuestos el próximo año"', 'https://canal-oficial.example/comunicado' );
+
+		self::assertSame( EstadoProcedenciaDeclaracion::VerificadaCanalOficial, $estado );
+	}
 }

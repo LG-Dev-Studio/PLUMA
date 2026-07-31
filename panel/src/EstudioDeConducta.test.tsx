@@ -42,6 +42,10 @@ function textosDeEjemplo(): TextosBancoPeriodistas {
             cronista: 'Cronista',
             satirico: 'Satírico',
         },
+        locale: {
+            titulo: 'Locale editorial',
+            'es-ES': 'Español (España)',
+        },
         especialidades: {
             titulo: 'Especialidades',
             cubreTodosLosTemas: 'Cubre todos los temas',
@@ -130,6 +134,7 @@ function detalleDeEjemplo(sobrescribir: Partial<DetallePeriodista> = {}): Detall
         avatarUrl: null,
         biografia: 'Economista de formación.',
         rol: 'columnista',
+        localeEditorial: 'es-ES',
         especialidades: [{ vertical: 'economia', nivelDominio: 5 }],
         estado: 'activo',
         diales: {

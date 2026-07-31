@@ -117,6 +117,10 @@ function textosBancoDeEjemplo(): TextosBancoPeriodistas {
             cronista: 'Cronista',
             satirico: 'Satírico',
         },
+        locale: {
+            titulo: 'Locale editorial',
+            'es-ES': 'Español (España)',
+        },
         especialidades: {
             titulo: 'Especialidades',
             cubreTodosLosTemas: 'Cubre todos los temas',
@@ -205,6 +209,7 @@ function detalleDeEjemplo(): DetallePeriodista {
         avatarUrl: null,
         biografia: 'Sobrio y riguroso.',
         rol: 'analista',
+        localeEditorial: 'es-ES',
         especialidades: [],
         estado: 'activo',
         diales: {

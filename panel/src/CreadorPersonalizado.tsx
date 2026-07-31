@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { EditorEspecialidades } from './EditorEspecialidades';
-import { ROLES_PERIODISTA, type EstadoEspecialidades, type TextosBancoPeriodistas } from './PantallaBancoPeriodistas';
+import { LOCALES_EDITORIALES, ROLES_PERIODISTA, type EstadoEspecialidades, type TextosBancoPeriodistas } from './PantallaBancoPeriodistas';
 
 interface Props {
     restUrl: string;
@@ -22,6 +22,7 @@ export function CreadorPersonalizado({ restUrl, cabeceras, textos, onCreado, onC
     const [biografia, setBiografia] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
     const [rol, setRol] = useState<(typeof ROLES_PERIODISTA)[number]>('analista');
+    const [localeEditorial, setLocaleEditorial] = useState<(typeof LOCALES_EDITORIALES)[number]>('es-ES');
     const [especialidades, setEspecialidades] = useState<EstadoEspecialidades>({
         cubreTodosLosTemas: false,
         nivelDominioComodin: 3,
@@ -47,6 +48,7 @@ export function CreadorPersonalizado({ restUrl, cabeceras, textos, onCreado, onC
                 biografia,
                 avatarUrl: '' === avatarUrl.trim() ? null : avatarUrl,
                 rol,
+                localeEditorial,
                 cubreTodosLosTemas: especialidades.cubreTodosLosTemas,
                 nivelDominioComodin: especialidades.nivelDominioComodin,
                 especialidades: especialidades.especialidades,
@@ -95,6 +97,20 @@ export function CreadorPersonalizado({ restUrl, cabeceras, textos, onCreado, onC
                         {ROLES_PERIODISTA.map((valorRol) => (
                             <option key={valorRol} value={valorRol}>
                                 {textos.rol[valorRol]}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+
+                <label>
+                    {textos.locale.titulo}
+                    <select
+                        value={localeEditorial}
+                        onChange={(evento) => setLocaleEditorial(evento.target.value as (typeof LOCALES_EDITORIALES)[number])}
+                    >
+                        {LOCALES_EDITORIALES.map((valorLocale) => (
+                            <option key={valorLocale} value={valorLocale}>
+                                {textos.locale[valorLocale]}
                             </option>
                         ))}
                     </select>

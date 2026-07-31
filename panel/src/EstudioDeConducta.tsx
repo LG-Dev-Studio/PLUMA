@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorEspecialidades } from './EditorEspecialidades';
 import {
+    LOCALES_EDITORIALES,
     ROLES_PERIODISTA,
     VERTICAL_COMODIN,
     type DetallePeriodista,
@@ -62,6 +63,7 @@ export function EstudioDeConducta({ restUrl, nonce, periodistaId, textos, onCerr
     const [identidadBiografia, setIdentidadBiografia] = useState('');
     const [identidadAvatarUrl, setIdentidadAvatarUrl] = useState('');
     const [identidadRol, setIdentidadRol] = useState<(typeof ROLES_PERIODISTA)[number]>('analista');
+    const [identidadLocale, setIdentidadLocale] = useState<(typeof LOCALES_EDITORIALES)[number]>('es-ES');
     const [identidadEspecialidades, setIdentidadEspecialidades] = useState<EstadoEspecialidades>({
         cubreTodosLosTemas: false,
         nivelDominioComodin: 3,
@@ -94,6 +96,7 @@ export function EstudioDeConducta({ restUrl, nonce, periodistaId, textos, onCerr
                 setIdentidadBiografia(json.biografia);
                 setIdentidadAvatarUrl(json.avatarUrl ?? '');
                 setIdentidadRol(json.rol as (typeof ROLES_PERIODISTA)[number]);
+                setIdentidadLocale(json.localeEditorial as (typeof LOCALES_EDITORIALES)[number]);
                 setIdentidadEspecialidades(especialidadesAEstado(json.especialidades));
                 setError(null);
             })
@@ -159,6 +162,7 @@ export function EstudioDeConducta({ restUrl, nonce, periodistaId, textos, onCerr
                 biografia: identidadBiografia,
                 avatarUrl: '' === identidadAvatarUrl.trim() ? null : identidadAvatarUrl,
                 rol: identidadRol,
+                localeEditorial: identidadLocale,
                 cubreTodosLosTemas: identidadEspecialidades.cubreTodosLosTemas,
                 nivelDominioComodin: identidadEspecialidades.nivelDominioComodin,
                 especialidades: identidadEspecialidades.especialidades,
@@ -303,6 +307,20 @@ export function EstudioDeConducta({ restUrl, nonce, periodistaId, textos, onCerr
                         {ROLES_PERIODISTA.map((valorRol) => (
                             <option key={valorRol} value={valorRol}>
                                 {textos.rol[valorRol]}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+
+                <label className="pluma-estudio__campo">
+                    {textos.locale.titulo}
+                    <select
+                        value={identidadLocale}
+                        onChange={(evento) => setIdentidadLocale(evento.target.value as (typeof LOCALES_EDITORIALES)[number])}
+                    >
+                        {LOCALES_EDITORIALES.map((valorLocale) => (
+                            <option key={valorLocale} value={valorLocale}>
+                                {textos.locale[valorLocale]}
                             </option>
                         ))}
                     </select>

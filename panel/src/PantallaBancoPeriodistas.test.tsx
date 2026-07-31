@@ -41,6 +41,10 @@ function textosDeEjemplo(): TextosBancoPeriodistas {
             cronista: 'Cronista',
             satirico: 'Satírico',
         },
+        locale: {
+            titulo: 'Locale editorial',
+            'es-ES': 'Español (España)',
+        },
         especialidades: {
             titulo: 'Especialidades',
             cubreTodosLosTemas: 'Cubre todos los temas',
@@ -318,6 +322,7 @@ describe('PantallaBancoPeriodistas', () => {
                         biografia: 'Cubre lo que haga falta.',
                         avatarUrl: null,
                         rol: 'analista',
+                        localeEditorial: 'es-ES',
                         cubreTodosLosTemas: true,
                         nivelDominioComodin: 3,
                         especialidades: [],
