@@ -28,11 +28,31 @@ final class ProveedorCerebroRemoto {
 	private const TIMEOUT_PRUEBA_SEGUNDOS = 10;
 
 	public function configurado(): bool {
-		$url    = get_option( self::OPCION_URL, false );
-		$sobre  = get_option( self::OPCION_TOKEN_CIFRADO, false );
-		$tienen = is_string( $url ) && '' !== $url && is_string( $sobre ) && '' !== $sobre;
+		return null !== $this->credenciales();
+	}
 
-		return $tienen && null !== Cifrado::descifrar( $sobre );
+	/**
+	 * URL + token en texto plano del cerebro remoto configurado — única
+	 * fuente de verdad para cualquier consumidor real (p. ej.
+	 * `ProveedorEmbeddingsCerebroRemoto`, NCP-2 porción 2) que necesite
+	 * hablar con el servicio, sin duplicar la lectura/descifrado de opciones.
+	 *
+	 * @return array{url: string, token: string}|null
+	 */
+	public function credenciales(): ?array {
+		$url   = get_option( self::OPCION_URL, false );
+		$sobre = get_option( self::OPCION_TOKEN_CIFRADO, false );
+
+		if ( ! is_string( $url ) || '' === $url || ! is_string( $sobre ) || '' === $sobre ) {
+			return null;
+		}
+
+		$token = Cifrado::descifrar( $sobre );
+
+		return null !== $token ? array(
+			'url'   => $url,
+			'token' => $token,
+		) : null;
 	}
 
 	/**

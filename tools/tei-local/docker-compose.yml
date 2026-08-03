@@ -1,0 +1,18 @@
+networks:
+  default:
+    name: pluma-tei-local
+
+services:
+  tei:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.8
+    container_name: pluma-tei-local
+    command:
+      - "--model-id=intfloat/multilingual-e5-small"
+      - "--api-key=clave-de-prueba-local"
+    ports:
+      - "8089:80"
+    volumes:
+      - tei-data:/data
+
+volumes:
+  tei-data:

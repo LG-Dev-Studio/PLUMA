@@ -105,6 +105,7 @@ use Pluma\Proveedores\LenguajeInstrumentado;
 use Pluma\Proveedores\LenguajeInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Proveedores\ProveedorCerebroRemoto;
+use Pluma\Proveedores\ProveedorEmbeddingsCerebroRemoto;
 use Pluma\Proveedores\ProveedorGoogleTrends;
 use Pluma\Proveedores\ProveedorOpenRouter;
 use Pluma\Proveedores\ProveedorPushWeb;
@@ -236,6 +237,15 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			ProveedorCerebroRemoto::class,
 			static fn (): ProveedorCerebroRemoto => new ProveedorCerebroRemoto()
+		);
+		// NCP-2 · Porción 2 (`ADR 0016`): ENC vía T3, verificado contra un
+		// servicio real. Disponible en el contenedor, deliberadamente NO
+		// vinculado a `EmbeddingsInterface::class` — ver docblock de la clase.
+		$this->contenedor->registrar(
+			ProveedorEmbeddingsCerebroRemoto::class,
+			fn ( Contenedor $c ): ProveedorEmbeddingsCerebroRemoto => new ProveedorEmbeddingsCerebroRemoto(
+				$c->obtener( ProveedorCerebroRemoto::class )
+			)
 		);
 		$this->contenedor->registrar(
 			SensorCapacidades::class,

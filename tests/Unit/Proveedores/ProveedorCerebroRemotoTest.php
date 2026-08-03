@@ -48,6 +48,32 @@ final class ProveedorCerebroRemotoTest extends CasoDePruebaUnitario {
 		self::assertTrue( ( new ProveedorCerebroRemoto() )->configurado() );
 	}
 
+	public function test_credenciales_devuelve_url_y_token_en_texto_plano(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $opcion, $defecto = false ) {
+				return match ( $opcion ) {
+					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example/salud',
+					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token-de-prueba' ),
+					default => $defecto,
+				};
+			}
+		);
+
+		self::assertSame(
+			array(
+				'url'   => 'https://cerebro.example/salud',
+				'token' => 'token-de-prueba',
+			),
+			( new ProveedorCerebroRemoto() )->credenciales()
+		);
+	}
+
+	public function test_credenciales_devuelve_null_sin_configurar(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+
+		self::assertNull( ( new ProveedorCerebroRemoto() )->credenciales() );
+	}
+
 	public function test_probar_rechaza_una_url_insegura_sin_llamar_a_la_red(): void {
 		Functions\expect( 'wp_remote_get' )->never();
 
