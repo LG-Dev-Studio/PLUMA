@@ -130,6 +130,8 @@ Regla de sacrificio (N4-III.3, criterio propio): **si hay que recortar, se recor
 | Canal propio | `W.1-W.3` (boletín por periodista, derivados por canal, suscripciones) | El canal que nadie le quita al medio (lg-independence sobre el tráfico). |
 | Confianza y negocio | `X.2-X.4` (respuesta del periodista, buzón de pistas, corrección con crédito) + `Y.2-Y.3` (A/B de titular, asignación de capacidad) + `Z` completo (metodología, correcciones públicas, expediente por pieza) | Producto en venta completo = confianza pública + negocio. |
 
+> **Nota — iniciativa paralela NCP**: en paralelo a estas Etapas corre el **Núcleo Cognitivo Propio** (`docs/CEREBRO_PLUMA_v2.md`, estado y continuidad en `docs/ncp-estado-y-continuidad.md`), una línea de trabajo distinta que reduce la dependencia de APIs de pago de IA generativa. No sustituye ninguna Etapa de este roadmap ni la reordena; se documenta aquí solo para que quien navegue el plan maestro sepa que existe.
+
 ### Etapa 10 — Homeostasis a escala y el medio 2.0 (TIER 2 + resto de N4)
 
 *Necesitan datos reales de meses; genuinamente lo último.*
