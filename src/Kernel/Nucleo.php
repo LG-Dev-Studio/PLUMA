@@ -81,6 +81,7 @@ use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabulario;
 use Pluma\Datos\RepositorioVocabularioInterface;
 use Pluma\Idioma\ResolutorPerfilIdioma;
+use Pluma\Idioma\SegmentadorOraciones;
 use Pluma\Investigacion\ClasificadorNivelFuente;
 use Pluma\Investigacion\DetectorHuecos;
 use Pluma\Investigacion\InvestigadorInterface;
@@ -107,13 +108,16 @@ use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Proveedores\ProveedorCerebroRemoto;
 use Pluma\Proveedores\ProveedorEmbeddingsCerebroRemoto;
 use Pluma\Proveedores\ProveedorGoogleTrends;
+use Pluma\Proveedores\ProveedorNliCerebroRemoto;
 use Pluma\Proveedores\ProveedorOpenRouter;
 use Pluma\Proveedores\ProveedorPushWeb;
+use Pluma\Proveedores\ProveedorRerankCerebroRemoto;
 use Pluma\Proveedores\ProveedorSearchConsole;
 use Pluma\Proveedores\ProveedorSearchConsoleInterface;
 use Pluma\Proveedores\PushWebInterface;
 use Pluma\Proveedores\ProveedorTelemetria;
 use Pluma\Proveedores\ProveedorTendenciasInterface;
+use Pluma\Proveedores\RegistroModelos;
 use Pluma\Proveedores\TelemetriaInterface;
 use Pluma\Publicacion\AsignadorImagenDestacada;
 use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
@@ -244,6 +248,25 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			ProveedorEmbeddingsCerebroRemoto::class,
 			fn ( Contenedor $c ): ProveedorEmbeddingsCerebroRemoto => new ProveedorEmbeddingsCerebroRemoto(
+				$c->obtener( ProveedorCerebroRemoto::class )
+			)
+		);
+		// NCP-2 · Porción 5 (`ADR 0019`): registro formal de modelos —
+		// consolida `ProveedorEmbeddingsCerebroRemoto::MODELO_REFERENCIA`
+		// (retirada) como única fuente de verdad. Sin dependencias.
+		$this->contenedor->registrar( RegistroModelos::class, static fn (): RegistroModelos => new RegistroModelos() );
+		// NCP-2 · Porción 6 (`ADR 0020`): NLI y RRK vía T3, verificados contra
+		// servicios reales. Disponibles en el contenedor, sin consumidor real
+		// todavía (NCP-3 no existe) — mismo patrón que ProveedorEmbeddingsCerebroRemoto.
+		$this->contenedor->registrar(
+			ProveedorNliCerebroRemoto::class,
+			fn ( Contenedor $c ): ProveedorNliCerebroRemoto => new ProveedorNliCerebroRemoto(
+				$c->obtener( ProveedorCerebroRemoto::class )
+			)
+		);
+		$this->contenedor->registrar(
+			ProveedorRerankCerebroRemoto::class,
+			fn ( Contenedor $c ): ProveedorRerankCerebroRemoto => new ProveedorRerankCerebroRemoto(
 				$c->obtener( ProveedorCerebroRemoto::class )
 			)
 		);
@@ -536,6 +559,7 @@ final class Nucleo {
 		);
 
 		$this->contenedor->registrar( ResolutorPerfilIdioma::class, static fn (): ResolutorPerfilIdioma => new ResolutorPerfilIdioma() );
+		$this->contenedor->registrar( SegmentadorOraciones::class, static fn (): SegmentadorOraciones => new SegmentadorOraciones() );
 		$this->contenedor->registrar( CompiladorDirectrices::class, static fn (): CompiladorDirectrices => new CompiladorDirectrices() );
 		$this->contenedor->registrar( VerificadorVoz::class, static fn (): VerificadorVoz => new VerificadorVoz() );
 		$this->contenedor->registrar( VerificadorNGramas::class, static fn (): VerificadorNGramas => new VerificadorNGramas() );

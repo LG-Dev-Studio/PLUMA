@@ -24,11 +24,13 @@ namespace Pluma\Proveedores;
  * sus umbrales están calibrados contra esa distribución de similitud, no
  * contra la de este modelo. Sustituir el proveedor por defecto es una
  * decisión futura explícita, no un efecto colateral de esta clase.
+ *
+ * El modelo de referencia verificado contra este transporte está en
+ * `Pluma\Proveedores\RegistroModelos` (rol `RolModelo::Enc`,
+ * `ADR 0019`) — no en una constante de esta clase: esta clase, por diseño,
+ * no sabe qué modelo hay detrás del cerebro remoto (párrafo anterior).
  */
 final class ProveedorEmbeddingsCerebroRemoto implements EmbeddingsInterface {
-
-	/** Modelo de referencia verificado en `ADR 0016` — metadato informativo, no un artefacto descargado por PLUMA (vive en el servicio remoto, fuera de su control directo). */
-	public const MODELO_REFERENCIA = 'intfloat/multilingual-e5-small';
 
 	private const TIMEOUT_SEGUNDOS = 15;
 

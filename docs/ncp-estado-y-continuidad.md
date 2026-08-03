@@ -2,7 +2,7 @@
 
 **Documento vivo** (a diferencia de los ADR en `docs/decisiones/`, que son inmutables): se actualiza en cada porción cerrada. Su propósito es que cualquier agente o desarrollador — incluida una sesión nueva de Claude Code sin memoria de esta conversación — pueda continuar el trabajo de NCP exactamente donde quedó, sin releer el historial completo de `git log` ni adivinar decisiones ya tomadas.
 
-**Última actualización**: 2026-07-31, al cerrar NCP-2 Porción 2.
+**Última actualización**: 2026-08-03, al cerrar NCP-2 Porción 6 (NLI/RRK vía T3) — cierra la secuencia de 3 porciones (b→c→a) decidida el mismo día.
 
 ---
 
@@ -50,7 +50,10 @@ Investigación previa obligatoria (canon Parte 7, punto 3) ya hecha y documentad
 |---|---|---|---|---|
 | 1 | Spike: ¿puede `transformers-php` (FFI) tokenizar+ejecutar `multilingual-e5-small` dentro del propio entorno de desarrollo? | **FALLIDA CON EVIDENCIA REAL** — el contenedor `cli` de wp-env no tiene FFI compilado (`class_exists('FFI') === false`). T1 descartado como transporte por defecto para ENC. | `ADR 0015` | `0122c97` |
 | 2 | `ProveedorEmbeddingsCerebroRemoto` — ENC vía T3 (cerebro remoto), protocolo real de Hugging Face TEI (`POST /embed`), verificado contra un servicio TEI real en Docker | **CERRADA**, código en producción (no vinculado por defecto — ver §4) | `ADR 0016` | `420641d` |
-| 3+ | Sin definir | **ABIERTA — decisión pendiente del propietario**, ver §5 | — | — |
+| 3 | Herramienta de calibración de embeddings (`tools/calibracion-embeddings/`) — mide distribución de similitud del proveedor T3 contra fixtures de desarrollo (voz + trazabilidad, este último nuevo), sin recalibrar producción | **CERRADA** — mecanismo listo; calibración de **producción** sigue bloqueada por falta de corpus real de Piloto (mismo estatus que NCP-1 Porciones 2/5) | `ADR 0017` | (pendiente de commit) |
+| 4 | Rol SEG — `Pluma\Idioma\SegmentadorOraciones`, segmentación de oraciones vía ICU (`IntlBreakIterator`) con fallback determinista en PHP puro | **CERRADA** — registrada en el contenedor de DI, sin consumidor real todavía | `ADR 0018` | (pendiente de commit) |
+| 5 | Registro de modelos formal — `Pluma\Proveedores\RegistroModelos`/`ModeloRegistrado`/`RolModelo`, consolida `ProveedorEmbeddingsCerebroRemoto::MODELO_REFERENCIA` (retirada) | **CERRADA** — 3 entradas reales hoy (ENC, NLI, RRK) | `ADR 0019` | (pendiente de commit) |
+| 6 | NLI y RRK vía T3 — `Pluma\Proveedores\ProveedorNliCerebroRemoto`/`ProveedorRerankCerebroRemoto`, corrige 2 candidatos de `ADR 0014` incompatibles con TEI | **CERRADA** — última de las 3 porciones del orden decidido 2026-08-03: (b) SEG → (c) Registro → (a) NLI/RRK | `ADR 0020` | (pendiente de commit) |
 
 ---
 
@@ -62,6 +65,10 @@ Investigación previa obligatoria (canon Parte 7, punto 3) ya hecha y documentad
 - `docs/decisiones/0014-ncp2-investigacion-transportes-modelos-y-distribucion.md` — **el documento de referencia técnica más denso**: tabla completa de modelos cualificados/descalificados por rol, con licencia y fuente.
 - `docs/decisiones/0015-ncp2-porcion-1-veredicto-spike-embeddings-locales.md` — por qué T1/FFI queda descartado, con evidencia de comandos reales ejecutados.
 - `docs/decisiones/0016-ncp2-porcion-2-enc-via-t3-veredicto.md` — el protocolo real de T3 para embeddings, con evidencia de un servicio real verificado.
+- `docs/decisiones/0017-ncp2-herramienta-calibracion-embeddings.md` — la herramienta de calibración construida para la opción (d) de §5, con evidencia real de una corrida contra TEI local y el hallazgo honesto del solapamiento intra/inter en voz.
+- `docs/decisiones/0018-ncp2-porcion-4-seg-segmentacion-icu.md` — rol SEG (segmentación de oraciones), ICU con fallback, y el hallazgo real de que ICU no protege abreviaturas editoriales por defecto.
+- `docs/decisiones/0019-ncp2-porcion-5-registro-modelos-formal.md` — el registro de modelos formal, con su única entrada real hoy (ENC) y por qué el campo checksum es honestamente nulo para T3.
+- `docs/decisiones/0020-ncp2-porcion-6-nli-rrk-via-t3.md` — NLI y RRK vía T3, con la corrección real de 2 candidatos de `ADR 0014` (arquitecturas incompatibles con TEI) y evidencia de los reemplazos verificados.
 
 ---
 
@@ -82,10 +89,10 @@ Estas reglas ya están decididas y documentadas; un continuador **no debe deshac
 
 No hay una porción 3 de NCP-2 planeada. Las opciones reales sobre la mesa, ninguna descartada:
 
-- **(a) Reutilizar el mismo patrón de transporte T3 para otro rol** — el candidato más natural es **NLI** (`MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7`, MIT, cualificado en `ADR 0014`) o **RRK** (reranking), porque TEI (el mismo servicio ya verificado) sirve ambos además de embeddings (`POST /rerank`, `POST /predict` — endpoints ya documentados en la investigación de `ADR 0014`, no verificados en vivo todavía). Sería la porción de menor riesgo/mayor reutilización: mismo servicio, mismo patrón de credenciales, protocolo distinto mismo pero mismo ya documentado.
+- **(a) Reutilizar el mismo patrón de transporte T3 para otro rol** — **RESUELTA 2026-08-03 (NCP-2 Porción 6, `ADR 0020`)**: `Pluma\Proveedores\ProveedorNliCerebroRemoto` y `Pluma\Proveedores\ProveedorRerankCerebroRemoto` construidos y verificados. El candidato NLI original de `ADR 0014` (mDeBERTa-v3) resultó incompatible con TEI (arquitectura no soportada) — reemplazado por `MoritzLaurer/xlm-v-base-mnli-xnli` (XLM-RoBERTa, verificado). Ninguno de los 2 candidatos RRK originales resultó directamente verificable — reemplazado por `BAAI/bge-reranker-base` (verificado, pero solo chino/inglés). Ver `ADR 0020` para la investigación completa.
 - **(b) Empezar por SEG** (segmentación) — la opción de menor riesgo posible: no necesita ningún modelo ONNX, se resuelve con `ext-intl`/`IntlBreakIterator` en PHP puro (`ADR 0014`), y es exactamente el campo "Segmentador por escritura" que `Pluma\Idioma\PerfilIdioma` dejó fuera a propósito en NCP-1 Porción 3. Esta opción ya se le ofreció al propietario antes de elegir ENC — sigue disponible.
-- **(c) Construir el registro de modelos formal** (`rol → artefacto, versión, licencia, idioma, checksum, procedencia`, exigido por el canon §5.1.5) — todavía no existe como estructura general; `ProveedorEmbeddingsCerebroRemoto::MODELO_REFERENCIA` es solo una constante informativa, no un registro real. Podría valer la pena construirlo formalmente antes de añadir un tercer/cuarto rol, para no repetir el patrón de "constante suelta por clase".
-- **(d) Decidir si se recalibra `EmbeddingsInterface` hacia el proveedor local** para los 2 consumidores reales — ahorraría coste real de OpenRouter, pero exige medir la nueva distribución de similitud de `multilingual-e5-small` contra el corpus real de voz/trazabilidad del cliente antes de fijar nuevos umbrales (no se puede adivinar `0.70`/`0.75` equivalentes sin datos reales — mismo principio que bloquea NCP-1 Porciones 2 y 5).
+- **(c) Construir el registro de modelos formal** — **RESUELTA 2026-08-03 (NCP-2 Porción 5, `ADR 0019`)**: `Pluma\Proveedores\RegistroModelos`/`ModeloRegistrado`/`RolModelo` construidos, con 1 entrada real (ENC). `ProveedorEmbeddingsCerebroRemoto::MODELO_REFERENCIA` retirada, consolidada en el registro.
+- **(d) Decidir si se recalibra `EmbeddingsInterface` hacia el proveedor local** para los 2 consumidores reales — ahorraría coste real de OpenRouter, pero exige medir la nueva distribución de similitud de `multilingual-e5-small` contra el corpus real de voz/trazabilidad del cliente antes de fijar nuevos umbrales (no se puede adivinar `0.70`/`0.75` equivalentes sin datos reales — mismo principio que bloquea NCP-1 Porciones 2 y 5). **Actualización 2026-08-03 (NCP-2 Porción 3, `ADR 0017`)**: el mecanismo de calibración ya existe (`tools/calibracion-embeddings/`) y se verificó contra un corpus mínimo de desarrollo — reveló separación clara en trazabilidad pero solapamiento notable en voz (ver `ADR 0017` para la lectura honesta y sus causas posibles sin confirmar). Sigue bloqueada para producción por falta de corpus real de Piloto; cuando exista, esta opción ya no exige construir el mecanismo desde cero.
 - **(e) Pausar NCP y volver al roadmap principal** — Etapa 9 ya cerró (`docs/etapa-9-el-medio-real.md`); Etapa 10 (`docs/PLAN-MAESTRO-EVOLUCION.md` §6) es lo siguiente en ese roadmap si el propietario prefiere dejar NCP en este punto y no retomarlo de inmediato.
 
 **Un continuador debe presentar estas opciones al propietario (o preguntar directamente) antes de elegir una — no decidir por su cuenta cuál sigue.** Esto es exactamente lo que se ha hecho en cada bifurcación de esta sesión (ver el patrón repetido de `AskUserQuestion` antes de cada porción nueva en el historial de commits).
@@ -97,6 +104,8 @@ No hay una porción 3 de NCP-2 planeada. Las opciones reales sobre la mesa, ning
 - **`tools/tei-local/`** (`docker-compose.yml` + `README.md`): levanta un servicio real de Hugging Face Text Embeddings Inference sirviendo `multilingual-e5-small`, usado para verificar `ProveedorEmbeddingsCerebroRemoto`. **No forma parte del plugin** — no lo orquesta `@wordpress/env`, no se empaqueta en el ZIP de distribución.
   - Estado actual: el contenedor (`pluma-tei-local`) y su red Docker se apagaron y eliminaron (`docker compose down`) al cerrar la Porción 2. El volumen con los pesos del modelo ya descargados (`tei-local_tei-data`, ~500MB) **sigue existiendo** en el Docker local de esta máquina — es inofensivo (solo acelera el siguiente `docker compose up` evitando re-descargar el modelo), pero se puede borrar con `docker volume rm tei-local_tei-data` si hace falta liberar espacio.
   - **Bug real ya encontrado y resuelto** si se vuelve a usar: la imagen `ghcr.io/huggingface/text-embeddings-inference:cpu-1.5` falla de forma reproducible al descargar artefactos del modelo (`relative URL without a base` — bug conocido, issue upstream `huggingface/text-embeddings-inference#527`). Usar `cpu-1.8` o más reciente (ya es el tag fijado en el `docker-compose.yml` committeado).
+  - Nuevamente apagado (`docker compose down`) al cerrar la Porción 3 — mismo criterio que al cerrar la Porción 2.
+- **`tools/calibracion-embeddings/`** (`calibrar.php`, `configurar-cerebro-remoto-dev.php`, `README.md`, NCP-2 Porción 3, `ADR 0017`): mide la distribución de similitud coseno de `ProveedorEmbeddingsCerebroRemoto` contra los fixtures de desarrollo de voz/trazabilidad, vía `wp eval-file`. **No forma parte del plugin.** No fija ni sugiere umbrales de producción — ver `README.md` de ese directorio y `ADR 0017` antes de interpretar su salida.
 
 ---
 
@@ -119,7 +128,7 @@ npx vitest run
 npm run build
 ```
 
-**Estado conocido al momento de escribir este documento** (commit `420641d`): PHPCS 0 errores, PHPStan nivel 8 0 errores, PHPUnit Unit 704 tests en verde, PHPUnit Integración 296 tests en verde (última corrida completa fue durante NCP-1 Porción 4 — la Porción 2 de NCP-2 solo añadió tests Unit nuevos, no tocó nada que la suite de Integración cubra, pero si un continuador quiere evidencia fresca de Integración tras más cambios, debe volver a correrla completa, no asumir que sigue en verde indefinidamente).
+**Estado conocido al momento de escribir este documento** (tras NCP-2 Porción 6): PHPCS 0 errores, PHPStan nivel 8 0 errores, PHPUnit Unit 732 tests en verde (719 + 13 de `ProveedorNliCerebroRemotoTest`/`ProveedorRerankCerebroRemotoTest`/`RegistroModelosTest`), PHPUnit Integración 296 tests en verde (última corrida completa fue durante NCP-1 Porción 4 — ninguna de las Porciones 2-6 de NCP-2 tocó nada que la suite de Integración cubra, pero si un continuador quiere evidencia fresca de Integración tras más cambios, debe volver a correrla completa, no asumir que sigue en verde indefinidamente).
 
 Si algún gate falla al retomar el trabajo, **no es necesariamente un problema de esta sesión** — confirma primero si el fallo es preexistente (`git stash` + repetir el gate en el commit anterior) antes de asumir que el código nuevo lo rompió.
 
