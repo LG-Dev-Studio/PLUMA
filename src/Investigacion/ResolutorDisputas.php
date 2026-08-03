@@ -27,12 +27,21 @@ use Pluma\Proveedores\PropositoLenguaje;
  * real (decisión del propietario, mismo tratamiento que D.1 en la
  * Porción 8). Toda contradicción de ocurrencia se marca `Disputado`
  * directamente, sin el intento de resolución por tercera fuente.
+ *
+ * NCP-3 Porción 2 (`ADR 0022`): antes de la llamada generativa,
+ * {@see \Pluma\Investigacion\DetectorContradiccionesNli} (capa determinista,
+ * NLI real vía T3) señala qué pares de hechos se contradicen — prioriza y
+ * abarata la clasificación, nunca la sustituye (NLI no distingue
+ * `TipoContradiccion`, solo confirma que hay contradicción).
  */
 final class ResolutorDisputas {
 
 	private const MAX_TOKENS_RESPUESTA = 500;
 
-	public function __construct( private readonly LenguajeInterface $proveedor ) {
+	public function __construct(
+		private readonly LenguajeInterface $proveedor,
+		private readonly DetectorContradiccionesNli $detectorNli,
+	) {
 	}
 
 	/**
@@ -44,18 +53,32 @@ final class ResolutorDisputas {
 			return $expediente;
 		}
 
-		$directrices = implode(
-			"\n",
-			array(
-				'Eres el Investigador: identifica contradicciones entre los hechos numerados del expediente adjunto.',
-				'Clasifica CADA contradicción real que encuentres (no relaciones triviales) en exactamente uno de estos tipos:',
-				'"cifra": dos números distintos para el mismo hecho concreto (ej. "300 asistentes" vs "3.000 asistentes").',
-				'"atribucion": mismo hecho, distinto responsable señalado (ej. la empresa dice error técnico, el sindicato dice decisión deliberada).',
-				'"ocurrencia": una fuente afirma que algo pasó, otra que afirma que no pasó — un desacuerdo sobre si el hecho ocurrió, no solo sobre su detalle.',
-				'Responde ÚNICAMENTE con un objeto JSON de esta forma exacta (lista vacía si no hay ninguna contradicción real):',
-				'{"contradicciones": [{"indiceA": integer, "indiceB": integer, "tipo": "cifra" | "atribucion" | "ocurrencia"}]}',
-			)
+		$bloques = array(
+			'Eres el Investigador: identifica contradicciones entre los hechos numerados del expediente adjunto.',
+			'Clasifica CADA contradicción real que encuentres (no relaciones triviales) en exactamente uno de estos tipos:',
+			'"cifra": dos números distintos para el mismo hecho concreto (ej. "300 asistentes" vs "3.000 asistentes").',
+			'"atribucion": mismo hecho, distinto responsable señalado (ej. la empresa dice error técnico, el sindicato dice decisión deliberada).',
+			'"ocurrencia": una fuente afirma que algo pasó, otra que afirma que no pasó — un desacuerdo sobre si el hecho ocurrió, no solo sobre su detalle.',
+			'Responde ÚNICAMENTE con un objeto JSON de esta forma exacta (lista vacía si no hay ninguna contradicción real):',
+			'{"contradicciones": [{"indiceA": integer, "indiceB": integer, "tipo": "cifra" | "atribucion" | "ocurrencia"}]}',
 		);
+
+		$paresContradictorios = $this->detectorNli->paresQueContradicen( $expediente );
+
+		if ( array() !== $paresContradictorios ) {
+			// NCP-3 Porción 2 (`ADR 0022`): capa determinista (no generativa, NLI real vía T3), previa a
+			// esta llamada — prioriza la clasificación, nunca la sustituye (puede ser un falso positivo).
+			$bloques[] = 'ALERTA DE CONTRADICCIÓN DETERMINISTA (NLI): estos pares de hechos (por índice) fueron detectados como contradictorios por un modelo de inferencia de lenguaje natural — revísalos con tu propio criterio y clasifica su tipo exacto: '
+				. implode(
+					' | ',
+					array_map(
+						static fn ( array $par ): string => "({$par['indiceA']},{$par['indiceB']})",
+						$paresContradictorios
+					)
+				);
+		}
+
+		$directrices = implode( "\n", $bloques );
 
 		$peticion = new PeticionLenguaje(
 			PropositoLenguaje::Clasificar,

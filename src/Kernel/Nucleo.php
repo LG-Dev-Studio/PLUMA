@@ -83,9 +83,11 @@ use Pluma\Datos\RepositorioVocabularioInterface;
 use Pluma\Idioma\ResolutorPerfilIdioma;
 use Pluma\Idioma\SegmentadorOraciones;
 use Pluma\Investigacion\ClasificadorNivelFuente;
+use Pluma\Investigacion\DetectorContradiccionesNli;
 use Pluma\Investigacion\DetectorHuecos;
 use Pluma\Investigacion\InvestigadorInterface;
 use Pluma\Investigacion\InvestigadorMecanico;
+use Pluma\Investigacion\OrdenadorHechosPorRelevancia;
 use Pluma\Investigacion\ResolutorDisputas;
 use Pluma\Investigacion\SelectorImagenPorAutoridad;
 use Pluma\Investigacion\VerificadorProcedenciaDeclaracion;
@@ -157,6 +159,7 @@ use Pluma\Redaccion\RedactorMecanico;
 use Pluma\Redaccion\RedactorSintetico;
 use Pluma\Redaccion\SegmentadorUnidadesFactuales;
 use Pluma\Redaccion\SelectorAngulo;
+use Pluma\Redaccion\VerificadorContradiccionNli;
 use Pluma\Redaccion\VerificadorFalseabilidad;
 use Pluma\Redaccion\VerificadorNGramas;
 use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
@@ -398,13 +401,34 @@ final class Nucleo {
 			fn ( Contenedor $c ): ProveedorSearchConsole => new ProveedorSearchConsole( $c->obtener( RelojInterface::class ) )
 		);
 		$this->contenedor->registrar( VerificadorProcedenciaDeclaracion::class, static fn (): VerificadorProcedenciaDeclaracion => new VerificadorProcedenciaDeclaracion() );
+		// NCP-3 · Porción 2 (`ADR 0022`): contradicciones entre fuentes vía
+		// NLI real (T3) — extiende a investigación la misma dependencia dura
+		// de T3 ya confirmada obligatoria en ADR 0021 para el Corrector Interno.
+		$this->contenedor->registrar(
+			DetectorContradiccionesNli::class,
+			fn ( Contenedor $c ): DetectorContradiccionesNli => new DetectorContradiccionesNli(
+				$c->obtener( ProveedorNliCerebroRemoto::class )
+			)
+		);
 		$this->contenedor->registrar(
 			ResolutorDisputas::class,
-			fn ( Contenedor $c ): ResolutorDisputas => new ResolutorDisputas( $c->obtener( LenguajeInterface::class ) )
+			fn ( Contenedor $c ): ResolutorDisputas => new ResolutorDisputas(
+				$c->obtener( LenguajeInterface::class ),
+				$c->obtener( DetectorContradiccionesNli::class )
+			)
 		);
 		$this->contenedor->registrar(
 			DetectorHuecos::class,
 			fn ( Contenedor $c ): DetectorHuecos => new DetectorHuecos( $c->obtener( LenguajeInterface::class ) )
+		);
+		// NCP-3 · Porción 3 (`ADR 0023`): rol RRK real — reordena hechos por
+		// relevancia, nunca los excluye. Degrada con gracia (no propaga fallos
+		// de T3), a diferencia de las Porciones 1-2 — decisión confirmada.
+		$this->contenedor->registrar(
+			OrdenadorHechosPorRelevancia::class,
+			fn ( Contenedor $c ): OrdenadorHechosPorRelevancia => new OrdenadorHechosPorRelevancia(
+				$c->obtener( ProveedorRerankCerebroRemoto::class )
+			)
 		);
 		$this->contenedor->registrar(
 			ClasificadorGravedadTendencia::class,
@@ -571,13 +595,24 @@ final class Nucleo {
 				$c->obtener( SegmentadorUnidadesFactuales::class )
 			)
 		);
+		// NCP-3 · Porción 1 (`ADR 0021`): detección de contradicciones vía NLI
+		// real (T3) — decisión confirmada por el propietario de que T3 pasa a
+		// ser obligatorio para que CorrectorInterno::revisar() funcione.
+		$this->contenedor->registrar(
+			VerificadorContradiccionNli::class,
+			fn ( Contenedor $c ): VerificadorContradiccionNli => new VerificadorContradiccionNli(
+				$c->obtener( ProveedorNliCerebroRemoto::class ),
+				$c->obtener( SegmentadorUnidadesFactuales::class )
+			)
+		);
 		$this->contenedor->registrar(
 			CorrectorInterno::class,
 			fn ( Contenedor $c ): CorrectorInterno => new CorrectorInterno(
 				$c->obtener( LenguajeInterface::class ),
 				$c->obtener( VerificadorVoz::class ),
 				$c->obtener( VerificadorNGramas::class ),
-				$c->obtener( VerificadorTrazabilidadDeterminista::class )
+				$c->obtener( VerificadorTrazabilidadDeterminista::class ),
+				$c->obtener( VerificadorContradiccionNli::class )
 			)
 		);
 		$this->contenedor->registrar(
@@ -784,6 +819,7 @@ final class Nucleo {
 				$c->obtener( RelojInterface::class ),
 				$c->obtener( ResolutorDisputas::class ),
 				$c->obtener( DetectorHuecos::class ),
+				$c->obtener( OrdenadorHechosPorRelevancia::class ),
 				$c->obtener( ClasificadorGravedadTendencia::class ),
 				$c->obtener( GestorModoRespeto::class ),
 				$c->obtener( AsignadorImagenDestacadaInterface::class ),

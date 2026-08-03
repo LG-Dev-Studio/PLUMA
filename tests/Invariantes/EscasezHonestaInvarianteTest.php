@@ -28,8 +28,10 @@ use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Datos\RepositorioModoRespetoInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Datos\RepositorioVocabularioInterface;
+use Pluma\Investigacion\DetectorContradiccionesNli;
 use Pluma\Investigacion\DetectorHuecos;
 use Pluma\Investigacion\InvestigadorInterface;
+use Pluma\Investigacion\OrdenadorHechosPorRelevancia;
 use Pluma\Investigacion\ResolutorDisputas;
 use Pluma\Pipeline\GestorSalaRevision;
 use Pluma\Pipeline\LectorConfiguracionCadencia;
@@ -37,6 +39,9 @@ use Pluma\Pipeline\Orquestador;
 use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Pipeline\Transicionador;
 use Pluma\Proveedores\LenguajeInterface;
+use Pluma\Proveedores\ProveedorCerebroRemoto;
+use Pluma\Proveedores\ProveedorNliCerebroRemoto;
+use Pluma\Proveedores\ProveedorRerankCerebroRemoto;
 use Pluma\Proveedores\PresupuestoLenguaje;
 use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
 use Pluma\Publicacion\CreadorBorradorInterface;
@@ -152,8 +157,12 @@ final class EscasezHonestaInvarianteTest extends CasoDePruebaUnitario {
 			new ComparadorHistorias( Mockery::mock( LenguajeInterface::class ), new PresupuestoLenguaje( new RelojFijo() ) ),
 			Mockery::mock( RepositorioPeriodistasInterface::class )->allows( 'obtenerPropuestos' )->andReturn( array() )->getMock(),
 			new RelojFijo(),
-			new ResolutorDisputas( Mockery::mock( LenguajeInterface::class ) ),
+			new ResolutorDisputas(
+				Mockery::mock( LenguajeInterface::class ),
+				new DetectorContradiccionesNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ) )
+			),
 			new DetectorHuecos( Mockery::mock( LenguajeInterface::class ) ),
+			new OrdenadorHechosPorRelevancia( new ProveedorRerankCerebroRemoto( new ProveedorCerebroRemoto() ) ),
 			new ClasificadorGravedadTendencia( Mockery::mock( LenguajeInterface::class ) ),
 			new GestorModoRespeto(
 				Mockery::mock( RepositorioModoRespetoInterface::class )->allows( 'estadoActual' )->andReturn( EstadoModoRespeto::inactivo() )->getMock(),

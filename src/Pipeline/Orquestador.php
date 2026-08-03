@@ -18,6 +18,7 @@ use Pluma\Datos\RepositorioPiezasInterface;
 use Pluma\Datos\RepositorioTendenciasInterface;
 use Pluma\Investigacion\DetectorHuecos;
 use Pluma\Investigacion\InvestigadorInterface;
+use Pluma\Investigacion\OrdenadorHechosPorRelevancia;
 use Pluma\Investigacion\ResolutorDisputas;
 use Pluma\Kernel\AlmacenPerfilEntornoInterface;
 use Pluma\Kernel\RelojInterface;
@@ -90,6 +91,7 @@ final class Orquestador {
 		private readonly RelojInterface $reloj,
 		private readonly ResolutorDisputas $resolutorDisputas,
 		private readonly DetectorHuecos $detectorHuecos,
+		private readonly OrdenadorHechosPorRelevancia $ordenadorHechos,
 		private readonly ClasificadorGravedadTendencia $clasificadorGravedad,
 		private readonly GestorModoRespeto $gestorModoRespeto,
 		private readonly AsignadorImagenDestacadaInterface $asignadorImagenDestacada,
@@ -335,6 +337,7 @@ final class Orquestador {
 			// enriquecen el expediente ya construido, no lo reemplazan.
 			$expediente = $this->resolutorDisputas->resolver( $expediente );
 			$expediente = $this->detectorHuecos->detectar( $expediente );
+			$expediente = $this->ordenadorHechos->ordenar( $expediente );
 
 			$this->piezas->actualizarExpediente( $pieza->id, $expediente, $this->reloj->ahora() );
 			$this->transicionador->transitar( $pieza->id, EstadoPieza::Investigada, 'expediente construido' );

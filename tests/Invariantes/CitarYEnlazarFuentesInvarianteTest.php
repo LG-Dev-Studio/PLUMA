@@ -10,6 +10,9 @@ use Pluma\Datos\RepositorioBorradoresInterface;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\NivelVerificacion;
+use Pluma\Kernel\Cifrado;
+use Pluma\Proveedores\ProveedorCerebroRemoto;
+use Pluma\Proveedores\ProveedorNliCerebroRemoto;
 use Pluma\Redaccion\AvisoTransparenciaIa;
 use Pluma\Redaccion\CandidatoTesis;
 use Pluma\Redaccion\ClasificacionNoticia;
@@ -33,6 +36,7 @@ use Pluma\Redaccion\SegmentadorUnidadesFactuales;
 use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\TratamientoLector;
+use Pluma\Redaccion\VerificadorContradiccionNli;
 use Pluma\Redaccion\VerificadorNGramas;
 use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
@@ -98,8 +102,25 @@ final class CitarYEnlazarFuentesInvarianteTest extends CasoDePruebaUnitario {
 		Functions\when( 'esc_html__' )->alias( static fn ( string $s ): string => htmlspecialchars( $s, ENT_QUOTES ) );
 		Functions\when( 'esc_url' )->alias( static fn ( string $s ): string => $s );
 		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
-		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $opcion, $defecto = false ) {
+				return match ( $opcion ) {
+					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
+					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
+					default => $defecto,
+				};
+			}
+		);
+		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '[{"score":0.9,"label":"neutral"},{"score":0.08,"label":"entailment"},{"score":0.02,"label":"contradiction"}]' );
 		Functions\when( '__' )->alias( static fn ( string $s ): string => $s );
+
+		if ( ! defined( 'AUTH_KEY' ) ) {
+			define( 'AUTH_KEY', 'clave-app-de-prueba' );
+			define( 'SECURE_AUTH_KEY', 'clave-secure-de-prueba' );
+		}
 
 		$expediente = new Expediente(
 			'una tendencia',
@@ -121,7 +142,13 @@ final class CitarYEnlazarFuentesInvarianteTest extends CasoDePruebaUnitario {
 		$redactor = new RedactorSintetico(
 			$proveedor,
 			new CompiladorDirectrices(),
-			new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas(), new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ) ),
+			new CorrectorInterno(
+				$proveedor,
+				new VerificadorVoz(),
+				new VerificadorNGramas(),
+				new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ),
+				new VerificadorContradiccionNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ), new SegmentadorUnidadesFactuales() )
+			),
 			new GeneradorBloqueEditor( $proveedor ),
 			new AvisoTransparenciaIa(),
 			$this->createMock( RepositorioBorradoresInterface::class ),

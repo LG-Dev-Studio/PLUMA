@@ -9,6 +9,9 @@ use DateTimeImmutable;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\NivelVerificacion;
+use Pluma\Kernel\Cifrado;
+use Pluma\Proveedores\ProveedorCerebroRemoto;
+use Pluma\Proveedores\ProveedorNliCerebroRemoto;
 use Pluma\Redaccion\CandidatoTesis;
 use Pluma\Redaccion\ClasificacionNoticia;
 use Pluma\Redaccion\ConductaVersion;
@@ -28,6 +31,7 @@ use Pluma\Redaccion\SegmentadorUnidadesFactuales;
 use Pluma\Redaccion\TipoNoticia;
 use Pluma\Redaccion\Tono;
 use Pluma\Redaccion\TratamientoLector;
+use Pluma\Redaccion\VerificadorContradiccionNli;
 use Pluma\Redaccion\VerificadorNGramas;
 use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
@@ -45,6 +49,35 @@ use Pluma\Tests\Unit\Dobles\ProveedorLenguajeFalso;
  * respaldo en el expediente podría llegar a publicarse.
  */
 final class AntiAlucinacionInvarianteTest extends CasoDePruebaUnitario {
+
+	protected function setUp(): void {
+		parent::setUp();
+
+		if ( ! defined( 'AUTH_KEY' ) ) {
+			define( 'AUTH_KEY', 'clave-app-de-prueba' );
+			define( 'SECURE_AUTH_KEY', 'clave-secure-de-prueba' );
+		}
+	}
+
+	private function mockearCerebroRemoto(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $opcion, $defecto = false ) {
+				return match ( $opcion ) {
+					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
+					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
+					default => $defecto,
+				};
+			}
+		);
+		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '[{"score":0.9,"label":"neutral"},{"score":0.08,"label":"entailment"},{"score":0.02,"label":"contradiction"}]' );
+	}
+
+	private function verificadorContradiccion(): VerificadorContradiccionNli {
+		return new VerificadorContradiccionNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ), new SegmentadorUnidadesFactuales() );
+	}
 
 	private function periodista(): Periodista {
 		$diales   = new Diales( 80, 55, 40, 55, 75, 60, 60, 65 );
@@ -103,9 +136,15 @@ final class AntiAlucinacionInvarianteTest extends CasoDePruebaUnitario {
 				. '"matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}'
 		);
 
-		Functions\when( 'get_option' )->justReturn( false );
+		$this->mockearCerebroRemoto();
 
-		$corrector = new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas(), new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ) );
+		$corrector = new CorrectorInterno(
+			$proveedor,
+			new VerificadorVoz(),
+			new VerificadorNGramas(),
+			new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ),
+			$this->verificadorContradiccion()
+		);
 
 		$anotaciones = $corrector->revisar(
 			$this->periodista(),
@@ -134,9 +173,15 @@ final class AntiAlucinacionInvarianteTest extends CasoDePruebaUnitario {
 				. '"matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}'
 		);
 
-		Functions\when( 'get_option' )->justReturn( false );
+		$this->mockearCerebroRemoto();
 
-		$corrector = new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas(), new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ) );
+		$corrector = new CorrectorInterno(
+			$proveedor,
+			new VerificadorVoz(),
+			new VerificadorNGramas(),
+			new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ),
+			$this->verificadorContradiccion()
+		);
 
 		$anotaciones = $corrector->revisar(
 			$this->periodista(),

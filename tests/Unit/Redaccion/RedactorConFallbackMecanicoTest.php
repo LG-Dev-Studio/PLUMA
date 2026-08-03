@@ -22,9 +22,12 @@ use Pluma\Investigacion\NivelVerificacion;
 use Pluma\Pipeline\EstadoPieza;
 use Pluma\Pipeline\LectorConfiguracionCadencia;
 use Pluma\Pipeline\Pieza;
+use Pluma\Kernel\Cifrado;
 use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Proveedores\LenguajeInterface;
+use Pluma\Proveedores\ProveedorCerebroRemoto;
 use Pluma\Proveedores\ProveedorLenguajeException;
+use Pluma\Proveedores\ProveedorNliCerebroRemoto;
 use Pluma\Redaccion\AsignadorPeriodista;
 use Pluma\Redaccion\AvisoTransparenciaIa;
 use Pluma\Redaccion\ClasificadorNoticia;
@@ -45,6 +48,7 @@ use Pluma\Redaccion\RedactorConFallbackMecanico;
 use Pluma\Redaccion\RedactorMecanico;
 use Pluma\Redaccion\RedactorSintetico;
 use Pluma\Redaccion\ReglasConducta;
+use Pluma\Redaccion\VerificadorContradiccionNli;
 use Pluma\Redaccion\RolPeriodista;
 use Pluma\Redaccion\SegmentadorUnidadesFactuales;
 use Pluma\Redaccion\SelectorAngulo;
@@ -133,8 +137,25 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 		Functions\when( 'esc_html__' )->alias( static fn ( string $s ): string => htmlspecialchars( $s, ENT_QUOTES ) );
 		Functions\when( 'esc_url' )->alias( static fn ( string $s ): string => $s );
 		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
-		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $opcion, $defecto = false ) {
+				return match ( $opcion ) {
+					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
+					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
+					default => $defecto,
+				};
+			}
+		);
+		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '[{"score":0.9,"label":"neutral"},{"score":0.08,"label":"entailment"},{"score":0.02,"label":"contradiction"}]' );
 		Functions\when( '__' )->alias( static fn ( string $s ): string => $s );
+
+		if ( ! defined( 'AUTH_KEY' ) ) {
+			define( 'AUTH_KEY', 'clave-app-de-prueba' );
+			define( 'SECURE_AUTH_KEY', 'clave-secure-de-prueba' );
+		}
 
 		$proveedor = new ProveedorLenguajeSecuencial(
 			array(
@@ -178,7 +199,13 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 			new RedactorSintetico(
 				$proveedor,
 				new CompiladorDirectrices(),
-				new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas(), new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ) ),
+				new CorrectorInterno(
+					$proveedor,
+					new VerificadorVoz(),
+					new VerificadorNGramas(),
+					new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ),
+					new VerificadorContradiccionNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ), new SegmentadorUnidadesFactuales() )
+				),
 				new GeneradorBloqueEditor( $proveedor ),
 				new AvisoTransparenciaIa(),
 				$repoBorradores,
@@ -286,7 +313,13 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 			new RedactorSintetico(
 				$proveedor,
 				new CompiladorDirectrices(),
-				new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas(), new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ) ),
+				new CorrectorInterno(
+					$proveedor,
+					new VerificadorVoz(),
+					new VerificadorNGramas(),
+					new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ),
+					new VerificadorContradiccionNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ), new SegmentadorUnidadesFactuales() )
+				),
 				new GeneradorBloqueEditor( $proveedor ),
 				new AvisoTransparenciaIa(),
 				$this->createMock( RepositorioBorradoresInterface::class ),
@@ -352,7 +385,13 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 			new RedactorSintetico(
 				$proveedor,
 				new CompiladorDirectrices(),
-				new CorrectorInterno( $proveedor, new VerificadorVoz(), new VerificadorNGramas(), new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ) ),
+				new CorrectorInterno(
+					$proveedor,
+					new VerificadorVoz(),
+					new VerificadorNGramas(),
+					new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ),
+					new VerificadorContradiccionNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ), new SegmentadorUnidadesFactuales() )
+				),
 				new GeneradorBloqueEditor( $proveedor ),
 				new AvisoTransparenciaIa(),
 				$repoBorradores,

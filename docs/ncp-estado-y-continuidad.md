@@ -2,7 +2,7 @@
 
 **Documento vivo** (a diferencia de los ADR en `docs/decisiones/`, que son inmutables): se actualiza en cada porción cerrada. Su propósito es que cualquier agente o desarrollador — incluida una sesión nueva de Claude Code sin memoria de esta conversación — pueda continuar el trabajo de NCP exactamente donde quedó, sin releer el historial completo de `git log` ni adivinar decisiones ya tomadas.
 
-**Última actualización**: 2026-08-03, al cerrar NCP-2 Porción 6 (NLI/RRK vía T3) — cierra la secuencia de 3 porciones (b→c→a) decidida el mismo día.
+**Última actualización**: 2026-08-03, al cerrar NCP-3 Porción 3 (reordenamiento de hechos por relevancia vía RRK).
 
 ---
 
@@ -55,6 +55,16 @@ Investigación previa obligatoria (canon Parte 7, punto 3) ya hecha y documentad
 | 5 | Registro de modelos formal — `Pluma\Proveedores\RegistroModelos`/`ModeloRegistrado`/`RolModelo`, consolida `ProveedorEmbeddingsCerebroRemoto::MODELO_REFERENCIA` (retirada) | **CERRADA** — 3 entradas reales hoy (ENC, NLI, RRK) | `ADR 0019` | (pendiente de commit) |
 | 6 | NLI y RRK vía T3 — `Pluma\Proveedores\ProveedorNliCerebroRemoto`/`ProveedorRerankCerebroRemoto`, corrige 2 candidatos de `ADR 0014` incompatibles con TEI | **CERRADA** — última de las 3 porciones del orden decidido 2026-08-03: (b) SEG → (c) Registro → (a) NLI/RRK | `ADR 0020` | (pendiente de commit) |
 
+### NCP-3 · Verificación — EN CURSO, 3 porciones cerradas
+
+Primera fase de NCP donde capacidades de NCP-2 se conectan a consumidores reales de producción (hasta entonces todo NCP-2 quedaba deliberadamente aislado, sin consumidor, per el principio "cero enforcement prematuro" de toda la sesión).
+
+| Porción | Contenido | Estado | ADR | Commit |
+|---|---|---|---|---|
+| 1 | `Pluma\Redaccion\VerificadorContradiccionNli` — detección de contradicciones unidad↔hecho vía NLI real, conectada a `CorrectorInterno` como alerta adicional para el punto "hechos" (N3-J.3, "de similitud a implicación") | **CERRADA** — primer consumidor real de `ProveedorNliCerebroRemoto`. **T3 pasa a ser obligatorio** para todo el pipeline de redacción (decisión confirmada explícitamente por el propietario, ver §4) | `ADR 0021` | (pendiente de commit) |
+| 2 | `Pluma\Investigacion\DetectorContradiccionesNli` — detección de contradicciones entre pares de hechos del expediente vía NLI real, conectada a `ResolutorDisputas` como alerta adicional (N2-B.2, "la contradicción entre dos extractos ES la etiqueta CONTRADICTION") | **CERRADA** — segundo consumidor real de `ProveedorNliCerebroRemoto`. T3 obligatorio ahora cubre también el paso de investigación (misma decisión de `ADR 0021`, aplicada de forma consistente) | `ADR 0022` | (pendiente de commit) |
+| 3 | `Pluma\Investigacion\OrdenadorHechosPorRelevancia` — reordena (nunca excluye) los hechos del expediente por relevancia vía RRK real, conectado en `Orquestador::procesarInvestigacion()` | **CERRADA** — primer consumidor real de `ProveedorRerankCerebroRemoto`. **Degrada con gracia** (no propaga fallos de T3) — primera pieza de NCP-3 donde T3 sigue opcional | `ADR 0023` | (pendiente de commit) |
+
 ---
 
 ## 3. Índice completo de ADR relevantes para NCP (leer en este orden si se retoma el trabajo)
@@ -69,6 +79,9 @@ Investigación previa obligatoria (canon Parte 7, punto 3) ya hecha y documentad
 - `docs/decisiones/0018-ncp2-porcion-4-seg-segmentacion-icu.md` — rol SEG (segmentación de oraciones), ICU con fallback, y el hallazgo real de que ICU no protege abreviaturas editoriales por defecto.
 - `docs/decisiones/0019-ncp2-porcion-5-registro-modelos-formal.md` — el registro de modelos formal, con su única entrada real hoy (ENC) y por qué el campo checksum es honestamente nulo para T3.
 - `docs/decisiones/0020-ncp2-porcion-6-nli-rrk-via-t3.md` — NLI y RRK vía T3, con la corrección real de 2 candidatos de `ADR 0014` (arquitecturas incompatibles con TEI) y evidencia de los reemplazos verificados.
+- `docs/decisiones/0021-ncp3-porcion-1-contradicciones-via-nli.md` — primer consumidor real de NLI, la decisión de T3 obligatorio confirmada por el propietario, y un bug real de descubrimiento de tests en PHPUnit + Docker-en-Windows encontrado y resuelto durante la verificación.
+- `docs/decisiones/0022-ncp3-porcion-2-contradicciones-entre-fuentes-nli.md` — segundo consumidor real de NLI (contradicciones entre fuentes, N2-B.2), extiende T3 obligatorio a investigación, y confirma con `git stash` que 2 fallos de test adicionales (`CifradoTest`, `Orquestador`) son preexistentes y ajenos.
+- `docs/decisiones/0023-ncp3-porcion-3-orden-hechos-por-relevancia-rrk.md` — primer consumidor real de RRK (reordenamiento de hechos), y el primer caso de NCP-3 donde T3 se deja explícitamente opcional (degradación con gracia, no propagación de fallo).
 
 ---
 
@@ -81,6 +94,8 @@ Estas reglas ya están decididas y documentadas; un continuador **no debe deshac
 3. **`TransportePlano1` no incluye T4 (navegador/WASM)** — decisión deliberada (`ADR 0013`), no un olvido. Si se necesita en el futuro (probablemente para trabajo interactivo del panel, nunca para el cron), es una extensión nueva con su propia justificación, no un "arreglo" de un enum incompleto.
 4. **`ProveedorCerebroRemoto::probar()` y el refresco de `SensorCapacidades` nunca deben empezar a compartir la misma llamada de red.** El diseño depende de que `ultimaPruebaOk()` sea siempre una lectura cacheada — si alguna vez se tienta "simplificar" haciendo que el sensor pruebe en vivo, se reintroduce exactamente el riesgo que `ADR 0013` resolvió (llamadas de red dentro de la sección no presupuestada del tick del Orquestador).
 5. **`SensorCapacidades`, `ProveedorCerebroRemoto` y `ProveedorEmbeddingsCerebroRemoto` son `final class` sin interfaz propia** (a diferencia de `AlmacenPerfilEntorno`, que sí tiene `AlmacenPerfilEntornoInterface` porque tiene múltiples consumidores). Si una clase `final` necesita mockearse en un test nuevo, la solución establecida en este proyecto es construir una instancia real controlada vía `get_option`/colaboradores inyectados (interfaces reales), **nunca** intentar `Mockery::mock()`/`createMock()` sobre una clase `final` — PHP no lo permite, y ya ha costado una ronda de correcciones en esta sesión dos veces (ver `tests/Unit/Kernel/SensorCapacidadesTest.php` y `tests/Unit/Proveedores/ProveedorEmbeddingsCerebroRemotoTest.php` como los dos ejemplos ya resueltos de este patrón).
+6. **T3 (cerebro remoto) es OBLIGATORIO desde NCP-3 Porción 1 (`ADR 0021`) — ya no es infraestructura opcional.** `Pluma\Redaccion\VerificadorContradiccionNli` es dependencia dura de `CorrectorInterno`; sin T3 configurado, `CorrectorInterno::revisar()` lanza `ProveedorLenguajeException` sin capturar y **ninguna Pieza puede corregirse/publicarse**. Esto fue presentado explícitamente al propietario (dos veces, con la alternativa de fallo silencioso que habría mantenido T3 opcional) y **confirmado a propósito**, no es un descuido — no lo trates como un bug a "arreglar" volviendo a hacer T3 opcional sin plantear la pregunta de nuevo.
+7. **`phpunit.xml.dist` lista las subcarpetas de `tests/Unit/` explícitamente, una por `<directory>`, en vez de un único `<directory>tests/Unit</directory>` recursivo.** Descubierto en `ADR 0021`: el escaneo recursivo único empezó a perder tests silenciosamente (sin error, "OK" con un conteo menor) al cruzar cierto tamaño del árbol en este entorno (Docker-en-Windows). Cualquier subcarpeta nueva bajo `tests/Unit/` debe añadirse a esa lista explícita — si no, sus tests podrían no ejecutarse nunca sin que ningún gate lo detecte.
 6. **El modelo de referencia verificado es `intfloat/multilingual-e5-small` (MIT)**, servido vía Hugging Face Text Embeddings Inference. Cualquier cambio de modelo de referencia debe volver a pasar por la tabla de licencias de `ADR 0014` — no asumir que otro modelo de la misma familia tiene la misma licencia (ver los casos ya descalificados en esa tabla: varios modelos con apariencia similar tienen licencias no comerciales o ambiguas).
 
 ---
@@ -128,7 +143,7 @@ npx vitest run
 npm run build
 ```
 
-**Estado conocido al momento de escribir este documento** (tras NCP-2 Porción 6): PHPCS 0 errores, PHPStan nivel 8 0 errores, PHPUnit Unit 732 tests en verde (719 + 13 de `ProveedorNliCerebroRemotoTest`/`ProveedorRerankCerebroRemotoTest`/`RegistroModelosTest`), PHPUnit Integración 296 tests en verde (última corrida completa fue durante NCP-1 Porción 4 — ninguna de las Porciones 2-6 de NCP-2 tocó nada que la suite de Integración cubra, pero si un continuador quiere evidencia fresca de Integración tras más cambios, debe volver a correrla completa, no asumir que sigue en verde indefinidamente).
+**Estado conocido al momento de escribir este documento** (tras NCP-3 Porción 3): PHPCS 0 errores, PHPStan nivel 8 0 errores, PHPUnit Unit 753 tests, **747 en verde** — los 5 errores + 1 fallo restantes son exclusivamente `Pluma\Tests\Unit\Kernel\CifradoTest` (`@runInSeparateProcess` no aísla correctamente en este entorno), **preexistente y confirmado ajeno con `git stash`** (`PLUMA-E9-30` en `docs/deuda.md`) — pasa limpio (6/6) cuando se ejecuta el archivo solo. PHPUnit Invariantes: 30 tests, 2 errores **preexistentes y confirmados ajenos a NCP** (`Pluma\Pipeline\Orquestador::__construct()`, `PLUMA-E9-29`, ahora "32 vs 33" — mismo origen, mecánicamente actualizado) — los archivos de Invariantes que NCP-3 sí toca pasan limpios. PHPUnit Integración 296 tests en verde (última corrida completa fue durante NCP-1 Porción 4 — ninguna porción de NCP-2/NCP-3 tocó nada que la suite de Integración cubra, pero si un continuador quiere evidencia fresca de Integración tras más cambios, debe volver a correrla completa, no asumir que sigue en verde indefinidamente).
 
 Si algún gate falla al retomar el trabajo, **no es necesariamente un problema de esta sesión** — confirma primero si el fallo es preexistente (`git stash` + repetir el gate en el commit anterior) antes de asumir que el código nuevo lo rompió.
 

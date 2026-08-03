@@ -7,7 +7,20 @@
          cacheResultFile=".phpunit.cache/test-results">
     <testsuites>
         <testsuite name="Unit">
-            <directory>tests/Unit</directory>
+            <directory>tests/Unit/Admin</directory>
+            <directory>tests/Unit/Compuertas</directory>
+            <directory>tests/Unit/Datos</directory>
+            <directory>tests/Unit/Dobles</directory>
+            <directory>tests/Unit/Idioma</directory>
+            <directory>tests/Unit/Investigacion</directory>
+            <directory>tests/Unit/Kernel</directory>
+            <directory>tests/Unit/Pipeline</directory>
+            <directory>tests/Unit/Proveedores</directory>
+            <directory>tests/Unit/Publicacion</directory>
+            <directory>tests/Unit/Redaccion</directory>
+            <directory>tests/Unit/Sensores</directory>
+            <directory>tests/Unit/Seo</directory>
+            <directory>tests/Unit/Taxonomia</directory>
         </testsuite>
         <testsuite name="Invariantes">
             <directory>tests/Invariantes</directory>
