@@ -46,7 +46,6 @@ use Pluma\Investigacion\NivelVerificacion;
 use Pluma\Investigacion\OrdenadorHechosPorRelevancia;
 use Pluma\Investigacion\ResolutorDisputas;
 use Pluma\Kernel\AlmacenPerfilEntornoInterface;
-use Pluma\Kernel\Cifrado;
 use Pluma\Kernel\HechosEntorno;
 use Pluma\Kernel\PerfilEntorno;
 use Pluma\Kernel\TransportePlano1;
@@ -65,10 +64,8 @@ use Pluma\Pipeline\Transicionador;
 use Pluma\Redaccion\AgrupadorTemasSinCobertura;
 use Pluma\Redaccion\CreadorAutomaticoPeriodistas;
 use Pluma\Proveedores\LenguajeInterface;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
-use Pluma\Proveedores\ProveedorRerankCerebroRemoto;
 use Pluma\Proveedores\PresupuestoLenguaje;
+use Pluma\Proveedores\ProveedorRerankLexico;
 use Pluma\Proveedores\ProveedorTendenciasException;
 use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
 use Pluma\Publicacion\CreadorBorradorInterface;
@@ -116,6 +113,7 @@ use Pluma\Taxonomia\ReconciliadorVocabulario;
 use Pluma\Taxonomia\Taxonomo;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
 use Pluma\Tests\Unit\Dobles\AzarFijo;
+use Pluma\Tests\Unit\Dobles\NliFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeFalso;
 use Pluma\Tests\Unit\Dobles\RelojFijo;
 
@@ -232,7 +230,7 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$almacen = Mockery::mock( AlmacenPerfilEntornoInterface::class );
 		$almacen->allows( 'refrescar' )->andReturn(
 			new PerfilEntorno(
-				new HechosEntorno( false, 128, 90, false, false, false ),
+				new HechosEntorno( false, 128, 90, false, false ),
 				TransportePlano1::Ninguno,
 				( new RelojFijo() )->ahora()
 			)
@@ -336,10 +334,10 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			new RelojFijo(),
 			$overrides['resolutorDisputas'] ?? new ResolutorDisputas(
 				Mockery::mock( LenguajeInterface::class ),
-				new DetectorContradiccionesNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ) )
+				new DetectorContradiccionesNli( new NliFalso() )
 			),
 			$overrides['detectorHuecos'] ?? new DetectorHuecos( Mockery::mock( LenguajeInterface::class ) ),
-			$overrides['ordenadorHechos'] ?? new OrdenadorHechosPorRelevancia( new ProveedorRerankCerebroRemoto( new ProveedorCerebroRemoto() ) ),
+			$overrides['ordenadorHechos'] ?? new OrdenadorHechosPorRelevancia( new ProveedorRerankLexico() ),
 			$overrides['clasificadorGravedad'] ?? new ClasificadorGravedadTendencia( Mockery::mock( LenguajeInterface::class ) ),
 			$overrides['gestorModoRespeto'] ?? new GestorModoRespeto(
 				$this->modoRespetoPermisivo(),
@@ -639,14 +637,11 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$investigador = Mockery::mock( InvestigadorInterface::class );
 		$investigador->expects( 'investigar' )->with( 'una tendencia', array() )->andReturn( new Expediente( 'una tendencia', array( $hechoUno, $hechoDos ) ) );
 
-		// NCP-3 Porción 2 (`ADR 0022`): `ResolutorDisputas` ahora depende de
-		// `DetectorContradiccionesNli` (T3 real) — `ProveedorNliCerebroRemoto`
-		// es `final` (no mockeable), se construye real y se controla vía
-		// `Brain\Monkey`, mismo patrón que `ResolutorDisputasTest`.
-		$nli               = new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() );
+		// NCP-3 Porción 2 (`ADR 0022`, reorientada por `ADR 0024`): `ResolutorDisputas`
+		// depende de `DetectorContradiccionesNli`, controlado aquí con `NliFalso`.
 		$resolutorDisputas = new ResolutorDisputas(
 			new ProveedorLenguajeFalso( '{"contradicciones": [{"indiceA": 0, "indiceB": 1, "tipo": "ocurrencia"}]}' ),
-			new DetectorContradiccionesNli( $nli )
+			new DetectorContradiccionesNli( new NliFalso() )
 		);
 
 		$respuestaHuecos = '{"economica": {"cubierta": true, "datosDisponibles": true, "relevanciaCausal": true}, '
@@ -672,24 +667,6 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 			define( 'AUTH_KEY', 'clave-app-de-prueba' );
 			define( 'SECURE_AUTH_KEY', 'clave-secure-de-prueba' );
 		}
-
-		// `construir()` ya dejó `get_option` en `justReturn(false)` — se
-		// sobrescribe aquí para dar credenciales reales de cerebro remoto al
-		// detector NLI, sin tocar el resto de opciones que `construir()` ya
-		// cubre (match con `default => $defecto` preserva ese comportamiento).
-		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) {
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
-		);
-		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
-		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '[{"score":0.9,"label":"neutral"},{"score":0.08,"label":"entailment"},{"score":0.02,"label":"contradiction"}]' );
 
 		$resultado = $orquestador->ejecutarTick();
 
@@ -1338,7 +1315,7 @@ final class OrquestadorTest extends CasoDePruebaUnitario {
 		$almacen = Mockery::mock( AlmacenPerfilEntornoInterface::class );
 		$almacen->expects( 'refrescar' )->once()->andReturn(
 			new PerfilEntorno(
-				new HechosEntorno( false, 128, 90, false, false, false ),
+				new HechosEntorno( false, 128, 90, false, false ),
 				TransportePlano1::Ninguno,
 				( new RelojFijo() )->ahora()
 			)

@@ -99,6 +99,7 @@ use Pluma\Pipeline\LectorConfiguracionCadencia;
 use Pluma\Pipeline\Orquestador;
 use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Pipeline\Transicionador;
+use Pluma\Proveedores\CaracteristicasNli;
 use Pluma\Proveedores\EmbeddingsInstrumentado;
 use Pluma\Proveedores\EmbeddingsInterface;
 use Pluma\Proveedores\EnrutadorModelos;
@@ -106,20 +107,20 @@ use Pluma\Proveedores\ExtractorImagenFuente;
 use Pluma\Proveedores\ExtractorImagenFuenteInterface;
 use Pluma\Proveedores\LenguajeInstrumentado;
 use Pluma\Proveedores\LenguajeInterface;
+use Pluma\Proveedores\NliInterface;
 use Pluma\Proveedores\PresupuestoLenguaje;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
-use Pluma\Proveedores\ProveedorEmbeddingsCerebroRemoto;
 use Pluma\Proveedores\ProveedorGoogleTrends;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
+use Pluma\Proveedores\ProveedorNliEntrenado;
 use Pluma\Proveedores\ProveedorOpenRouter;
 use Pluma\Proveedores\ProveedorPushWeb;
-use Pluma\Proveedores\ProveedorRerankCerebroRemoto;
+use Pluma\Proveedores\ProveedorRerankLexico;
 use Pluma\Proveedores\ProveedorSearchConsole;
 use Pluma\Proveedores\ProveedorSearchConsoleInterface;
 use Pluma\Proveedores\PushWebInterface;
 use Pluma\Proveedores\ProveedorTelemetria;
 use Pluma\Proveedores\ProveedorTendenciasInterface;
 use Pluma\Proveedores\RegistroModelos;
+use Pluma\Proveedores\RerankInterface;
 use Pluma\Proveedores\TelemetriaInterface;
 use Pluma\Publicacion\AsignadorImagenDestacada;
 use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
@@ -239,45 +240,35 @@ final class Nucleo {
 			static fn (): DetectorConflictos => new DetectorConflictos()
 		);
 
-		// NCP-1 · Sonda de Capacidades (`ADR 0013`): sensor + resolutor puro +
-		// almacén con snapshot cacheado. Ver docblocks de cada clase.
-		$this->contenedor->registrar(
-			ProveedorCerebroRemoto::class,
-			static fn (): ProveedorCerebroRemoto => new ProveedorCerebroRemoto()
-		);
-		// NCP-2 · Porción 2 (`ADR 0016`): ENC vía T3, verificado contra un
-		// servicio real. Disponible en el contenedor, deliberadamente NO
-		// vinculado a `EmbeddingsInterface::class` — ver docblock de la clase.
-		$this->contenedor->registrar(
-			ProveedorEmbeddingsCerebroRemoto::class,
-			fn ( Contenedor $c ): ProveedorEmbeddingsCerebroRemoto => new ProveedorEmbeddingsCerebroRemoto(
-				$c->obtener( ProveedorCerebroRemoto::class )
-			)
-		);
+		// NCP-1 · Sonda de Capacidades (`ADR 0013`, reorientada por `ADR 0024`):
+		// sensor + resolutor puro + almacén con snapshot cacheado. Ver
+		// docblocks de cada clase.
 		// NCP-2 · Porción 5 (`ADR 0019`): registro formal de modelos —
 		// consolida `ProveedorEmbeddingsCerebroRemoto::MODELO_REFERENCIA`
 		// (retirada) como única fuente de verdad. Sin dependencias.
 		$this->contenedor->registrar( RegistroModelos::class, static fn (): RegistroModelos => new RegistroModelos() );
-		// NCP-2 · Porción 6 (`ADR 0020`): NLI y RRK vía T3, verificados contra
-		// servicios reales. Disponibles en el contenedor, sin consumidor real
-		// todavía (NCP-3 no existe) — mismo patrón que ProveedorEmbeddingsCerebroRemoto.
+		// ADR 0024: RRK vía técnica léxica pura (TF-IDF + coseno), siempre
+		// disponible, sin transporte que sondear.
 		$this->contenedor->registrar(
-			ProveedorNliCerebroRemoto::class,
-			fn ( Contenedor $c ): ProveedorNliCerebroRemoto => new ProveedorNliCerebroRemoto(
-				$c->obtener( ProveedorCerebroRemoto::class )
-			)
+			RerankInterface::class,
+			static fn (): ProveedorRerankLexico => new ProveedorRerankLexico()
+		);
+		// ADR 0024: NLI vía clasificador pure-PHP entrenado offline (Rubix ML
+		// sobre InferES) — siempre disponible, sin transporte que sondear.
+		$this->contenedor->registrar(
+			CaracteristicasNli::class,
+			static fn (): CaracteristicasNli => new CaracteristicasNli()
 		);
 		$this->contenedor->registrar(
-			ProveedorRerankCerebroRemoto::class,
-			fn ( Contenedor $c ): ProveedorRerankCerebroRemoto => new ProveedorRerankCerebroRemoto(
-				$c->obtener( ProveedorCerebroRemoto::class )
+			NliInterface::class,
+			fn ( Contenedor $c ): ProveedorNliEntrenado => new ProveedorNliEntrenado(
+				$c->obtener( CaracteristicasNli::class )
 			)
 		);
 		$this->contenedor->registrar(
 			SensorCapacidades::class,
 			fn ( Contenedor $c ): SensorCapacidades => new SensorCapacidades(
-				$c->obtener( LenguajeInterface::class ),
-				$c->obtener( ProveedorCerebroRemoto::class )
+				$c->obtener( LenguajeInterface::class )
 			)
 		);
 		$this->contenedor->registrar(
@@ -407,7 +398,7 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			DetectorContradiccionesNli::class,
 			fn ( Contenedor $c ): DetectorContradiccionesNli => new DetectorContradiccionesNli(
-				$c->obtener( ProveedorNliCerebroRemoto::class )
+				$c->obtener( NliInterface::class )
 			)
 		);
 		$this->contenedor->registrar(
@@ -427,7 +418,7 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			OrdenadorHechosPorRelevancia::class,
 			fn ( Contenedor $c ): OrdenadorHechosPorRelevancia => new OrdenadorHechosPorRelevancia(
-				$c->obtener( ProveedorRerankCerebroRemoto::class )
+				$c->obtener( RerankInterface::class )
 			)
 		);
 		$this->contenedor->registrar(
@@ -601,7 +592,7 @@ final class Nucleo {
 		$this->contenedor->registrar(
 			VerificadorContradiccionNli::class,
 			fn ( Contenedor $c ): VerificadorContradiccionNli => new VerificadorContradiccionNli(
-				$c->obtener( ProveedorNliCerebroRemoto::class ),
+				$c->obtener( NliInterface::class ),
 				$c->obtener( SegmentadorUnidadesFactuales::class )
 			)
 		);
@@ -1052,7 +1043,6 @@ final class Nucleo {
 				$c->obtener( ContextoEjecucion::class ),
 				$c->obtener( RepositorioLlamadasModeloInterface::class ),
 				$c->obtener( RelojInterface::class ),
-				$c->obtener( ProveedorCerebroRemoto::class ),
 				$c->obtener( AlmacenPerfilEntornoInterface::class )
 			)
 		);

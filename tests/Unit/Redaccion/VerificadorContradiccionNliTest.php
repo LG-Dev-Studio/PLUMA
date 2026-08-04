@@ -9,55 +9,37 @@ use DateTimeImmutable;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\NivelVerificacion;
-use Pluma\Kernel\Cifrado;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
+use Pluma\Proveedores\EtiquetaNli;
+use Pluma\Proveedores\ResultadoNli;
 use Pluma\Redaccion\SegmentadorUnidadesFactuales;
 use Pluma\Redaccion\VerificadorContradiccionNli;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
+use Pluma\Tests\Unit\Dobles\NliFalso;
 
 /**
- * `ProveedorNliCerebroRemoto` es `final` (no mockeable) — se construye real
- * y se controla vía `Brain\Monkey` sobre `get_option`/`wp_remote_post`,
- * mismo patrón que `ProveedorNliCerebroRemotoTest`.
- *
  * @covers \Pluma\Redaccion\VerificadorContradiccionNli
  */
 final class VerificadorContradiccionNliTest extends CasoDePruebaUnitario {
 
-	protected function setUp(): void {
-		parent::setUp();
+	/**
+	 * @param list<array{score: float, label: string}> $filas
+	 */
+	private function nliQueResponde( array $filas ): NliFalso {
+		$resultados = array_map(
+			static fn ( array $fila ): ResultadoNli => new ResultadoNli( EtiquetaNli::from( $fila['label'] ), $fila['score'] ),
+			$filas
+		);
 
-		if ( ! defined( 'AUTH_KEY' ) ) {
-			define( 'AUTH_KEY', 'clave-app-de-prueba' );
-			define( 'SECURE_AUTH_KEY', 'clave-secure-de-prueba' );
-		}
+		return new NliFalso( static fn ( string $premisa, string $hipotesis ): array => $resultados );
 	}
 
 	/**
 	 * @param array<string, mixed> $opciones adicionales devueltas por `get_option` (p.ej. el umbral)
 	 */
-	private function verificador( string $cuerpoRespuestaNli, array $opciones = array() ): VerificadorContradiccionNli {
+	private function verificador( NliFalso $nli, array $opciones = array() ): VerificadorContradiccionNli {
 		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) use ( $opciones ) {
-				if ( array_key_exists( $opcion, $opciones ) ) {
-					return $opciones[ $opcion ];
-				}
-
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
+			static fn ( string $opcion, $defecto = false ) => $opciones[ $opcion ] ?? $defecto
 		);
-
-		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
-		Functions\when( 'wp_remote_retrieve_body' )->justReturn( $cuerpoRespuestaNli );
-
-		$nli = new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() );
 
 		return new VerificadorContradiccionNli( $nli, new SegmentadorUnidadesFactuales() );
 	}
@@ -70,7 +52,24 @@ final class VerificadorContradiccionNliTest extends CasoDePruebaUnitario {
 	}
 
 	public function test_una_unidad_que_contradice_se_marca(): void {
-		$verificador = $this->verificador( '[{"score":0.99,"label":"contradiction"},{"score":0.005,"label":"entailment"},{"score":0.005,"label":"neutral"}]' );
+		$verificador = $this->verificador(
+			$this->nliQueResponde(
+				array(
+					array(
+						'score' => 0.99,
+						'label' => 'contradiction',
+					),
+					array(
+						'score' => 0.005,
+						'label' => 'entailment',
+					),
+					array(
+						'score' => 0.005,
+						'label' => 'neutral',
+					),
+				)
+			)
+		);
 
 		$contradicciones = $verificador->unidadesQueContradicenElExpediente( $this->expediente(), 'El alcalde no renunció.' );
 
@@ -79,7 +78,24 @@ final class VerificadorContradiccionNliTest extends CasoDePruebaUnitario {
 	}
 
 	public function test_una_unidad_neutral_no_se_marca(): void {
-		$verificador = $this->verificador( '[{"score":0.9,"label":"neutral"},{"score":0.08,"label":"entailment"},{"score":0.02,"label":"contradiction"}]' );
+		$verificador = $this->verificador(
+			$this->nliQueResponde(
+				array(
+					array(
+						'score' => 0.9,
+						'label' => 'neutral',
+					),
+					array(
+						'score' => 0.08,
+						'label' => 'entailment',
+					),
+					array(
+						'score' => 0.02,
+						'label' => 'contradiction',
+					),
+				)
+			)
+		);
 
 		$contradicciones = $verificador->unidadesQueContradicenElExpediente( $this->expediente(), 'La ciudad celebró un festival.' );
 
@@ -87,7 +103,7 @@ final class VerificadorContradiccionNliTest extends CasoDePruebaUnitario {
 	}
 
 	public function test_expediente_sin_hechos_no_marca_ninguna_unidad(): void {
-		$verificador = $this->verificador( '[{"score":0.99,"label":"contradiction"}]' );
+		$verificador = $this->verificador( new NliFalso() );
 		$expediente  = new Expediente( 'una tendencia', array() );
 
 		self::assertSame( array(), $verificador->unidadesQueContradicenElExpediente( $expediente, 'Cualquier texto.' ) );
@@ -98,7 +114,14 @@ final class VerificadorContradiccionNliTest extends CasoDePruebaUnitario {
 		// de contradicción de 0.99 basta para marcar la unidad, confirmando que
 		// el umbral se lee de `get_option()` y no del valor de fábrica (0.5).
 		$verificador = $this->verificador(
-			'[{"score":0.99,"label":"contradiction"},{"score":0.005,"label":"entailment"},{"score":0.005,"label":"neutral"}]',
+			$this->nliQueResponde(
+				array(
+					array(
+						'score' => 0.99,
+						'label' => 'contradiction',
+					),
+				)
+			),
 			array( VerificadorContradiccionNli::OPCION_UMBRAL_CONTRADICCION => 1.5 )
 		);
 

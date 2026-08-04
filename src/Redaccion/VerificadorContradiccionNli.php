@@ -7,11 +7,11 @@ namespace Pluma\Redaccion;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Proveedores\EtiquetaNli;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
+use Pluma\Proveedores\NliInterface;
 
 /**
- * NCP-3 Porción 1 (`ADR 0021`): capa determinista (no generativa) de
- * detección de contradicciones, vía NLI real (T3). Complementa a
+ * NCP-3 Porción 1 (`ADR 0021`, reorientada por `ADR 0024`): capa determinista
+ * (no generativa) de detección de contradicciones, vía NLI real. Complementa a
  * {@see VerificadorTrazabilidadDeterminista} (similitud, "sin respaldo
  * aparente") con una señal categóricamente más fuerte: "esta frase del
  * borrador CONTRADICE un extracto del expediente", tal como especifica
@@ -28,7 +28,7 @@ final class VerificadorContradiccionNli {
 	private const UMBRAL_DEFECTO             = 0.5;
 
 	public function __construct(
-		private readonly ProveedorNliCerebroRemoto $nli,
+		private readonly NliInterface $nli,
 		private readonly SegmentadorUnidadesFactuales $segmentador,
 	) {
 	}

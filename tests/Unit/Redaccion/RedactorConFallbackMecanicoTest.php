@@ -22,12 +22,9 @@ use Pluma\Investigacion\NivelVerificacion;
 use Pluma\Pipeline\EstadoPieza;
 use Pluma\Pipeline\LectorConfiguracionCadencia;
 use Pluma\Pipeline\Pieza;
-use Pluma\Kernel\Cifrado;
 use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Proveedores\LenguajeInterface;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
 use Pluma\Proveedores\ProveedorLenguajeException;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
 use Pluma\Redaccion\AsignadorPeriodista;
 use Pluma\Redaccion\AvisoTransparenciaIa;
 use Pluma\Redaccion\ClasificadorNoticia;
@@ -62,6 +59,7 @@ use Pluma\Redaccion\VerificadorVoz;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
 use Pluma\Tests\Unit\Dobles\AzarFijo;
 use Pluma\Tests\Unit\Dobles\EmbeddingsFalso;
+use Pluma\Tests\Unit\Dobles\NliFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeQueFalla;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeSecuencial;
 use Pluma\Tests\Unit\Dobles\RelojFijo;
@@ -137,15 +135,7 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 		Functions\when( 'esc_html__' )->alias( static fn ( string $s ): string => htmlspecialchars( $s, ENT_QUOTES ) );
 		Functions\when( 'esc_url' )->alias( static fn ( string $s ): string => $s );
 		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
-		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) {
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
-		);
+		Functions\when( 'get_option' )->justReturn( false );
 		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
@@ -204,7 +194,7 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 					new VerificadorVoz(),
 					new VerificadorNGramas(),
 					new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ),
-					new VerificadorContradiccionNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ), new SegmentadorUnidadesFactuales() )
+					new VerificadorContradiccionNli( new NliFalso(), new SegmentadorUnidadesFactuales() )
 				),
 				new GeneradorBloqueEditor( $proveedor ),
 				new AvisoTransparenciaIa(),
@@ -318,7 +308,7 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 					new VerificadorVoz(),
 					new VerificadorNGramas(),
 					new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ),
-					new VerificadorContradiccionNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ), new SegmentadorUnidadesFactuales() )
+					new VerificadorContradiccionNli( new NliFalso(), new SegmentadorUnidadesFactuales() )
 				),
 				new GeneradorBloqueEditor( $proveedor ),
 				new AvisoTransparenciaIa(),
@@ -390,7 +380,7 @@ final class RedactorConFallbackMecanicoTest extends CasoDePruebaUnitario {
 					new VerificadorVoz(),
 					new VerificadorNGramas(),
 					new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ),
-					new VerificadorContradiccionNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ), new SegmentadorUnidadesFactuales() )
+					new VerificadorContradiccionNli( new NliFalso(), new SegmentadorUnidadesFactuales() )
 				),
 				new GeneradorBloqueEditor( $proveedor ),
 				new AvisoTransparenciaIa(),

@@ -61,6 +61,17 @@ construir_directorio() {
         cp -r languages/. "$plugin_dir/languages/"
     fi
 
+    if [ -d recursos ]; then
+        # ADR 0024: artefacto real del clasificador NLI pure-PHP
+        # (nli-es.rbx + nli-es-vocab.json, ~114 KB) — viaja dentro del
+        # plugin, no se descarga aparte.
+        mkdir -p "$plugin_dir/recursos"
+        cp -r recursos/. "$plugin_dir/recursos/"
+    else
+        echo "ERROR: recursos/ ausente (falta el modelo NLI entrenado, ADR 0024). Ejecuta tools/entrenamiento-nli/entrenar.php." >&2
+        exit 1
+    fi
+
     if [ -f LICENSES-THIRD-PARTY.md ]; then
         cp LICENSES-THIRD-PARTY.md "$plugin_dir/"
     fi
@@ -74,9 +85,13 @@ construir_directorio() {
             --output-dir="$plugin_dir/build-scoped" \
             --force >&2
 
+        # `scoper.inc.php` escanea con `Finder->in('vendor')`: las rutas de
+        # salida de PHP-Scoper ya son relativas a `vendor/`, así que
+        # `build-scoped/` ES el nuevo `vendor/` directamente — no
+        # `build-scoped/vendor/`. Bug real preexistente (Etapa 6, nunca
+        # ejercido de punta a punta hasta `ADR 0024`), corregido aquí.
         rm -rf "$plugin_dir/vendor"
-        mv "$plugin_dir/build-scoped/vendor" "$plugin_dir/vendor"
-        rm -rf "$plugin_dir/build-scoped"
+        mv "$plugin_dir/build-scoped" "$plugin_dir/vendor"
         composer dump-autoload --classmap-authoritative --no-dev --working-dir="$plugin_dir" >&2
     fi
 }

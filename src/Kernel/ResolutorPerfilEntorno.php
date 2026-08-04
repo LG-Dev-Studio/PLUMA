@@ -10,9 +10,12 @@ use DateTimeImmutable;
  * Deriva el `PerfilEntorno` a partir de `HechosEntorno` — servicio puro, sin
  * dependencias, mismo patrón que `Pluma\Idioma\ResolutorPerfilIdioma`.
  *
- * Implementa literalmente la matriz de decisión de
- * `docs/CEREBRO_PLUMA_v2.md` Parte 3.1: T1 (FFI) → T2 (proceso hijo) → T3
- * (cerebro remoto) → `Ninguno` (P0-lite). `$apiPagoConfigurada` es
+ * Implementa la matriz de decisión de `docs/CEREBRO_PLUMA_v2.md` Parte 3.1
+ * para el Plano 1 EN PROCESO: T1 (FFI) → T2 (proceso hijo) → `Ninguno`.
+ * Desde `ADR 0024` ya no existe T3 (cerebro remoto): NLI y RRK son pure-PHP,
+ * siempre disponibles — el transporte T1/T2 que este resolutor mide queda
+ * como medición prospectiva para un futuro rol que sí necesite ONNX
+ * embebido, no como requisito de NLI/RRK. `$apiPagoConfigurada` es
  * ortogonal y nunca participa de esta prioridad — el Plano 2 (generativo)
  * y el Plano 1 (semántico) son conceptos distintos del canon; mezclarlos
  * repetiría exactamente el error que este resolutor existe para evitar.
@@ -30,7 +33,6 @@ final class ResolutorPerfilEntorno {
 		$transporte = match ( true ) {
 			$hechos->ffiDisponible => TransportePlano1::T1EnProceso,
 			$hechos->procesoHijoDisponible => TransportePlano1::T2SidecarLocal,
-			$hechos->cerebroRemotoConfigurado => TransportePlano1::T3CerebroRemoto,
 			default => TransportePlano1::Ninguno,
 		};
 

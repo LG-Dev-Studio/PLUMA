@@ -16,11 +16,9 @@ use Pluma\Kernel\RelojInterface;
 use Pluma\Pipeline\Orquestador;
 use Pluma\Proveedores\OrigenLlamada;
 use Pluma\Proveedores\PresupuestoLenguaje;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
 use Pluma\Proveedores\ProveedorGoogleTrends;
 use Pluma\Proveedores\ProveedorOpenRouter;
 use Pluma\Proveedores\TelemetriaInterface;
-use Pluma\Proveedores\ValidadorUrl;
 use Pluma\Redaccion\CreadorAutomaticoPeriodistas;
 use WP_Error;
 use WP_REST_Request;
@@ -57,9 +55,7 @@ final class RestSalaMaquinas {
 	// NCP-1 (`ADR 0010`): instrumento de medición de llamadas al modelo.
 	private const RUTA_LLAMADAS_MODELO = '/motor/llamadas-modelo';
 	// NCP-1 · Sonda de Capacidades (`ADR 0013`).
-	private const RUTA_CEREBRO_REMOTO        = '/motor/cerebro-remoto';
-	private const RUTA_PROBAR_CEREBRO_REMOTO = '/motor/cerebro-remoto/probar';
-	private const RUTA_SONDA                 = '/motor/sonda';
+	private const RUTA_SONDA = '/motor/sonda';
 
 	private const LIMITE_BITACORA = 20;
 	// Misma ventana que la auditoría de NCP-1 espera consultar por defecto:
@@ -78,7 +74,6 @@ final class RestSalaMaquinas {
 		private readonly ContextoEjecucion $contextoEjecucion,
 		private readonly RepositorioLlamadasModeloInterface $llamadasModelo,
 		private readonly RelojInterface $reloj,
-		private readonly ProveedorCerebroRemoto $cerebroRemoto,
 		private readonly AlmacenPerfilEntornoInterface $almacenPerfilEntorno,
 	) {
 	}
@@ -191,33 +186,6 @@ final class RestSalaMaquinas {
 
 		register_rest_route(
 			'pluma/v1',
-			self::RUTA_CEREBRO_REMOTO,
-			array(
-				array(
-					'methods'             => 'POST',
-					'callback'            => array( $this, 'guardarCerebroRemoto' ),
-					'permission_callback' => array( $this, 'autorizado' ),
-				),
-				array(
-					'methods'             => 'DELETE',
-					'callback'            => array( $this, 'borrarCerebroRemoto' ),
-					'permission_callback' => array( $this, 'autorizado' ),
-				),
-			)
-		);
-
-		register_rest_route(
-			'pluma/v1',
-			self::RUTA_PROBAR_CEREBRO_REMOTO,
-			array(
-				'methods'             => 'POST',
-				'callback'            => array( $this, 'probarCerebroRemoto' ),
-				'permission_callback' => array( $this, 'autorizado' ),
-			)
-		);
-
-		register_rest_route(
-			'pluma/v1',
 			self::RUTA_SONDA,
 			array(
 				'methods'             => 'GET',
@@ -302,11 +270,6 @@ final class RestSalaMaquinas {
 				'googleTrends'    => array(
 					'circuitoAbierto' => $this->googleTrends->circuitoAbierto(),
 				),
-				'cerebroRemoto'   => array(
-					'configurada'    => $this->cerebroRemoto->configurado(),
-					'url'            => $this->urlCerebroRemotoConfigurada(),
-					'ultimaPruebaOk' => $this->cerebroRemoto->ultimaPruebaOk(),
-				),
 			),
 			200
 		);
@@ -347,77 +310,6 @@ final class RestSalaMaquinas {
 	}
 
 	/**
-	 * NCP-1 · Sonda de Capacidades (`ADR 0013`): guarda URL + token del
-	 * cerebro remoto (T3). No auto-prueba — misma UX que la llave de
-	 * OpenRouter, "Guardar" y "Probar" son acciones separadas.
-	 *
-	 * @return WP_REST_Response|WP_Error
-	 */
-	public function guardarCerebroRemoto( WP_REST_Request $request ) {
-		$url   = $request->get_param( 'url' );
-		$token = $request->get_param( 'token' );
-
-		if ( ! is_string( $url ) || '' === trim( $url ) || ! ValidadorUrl::esSegura( trim( $url ) ) ) {
-			return new WP_Error(
-				'pluma_cerebro_remoto_url_invalida',
-				__( 'La URL del cerebro remoto debe ser una dirección https válida y no privada.', 'pluma-engine' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		if ( ! is_string( $token ) || '' === trim( $token ) ) {
-			return new WP_Error(
-				'pluma_cerebro_remoto_token_invalido',
-				__( 'El token del cerebro remoto no puede estar vacío.', 'pluma-engine' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		update_option( ProveedorCerebroRemoto::OPCION_URL, trim( $url ), false );
-		update_option( ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO, Cifrado::cifrar( trim( $token ) ), false );
-
-		return new WP_REST_Response( array( 'guardada' => true ), 200 );
-	}
-
-	public function borrarCerebroRemoto(): WP_REST_Response {
-		delete_option( ProveedorCerebroRemoto::OPCION_URL );
-		delete_option( ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO );
-		delete_option( ProveedorCerebroRemoto::OPCION_ULTIMA_PRUEBA_OK );
-
-		return new WP_REST_Response( array( 'borrada' => true ), 200 );
-	}
-
-	/**
-	 * Prueba los valores candidatos del formulario (no necesariamente los
-	 * guardados, misma UX que `probarLlave()`). Si coinciden con los
-	 * realmente guardados, persiste el resultado — así probar una URL
-	 * todavía no guardada nunca envenena el caché de la URL configurada de
-	 * verdad (`SensorCapacidades` lee ese caché, jamás prueba en vivo).
-	 *
-	 * @return WP_REST_Response|WP_Error
-	 */
-	public function probarCerebroRemoto( WP_REST_Request $request ) {
-		$url   = $request->get_param( 'url' );
-		$token = $request->get_param( 'token' );
-
-		if ( ! is_string( $url ) || '' === trim( $url ) || ! is_string( $token ) || '' === trim( $token ) ) {
-			return new WP_Error(
-				'pluma_cerebro_remoto_datos_incompletos',
-				__( 'Falta la URL o el token a probar.', 'pluma-engine' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		$valida = $this->cerebroRemoto->probar( trim( $url ), trim( $token ) );
-
-		if ( trim( $url ) === get_option( ProveedorCerebroRemoto::OPCION_URL ) ) {
-			update_option( ProveedorCerebroRemoto::OPCION_ULTIMA_PRUEBA_OK, $valida, false );
-		}
-
-		return new WP_REST_Response( array( 'valida' => $valida ), 200 );
-	}
-
-	/**
 	 * NCP-1 · Sonda de Capacidades (`ADR 0013`): el snapshot cacheado del
 	 * Perfil de Entorno, sin refrescarlo (`leer()` falla abierto por su
 	 * cuenta si hace falta).
@@ -434,7 +326,6 @@ final class RestSalaMaquinas {
 					'memoriaLimiteMb'               => $perfil->hechos->memoriaLimiteMb,
 					'tiempoMaximoEjecucionSegundos' => $perfil->hechos->tiempoMaximoEjecucionSegundos,
 					'procesoHijoDisponible'         => $perfil->hechos->procesoHijoDisponible,
-					'cerebroRemotoConfigurado'      => $perfil->hechos->cerebroRemotoConfigurado,
 					'apiPagoConfigurada'            => $perfil->hechos->apiPagoConfigurada,
 				),
 			),
@@ -564,12 +455,6 @@ final class RestSalaMaquinas {
 		}
 
 		return Cifrado::descifrar( $sobre );
-	}
-
-	private function urlCerebroRemotoConfigurada(): ?string {
-		$url = get_option( ProveedorCerebroRemoto::OPCION_URL );
-
-		return is_string( $url ) && '' !== $url ? $url : null;
 	}
 
 	private function errorLlaveVacia(): WP_Error {

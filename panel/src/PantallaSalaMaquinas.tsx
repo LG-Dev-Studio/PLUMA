@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BloqueCerebroRemoto, type TextosCerebroRemoto } from './BloqueCerebroRemoto';
 import { BloqueLlamadasModelo, type TextosLlamadasModelo } from './BloqueLlamadasModelo';
 import { BloqueLlaveOpenRouter } from './BloqueLlaveOpenRouter';
 import { BloqueModeloVerificador, type TextosModeloVerificador } from './BloqueModeloVerificador';
@@ -21,10 +20,9 @@ export interface DatosSalud {
     cronRealConfigurado: boolean;
     esMultisitio: boolean;
     sondaCapacidades: {
-        transportePrioritario: 't1_en_proceso' | 't2_sidecar_local' | 't3_cerebro_remoto' | 'ninguno';
+        transportePrioritario: 't1_en_proceso' | 't2_sidecar_local' | 'ninguno';
         ffiDisponible: boolean;
         procesoHijoDisponible: boolean;
-        cerebroRemotoConfigurado: boolean;
         apiPagoConfigurada: boolean;
         medidoEn: string;
     };
@@ -46,11 +44,9 @@ export interface DatosSalud {
             etiquetaTransporte: string;
             t1EnProceso: string;
             t2SidecarLocal: string;
-            t3CerebroRemoto: string;
             ninguno: string;
             etiquetaFfi: string;
             etiquetaProcesoHijo: string;
-            etiquetaCerebroRemoto: string;
             etiquetaApiPago: string;
             disponible: string;
             noDisponible: string;
@@ -75,11 +71,6 @@ export interface EstadoMotor {
     };
     googleTrends: {
         circuitoAbierto: boolean;
-    };
-    cerebroRemoto: {
-        configurada: boolean;
-        url: string | null;
-        ultimaPruebaOk: boolean;
     };
 }
 
@@ -141,7 +132,6 @@ export interface TextosSalaMaquinas {
         quitar: string;
         confirmarQuitar: string;
     };
-    cerebroRemoto: TextosCerebroRemoto;
     searchConsole: TextosSearchConsole;
     transparencia: TextosTransparencia;
     riesgoLegal: TextosRiesgoLegal;
@@ -220,7 +210,6 @@ function BotonEjecutarMotor({ restUrl, nonce, textos }: { restUrl: string; nonce
 const CLAVES_TEXTO_TRANSPORTE = {
     t1_en_proceso: 't1EnProceso',
     t2_sidecar_local: 't2SidecarLocal',
-    t3_cerebro_remoto: 't3CerebroRemoto',
     ninguno: 'ninguno',
 } as const;
 
@@ -292,14 +281,6 @@ export function PantallaSalaMaquinas({ datos, restUrl, nonce, textos }: Props) {
                         <dt>{textosSalud.sondaCapacidades.etiquetaProcesoHijo}</dt>
                         <dd>
                             {datos.sondaCapacidades.procesoHijoDisponible
-                                ? textosSalud.sondaCapacidades.disponible
-                                : textosSalud.sondaCapacidades.noDisponible}
-                        </dd>
-                    </div>
-                    <div className="pluma-salud__fila">
-                        <dt>{textosSalud.sondaCapacidades.etiquetaCerebroRemoto}</dt>
-                        <dd>
-                            {datos.sondaCapacidades.cerebroRemotoConfigurado
                                 ? textosSalud.sondaCapacidades.disponible
                                 : textosSalud.sondaCapacidades.noDisponible}
                         </dd>
@@ -476,16 +457,6 @@ function SeccionesMotor({ restUrl, nonce, textos }: { restUrl: string; nonce: st
                 configurada={estado.openRouter.configurada}
                 ultimosCuatro={estado.openRouter.ultimosCuatro}
                 textos={textos.llave}
-                alGuardar={cargar}
-                alError={() => setError(textos.errorAccion)}
-            />
-
-            <BloqueCerebroRemoto
-                restUrl={restUrl}
-                nonce={nonce}
-                configurada={estado.cerebroRemoto.configurada}
-                url={estado.cerebroRemoto.url}
-                textos={textos.cerebroRemoto}
                 alGuardar={cargar}
                 alError={() => setError(textos.errorAccion)}
             />

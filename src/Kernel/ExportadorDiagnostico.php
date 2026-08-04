@@ -71,7 +71,6 @@ final class ExportadorDiagnostico {
 					'memoriaLimiteMb'               => $perfilEntorno->hechos->memoriaLimiteMb,
 					'tiempoMaximoEjecucionSegundos' => $perfilEntorno->hechos->tiempoMaximoEjecucionSegundos,
 					'procesoHijoDisponible'         => $perfilEntorno->hechos->procesoHijoDisponible,
-					'cerebroRemotoConfigurado'      => $perfilEntorno->hechos->cerebroRemotoConfigurado,
 					'apiPagoConfigurada'            => $perfilEntorno->hechos->apiPagoConfigurada,
 				),
 			),

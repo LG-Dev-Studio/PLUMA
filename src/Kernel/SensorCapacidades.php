@@ -5,19 +5,20 @@ declare(strict_types=1);
 namespace Pluma\Kernel;
 
 use Pluma\Proveedores\LenguajeInterface;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
 
 /**
  * Sensor de infraestructura real (`docs/CEREBRO_PLUMA_v2.md` Parte 1.6):
  * lee hechos crudos del entorno, cero derivación — mismo peso/patrón que
  * `DetectorEntorno`/`DetectorConflictos`. La derivación vive en
  * `ResolutorPerfilEntorno`.
+ *
+ * Desde `ADR 0024` ya no mide "cerebro remoto configurado": NLI y RRK son
+ * pure-PHP, siempre disponibles, sin nada que sondear.
  */
 final class SensorCapacidades {
 
 	public function __construct(
 		private readonly LenguajeInterface $proveedorLenguaje,
-		private readonly ProveedorCerebroRemoto $cerebroRemoto,
 	) {
 	}
 
@@ -27,7 +28,6 @@ final class SensorCapacidades {
 			$this->memoriaLimiteMb(),
 			$this->tiempoMaximoEjecucionSegundos(),
 			$this->procesoHijoDisponible(),
-			$this->cerebroRemoto->configurado() && $this->cerebroRemoto->ultimaPruebaOk(),
 			$this->proveedorLenguaje->tieneCredenciales()
 		);
 	}

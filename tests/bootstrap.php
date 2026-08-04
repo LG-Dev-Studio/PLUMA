@@ -14,6 +14,13 @@ if ( ! defined( 'PLUMA_ENGINE_VERSION' ) ) {
 	define( 'PLUMA_ENGINE_VERSION', '0.0.0-test' );
 }
 
+if ( ! defined( 'PLUMA_ENGINE_DIR' ) ) {
+	// `Pluma\Proveedores\ProveedorNliEntrenado` (`ADR 0024`) carga el
+	// artefacto real de `recursos/modelos/` — mismo directorio que en
+	// producción, sin doble: el archivo es pequeño (~100 KB) y determinista.
+	define( 'PLUMA_ENGINE_DIR', dirname( __DIR__ ) . '/' );
+}
+
 if ( ! defined( 'DAY_IN_SECONDS' ) ) {
 	// Constante real de WordPress (wp-includes/default-constants.php): no es
 	// una función, así que Brain\Monkey no puede simularla como tal.

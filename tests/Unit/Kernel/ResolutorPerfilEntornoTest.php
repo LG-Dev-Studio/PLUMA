@@ -11,8 +11,9 @@ use Pluma\Kernel\TransportePlano1;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
 
 /**
- * Los 4 escenarios de hosting exigidos por `docs/CEREBRO_PLUMA_v2.md`
- * Parte 6.1.7: compartido, VPS sin FFI, VPS con FFI, cerebro remoto.
+ * Desde `ADR 0024` ya no existe T3 (cerebro remoto) — NLI y RRK son
+ * pure-PHP, siempre disponibles. Este resolutor sigue midiendo T1/T2 como
+ * medición prospectiva para un futuro rol que necesite ONNX embebido.
  *
  * @covers \Pluma\Kernel\ResolutorPerfilEntorno
  */
@@ -21,10 +22,9 @@ final class ResolutorPerfilEntornoTest extends CasoDePruebaUnitario {
 	private function hechos(
 		bool $ffi = false,
 		bool $procesoHijo = false,
-		bool $cerebroRemoto = false,
 		bool $apiPago = false
 	): HechosEntorno {
-		return new HechosEntorno( $ffi, 128, 90, $procesoHijo, $cerebroRemoto, $apiPago );
+		return new HechosEntorno( $ffi, 128, 90, $procesoHijo, $apiPago );
 	}
 
 	private function ahora(): DateTimeImmutable {
@@ -48,20 +48,11 @@ final class ResolutorPerfilEntornoTest extends CasoDePruebaUnitario {
 
 	public function test_vps_con_ffi_elige_t1_en_proceso_aunque_lo_demas_tambien_este_disponible(): void {
 		$perfil = ( new ResolutorPerfilEntorno() )->resolver(
-			$this->hechos( ffi: true, procesoHijo: true, cerebroRemoto: true ),
+			$this->hechos( ffi: true, procesoHijo: true ),
 			$this->ahora()
 		);
 
 		self::assertSame( TransportePlano1::T1EnProceso, $perfil->transportePrioritario );
-	}
-
-	public function test_cerebro_remoto_configurado_sin_ffi_ni_proceso_hijo_elige_t3(): void {
-		$perfil = ( new ResolutorPerfilEntorno() )->resolver(
-			$this->hechos( ffi: false, procesoHijo: false, cerebroRemoto: true ),
-			$this->ahora()
-		);
-
-		self::assertSame( TransportePlano1::T3CerebroRemoto, $perfil->transportePrioritario );
 	}
 
 	public function test_api_de_pago_nunca_afecta_el_transporte_del_plano_1(): void {

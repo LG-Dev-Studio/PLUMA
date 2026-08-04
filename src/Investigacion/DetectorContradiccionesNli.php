@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Pluma\Investigacion;
 
 use Pluma\Proveedores\EtiquetaNli;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
+use Pluma\Proveedores\NliInterface;
 
 /**
- * NCP-3 Porción 2 (`ADR 0022`): capa determinista (no generativa) de
- * detección de contradicciones entre fuentes, vía NLI real (T3). El canon
+ * NCP-3 Porción 2 (`ADR 0022`, reorientada por `ADR 0024`): capa determinista
+ * (no generativa) de detección de contradicciones entre fuentes, vía NLI
+ * real. El canon
  * (`docs/CEREBRO_PLUMA_v2.md` §0.1 punto 2): "la contradicción entre dos
  * extractos ES la etiqueta CONTRADICTION del mismo modelo NLI".
  *
@@ -25,7 +26,7 @@ final class DetectorContradiccionesNli {
 	private const UMBRAL_DEFECTO                     = 0.5;
 
 	public function __construct(
-		private readonly ProveedorNliCerebroRemoto $nli,
+		private readonly NliInterface $nli,
 	) {
 	}
 

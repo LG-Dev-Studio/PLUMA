@@ -10,53 +10,35 @@ use Pluma\Investigacion\DetectorContradiccionesNli;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\NivelVerificacion;
-use Pluma\Kernel\Cifrado;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
+use Pluma\Proveedores\EtiquetaNli;
+use Pluma\Proveedores\ResultadoNli;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
+use Pluma\Tests\Unit\Dobles\NliFalso;
 
 /**
- * `ProveedorNliCerebroRemoto` es `final` (no mockeable) — se construye real
- * y se controla vía `Brain\Monkey`, mismo patrón que
- * `Pluma\Tests\Unit\Redaccion\VerificadorContradiccionNliTest`.
- *
  * @covers \Pluma\Investigacion\DetectorContradiccionesNli
  */
 final class DetectorContradiccionesNliTest extends CasoDePruebaUnitario {
 
-	protected function setUp(): void {
-		parent::setUp();
+	/**
+	 * @param list<array{score: float, label: string}> $filas
+	 */
+	private function nliQueResponde( array $filas ): NliFalso {
+		$resultados = array_map(
+			static fn ( array $fila ): ResultadoNli => new ResultadoNli( EtiquetaNli::from( $fila['label'] ), $fila['score'] ),
+			$filas
+		);
 
-		if ( ! defined( 'AUTH_KEY' ) ) {
-			define( 'AUTH_KEY', 'clave-app-de-prueba' );
-			define( 'SECURE_AUTH_KEY', 'clave-secure-de-prueba' );
-		}
+		return new NliFalso( static fn (): array => $resultados );
 	}
 
 	/**
 	 * @param array<string, mixed> $opciones adicionales devueltas por `get_option`
 	 */
-	private function detector( string $cuerpoRespuestaNli, array $opciones = array() ): DetectorContradiccionesNli {
+	private function detector( NliFalso $nli, array $opciones = array() ): DetectorContradiccionesNli {
 		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) use ( $opciones ) {
-				if ( array_key_exists( $opcion, $opciones ) ) {
-					return $opciones[ $opcion ];
-				}
-
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
+			static fn ( string $opcion, $defecto = false ) => $opciones[ $opcion ] ?? $defecto
 		);
-
-		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
-		Functions\when( 'wp_remote_retrieve_body' )->justReturn( $cuerpoRespuestaNli );
-
-		$nli = new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() );
 
 		return new DetectorContradiccionesNli( $nli );
 	}
@@ -72,15 +54,28 @@ final class DetectorContradiccionesNliTest extends CasoDePruebaUnitario {
 	}
 
 	public function test_expediente_con_menos_de_dos_hechos_no_llama_a_nada(): void {
-		Functions\when( 'get_option' )->justReturn( false );
-
-		$nli = new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() );
-
-		self::assertSame( array(), ( new DetectorContradiccionesNli( $nli ) )->paresQueContradicen( $this->expediente( 1 ) ) );
+		self::assertSame( array(), ( new DetectorContradiccionesNli( new NliFalso() ) )->paresQueContradicen( $this->expediente( 1 ) ) );
 	}
 
 	public function test_un_par_que_contradice_se_marca(): void {
-		$detector = $this->detector( '[{"score":0.99,"label":"contradiction"},{"score":0.005,"label":"entailment"},{"score":0.005,"label":"neutral"}]' );
+		$detector = $this->detector(
+			$this->nliQueResponde(
+				array(
+					array(
+						'score' => 0.99,
+						'label' => 'contradiction',
+					),
+					array(
+						'score' => 0.005,
+						'label' => 'entailment',
+					),
+					array(
+						'score' => 0.005,
+						'label' => 'neutral',
+					),
+				)
+			)
+		);
 
 		$pares = $detector->paresQueContradicen( $this->expediente( 2 ) );
 
@@ -95,13 +90,47 @@ final class DetectorContradiccionesNliTest extends CasoDePruebaUnitario {
 	}
 
 	public function test_un_par_neutral_no_se_marca(): void {
-		$detector = $this->detector( '[{"score":0.9,"label":"neutral"},{"score":0.08,"label":"entailment"},{"score":0.02,"label":"contradiction"}]' );
+		$detector = $this->detector(
+			$this->nliQueResponde(
+				array(
+					array(
+						'score' => 0.9,
+						'label' => 'neutral',
+					),
+					array(
+						'score' => 0.08,
+						'label' => 'entailment',
+					),
+					array(
+						'score' => 0.02,
+						'label' => 'contradiction',
+					),
+				)
+			)
+		);
 
 		self::assertSame( array(), $detector->paresQueContradicen( $this->expediente( 2 ) ) );
 	}
 
 	public function test_tres_hechos_comparan_exactamente_los_tres_pares_sin_duplicados(): void {
-		$detector = $this->detector( '[{"score":0.99,"label":"contradiction"},{"score":0.005,"label":"entailment"},{"score":0.005,"label":"neutral"}]' );
+		$detector = $this->detector(
+			$this->nliQueResponde(
+				array(
+					array(
+						'score' => 0.99,
+						'label' => 'contradiction',
+					),
+					array(
+						'score' => 0.005,
+						'label' => 'entailment',
+					),
+					array(
+						'score' => 0.005,
+						'label' => 'neutral',
+					),
+				)
+			)
+		);
 
 		$pares = $detector->paresQueContradicen( $this->expediente( 3 ) );
 
@@ -130,7 +159,14 @@ final class DetectorContradiccionesNliTest extends CasoDePruebaUnitario {
 		// de contradicción de 0.99 basta para marcar el par, confirmando que
 		// el umbral se lee de `get_option()` y no del valor de fábrica (0.5).
 		$detector = $this->detector(
-			'[{"score":0.99,"label":"contradiction"},{"score":0.005,"label":"entailment"},{"score":0.005,"label":"neutral"}]',
+			$this->nliQueResponde(
+				array(
+					array(
+						'score' => 0.99,
+						'label' => 'contradiction',
+					),
+				)
+			),
 			array( DetectorContradiccionesNli::OPCION_UMBRAL_CONTRADICCION_FUENTES => 1.5 )
 		);
 

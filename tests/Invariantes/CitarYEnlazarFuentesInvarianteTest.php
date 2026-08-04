@@ -10,9 +10,6 @@ use Pluma\Datos\RepositorioBorradoresInterface;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\NivelVerificacion;
-use Pluma\Kernel\Cifrado;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
 use Pluma\Redaccion\AvisoTransparenciaIa;
 use Pluma\Redaccion\CandidatoTesis;
 use Pluma\Redaccion\ClasificacionNoticia;
@@ -42,6 +39,7 @@ use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
 use Pluma\Tests\Unit\Dobles\EmbeddingsFalso;
+use Pluma\Tests\Unit\Dobles\NliFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeSecuencial;
 use Pluma\Tests\Unit\Dobles\RelojFijo;
 
@@ -102,19 +100,7 @@ final class CitarYEnlazarFuentesInvarianteTest extends CasoDePruebaUnitario {
 		Functions\when( 'esc_html__' )->alias( static fn ( string $s ): string => htmlspecialchars( $s, ENT_QUOTES ) );
 		Functions\when( 'esc_url' )->alias( static fn ( string $s ): string => $s );
 		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
-		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) {
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
-		);
-		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
-		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '[{"score":0.9,"label":"neutral"},{"score":0.08,"label":"entailment"},{"score":0.02,"label":"contradiction"}]' );
+		Functions\when( 'get_option' )->justReturn( false );
 		Functions\when( '__' )->alias( static fn ( string $s ): string => $s );
 
 		if ( ! defined( 'AUTH_KEY' ) ) {
@@ -147,7 +133,7 @@ final class CitarYEnlazarFuentesInvarianteTest extends CasoDePruebaUnitario {
 				new VerificadorVoz(),
 				new VerificadorNGramas(),
 				new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ),
-				new VerificadorContradiccionNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ), new SegmentadorUnidadesFactuales() )
+				new VerificadorContradiccionNli( new NliFalso(), new SegmentadorUnidadesFactuales() )
 			),
 			new GeneradorBloqueEditor( $proveedor ),
 			new AvisoTransparenciaIa(),

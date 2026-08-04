@@ -21,7 +21,7 @@ final class AlmacenPerfilEntorno implements AlmacenPerfilEntornoInterface {
 
 	public const OPCION = 'pluma_perfil_entorno';
 
-	private const VERSION_FORMATO = '1.0';
+	private const VERSION_FORMATO = '1.1';
 
 	public function __construct(
 		private readonly SensorCapacidades $sensor,
@@ -60,7 +60,6 @@ final class AlmacenPerfilEntorno implements AlmacenPerfilEntornoInterface {
 				'memoriaLimiteMb'               => $perfil->hechos->memoriaLimiteMb,
 				'tiempoMaximoEjecucionSegundos' => $perfil->hechos->tiempoMaximoEjecucionSegundos,
 				'procesoHijoDisponible'         => $perfil->hechos->procesoHijoDisponible,
-				'cerebroRemotoConfigurado'      => $perfil->hechos->cerebroRemotoConfigurado,
 				'apiPagoConfigurada'            => $perfil->hechos->apiPagoConfigurada,
 			),
 		);
@@ -102,7 +101,6 @@ final class AlmacenPerfilEntorno implements AlmacenPerfilEntornoInterface {
 			'memoriaLimiteMb',
 			'tiempoMaximoEjecucionSegundos',
 			'procesoHijoDisponible',
-			'cerebroRemotoConfigurado',
 			'apiPagoConfigurada',
 		);
 
@@ -117,7 +115,6 @@ final class AlmacenPerfilEntorno implements AlmacenPerfilEntornoInterface {
 			|| ! is_int( $datos['memoriaLimiteMb'] )
 			|| ! is_int( $datos['tiempoMaximoEjecucionSegundos'] )
 			|| ! is_bool( $datos['procesoHijoDisponible'] )
-			|| ! is_bool( $datos['cerebroRemotoConfigurado'] )
 			|| ! is_bool( $datos['apiPagoConfigurada'] )
 		) {
 			return null;
@@ -128,7 +125,6 @@ final class AlmacenPerfilEntorno implements AlmacenPerfilEntornoInterface {
 			$datos['memoriaLimiteMb'],
 			$datos['tiempoMaximoEjecucionSegundos'],
 			$datos['procesoHijoDisponible'],
-			$datos['cerebroRemotoConfigurado'],
 			$datos['apiPagoConfigurada']
 		);
 	}

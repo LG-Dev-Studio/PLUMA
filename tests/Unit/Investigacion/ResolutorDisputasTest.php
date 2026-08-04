@@ -12,10 +12,10 @@ use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\InvestigacionException;
 use Pluma\Investigacion\NivelVerificacion;
 use Pluma\Investigacion\ResolutorDisputas;
-use Pluma\Kernel\Cifrado;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
+use Pluma\Proveedores\EtiquetaNli;
+use Pluma\Proveedores\ResultadoNli;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
+use Pluma\Tests\Unit\Dobles\NliFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeFalso;
 
 /**
@@ -23,40 +23,17 @@ use Pluma\Tests\Unit\Dobles\ProveedorLenguajeFalso;
  */
 final class ResolutorDisputasTest extends CasoDePruebaUnitario {
 
-	protected function setUp(): void {
-		parent::setUp();
-
-		if ( ! defined( 'AUTH_KEY' ) ) {
-			define( 'AUTH_KEY', 'clave-app-de-prueba' );
-			define( 'SECURE_AUTH_KEY', 'clave-secure-de-prueba' );
-		}
-	}
-
 	/**
-	 * `ProveedorNliCerebroRemoto` es `final` (no mockeable) — se construye
-	 * real y se controla vía `Brain\Monkey`, mismo patrón que
-	 * `DetectorContradiccionesNliTest`. Por defecto no marca ningún par
-	 * como contradictorio.
+	 * Por defecto el doble de NLI no marca ningún par como contradictorio.
 	 */
 	private function resolutor(
 		ProveedorLenguajeFalso $proveedor,
-		string $cuerpoRespuestaNli = '[{"score":0.9,"label":"neutral"},{"score":0.08,"label":"entailment"},{"score":0.02,"label":"contradiction"}]'
+		string $etiquetaNliPrincipal = 'neutral'
 	): ResolutorDisputas {
-		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) {
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
-		);
-		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
-		Functions\when( 'wp_remote_retrieve_body' )->justReturn( $cuerpoRespuestaNli );
+		Functions\when( 'get_option' )->justReturn( false );
 
-		$nli = new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() );
+		$resultados = array( new ResultadoNli( EtiquetaNli::from( $etiquetaNliPrincipal ), 0.9 ) );
+		$nli        = new NliFalso( static fn (): array => $resultados );
 
 		return new ResolutorDisputas( $proveedor, new DetectorContradiccionesNli( $nli ) );
 	}
@@ -140,7 +117,7 @@ final class ResolutorDisputasTest extends CasoDePruebaUnitario {
 	public function test_un_par_contradictorio_se_señala_en_la_peticion_al_proveedor(): void {
 		$proveedor = new ProveedorLenguajeFalso( '{"contradicciones": []}' );
 
-		$this->resolutor( $proveedor, '[{"score":0.99,"label":"contradiction"},{"score":0.005,"label":"entailment"},{"score":0.005,"label":"neutral"}]' )
+		$this->resolutor( $proveedor, 'contradiction' )
 			->resolver( $this->expediente( 2 ) );
 
 		self::assertNotNull( $proveedor->ultimaPeticion );

@@ -28,10 +28,10 @@ use Pluma\Proveedores\PropositoLenguaje;
  * Porción 8). Toda contradicción de ocurrencia se marca `Disputado`
  * directamente, sin el intento de resolución por tercera fuente.
  *
- * NCP-3 Porción 2 (`ADR 0022`): antes de la llamada generativa,
- * {@see \Pluma\Investigacion\DetectorContradiccionesNli} (capa determinista,
- * NLI real vía T3) señala qué pares de hechos se contradicen — prioriza y
- * abarata la clasificación, nunca la sustituye (NLI no distingue
+ * NCP-3 Porción 2 (`ADR 0022`, reorientada por `ADR 0024`): antes de la
+ * llamada generativa, {@see \Pluma\Investigacion\DetectorContradiccionesNli}
+ * (capa determinista, NLI real) señala qué pares de hechos se contradicen —
+ * prioriza y abarata la clasificación, nunca la sustituye (NLI no distingue
  * `TipoContradiccion`, solo confirma que hay contradicción).
  */
 final class ResolutorDisputas {
@@ -66,7 +66,7 @@ final class ResolutorDisputas {
 		$paresContradictorios = $this->detectorNli->paresQueContradicen( $expediente );
 
 		if ( array() !== $paresContradictorios ) {
-			// NCP-3 Porción 2 (`ADR 0022`): capa determinista (no generativa, NLI real vía T3), previa a
+			// NCP-3 Porción 2 (`ADR 0022`): capa determinista (no generativa, NLI real), previa a
 			// esta llamada — prioriza la clasificación, nunca la sustituye (puede ser un falso positivo).
 			$bloques[] = 'ALERTA DE CONTRADICCIÓN DETERMINISTA (NLI): estos pares de hechos (por índice) fueron detectados como contradictorios por un modelo de inferencia de lenguaje natural — revísalos con tu propio criterio y clasifica su tipo exacto: '
 				. implode(

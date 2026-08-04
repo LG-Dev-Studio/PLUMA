@@ -10,6 +10,34 @@ Se regenera con `composer licenses --no-dev` (PHP) y `npm ls --omit=dev`
 (JS) en cada release, como parte del checklist del sub-agente RELEASE
 (AGENTS.md).
 
+## Estado — NCP · Reorientación (`ADR 0024`)
+
+Tercera dependencia de producción PHP del plugin: `rubix/ml` (machine
+learning puro PHP, sin extensión nativa), reemplaza al cerebro remoto (T3,
+retirado en esta misma reorientación) para los roles NLI y RRK del canon.
+Verificado con `composer licenses --no-dev`:
+
+| Paquete | Versión | Licencia | Uso |
+|---|---|---|---|
+| `rubix/ml` | ^2.5 | MIT | Clasificador NLI pure-PHP (`Pluma\Proveedores\ProveedorNliEntrenado`) — entrenamiento offline y persistencia del modelo. |
+| `rubix/tensor` | — | MIT | Dependencia transitiva de `rubix/ml` — álgebra vectorial/matricial. |
+| `andrewdalpino/okbloomer` | — | MIT | Dependencia transitiva de `rubix/ml`. |
+| `wamania/php-stemmer` | — | MIT | Dependencia transitiva de `rubix/ml` (no usada por `CaracteristicasNli`, que implementa su propia tokenización). |
+| `joomla/string` | — | **GPL-2.0-or-later** | Dependencia transitiva de `rubix/ml`. Compatible por diseño: WordPress y sus plugins son GPL-2.0-or-later; no introduce ningún conflicto de licencia con la distribución del plugin. |
+| `amphp/amp`, `amphp/parallel`, `amphp/byte-stream`, `amphp/parser`, `amphp/process`, `amphp/serialization`, `amphp/sync` | — | MIT | Dependencias transitivas de `rubix/ml` (procesamiento paralelo opcional, no usado por el pipeline de entrenamiento de esta porción). |
+| `symfony/polyfill-php80`, `symfony/polyfill-php82` | — | MIT | Dependencias transitivas de `rubix/ml`. |
+
+**Datos de entrenamiento (no es una dependencia de Composer, divulgación
+igualmente obligatoria — GOVERNANCE §5.2)**: el clasificador NLI se entrenó
+offline (`tools/entrenamiento-nli/entrenar.php`, herramienta de desarrollo,
+no se empaqueta) sobre **InferES** (Kovatchev & Taulé, 2022 — *"InferES: A
+Natural Language Inference Corpus for Spanish Featuring Negation-Based
+Contrastive and Adversarial Examples"*, ACL Anthology / Hugging Face
+`venelin/inferes`), **licencia CC-BY-4.0** — atribución obligatoria, uso
+comercial permitido. El dataset en sí no se distribuye con el plugin; solo
+el modelo ya entrenado (`recursos/modelos/nli-es.rbx` + `nli-es-vocab.json`,
+~114 KB) — atribución documentada aquí y en `ADR 0024`.
+
 ## Estado — Etapa 9 (El medio real, Porción 4)
 
 Primeras dependencias de producción PHP del plugin, añadidas para las

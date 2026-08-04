@@ -9,9 +9,8 @@ use DateTimeImmutable;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\NivelVerificacion;
-use Pluma\Kernel\Cifrado;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
+use Pluma\Proveedores\EtiquetaNli;
+use Pluma\Proveedores\ResultadoNli;
 use Pluma\Redaccion\CandidatoTesis;
 use Pluma\Redaccion\ClasificacionNoticia;
 use Pluma\Redaccion\ConductaVersion;
@@ -37,6 +36,7 @@ use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
 use Pluma\Tests\Unit\Dobles\EmbeddingsFalso;
+use Pluma\Tests\Unit\Dobles\NliFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeFalso;
 
 /**
@@ -59,24 +59,14 @@ final class AntiAlucinacionInvarianteTest extends CasoDePruebaUnitario {
 		}
 	}
 
-	private function mockearCerebroRemoto(): void {
-		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) {
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
-		);
-		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
-		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '[{"score":0.9,"label":"neutral"},{"score":0.08,"label":"entailment"},{"score":0.02,"label":"contradiction"}]' );
+	private function mockearOpciones(): void {
+		Functions\when( 'get_option' )->justReturn( false );
 	}
 
 	private function verificadorContradiccion(): VerificadorContradiccionNli {
-		return new VerificadorContradiccionNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ), new SegmentadorUnidadesFactuales() );
+		$resultados = array( new ResultadoNli( EtiquetaNli::Neutral, 0.9 ) );
+
+		return new VerificadorContradiccionNli( new NliFalso( static fn (): array => $resultados ), new SegmentadorUnidadesFactuales() );
 	}
 
 	private function periodista(): Periodista {
@@ -136,7 +126,7 @@ final class AntiAlucinacionInvarianteTest extends CasoDePruebaUnitario {
 				. '"matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}'
 		);
 
-		$this->mockearCerebroRemoto();
+		$this->mockearOpciones();
 
 		$corrector = new CorrectorInterno(
 			$proveedor,
@@ -173,7 +163,7 @@ final class AntiAlucinacionInvarianteTest extends CasoDePruebaUnitario {
 				. '"matriz_y_lineas_rojas": {"aprobado": true, "detalle": "ok"}}'
 		);
 
-		$this->mockearCerebroRemoto();
+		$this->mockearOpciones();
 
 		$corrector = new CorrectorInterno(
 			$proveedor,

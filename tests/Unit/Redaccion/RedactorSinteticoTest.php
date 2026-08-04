@@ -23,9 +23,8 @@ use Pluma\Redaccion\EstadoPeriodista;
 use Pluma\Redaccion\FichaDecisionEditorial;
 use Pluma\Redaccion\GeneradorBloqueEditor;
 use Pluma\Redaccion\MatrizTonos;
-use Pluma\Kernel\Cifrado;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
+use Pluma\Proveedores\EtiquetaNli;
+use Pluma\Proveedores\ResultadoNli;
 use Pluma\Redaccion\VerificadorContradiccionNli;
 use Pluma\Redaccion\NivelSatiraPermitida;
 use Pluma\Redaccion\NovedadNoticia;
@@ -42,6 +41,7 @@ use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
 use Pluma\Tests\Unit\Dobles\EmbeddingsFalso;
+use Pluma\Tests\Unit\Dobles\NliFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeSecuencial;
 use Pluma\Tests\Unit\Dobles\RelojFijo;
 
@@ -120,17 +120,11 @@ final class RedactorSinteticoTest extends CasoDePruebaUnitario {
 	}
 
 	/**
-	 * `ProveedorNliCerebroRemoto` es `final` (no mockeable) — se construye
-	 * real y se controla vía `Brain\Monkey`, mismo patrón que
-	 * `ProveedorNliCerebroRemotoTest`. Nunca marca contradicción por defecto.
+	 * El doble de NLI nunca marca contradicción por defecto.
 	 */
 	private function verificadorContradiccion(): VerificadorContradiccionNli {
-		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
-		Functions\when( 'wp_remote_retrieve_body' )->justReturn( '[{"score":0.9,"label":"neutral"},{"score":0.08,"label":"entailment"},{"score":0.02,"label":"contradiction"}]' );
-
-		$nli = new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() );
+		$resultados = array( new ResultadoNli( EtiquetaNli::Neutral, 0.9 ) );
+		$nli        = new NliFalso( static fn ( string $premisa, string $hipotesis ): array => $resultados );
 
 		return new VerificadorContradiccionNli( $nli, new SegmentadorUnidadesFactuales() );
 	}
@@ -140,15 +134,7 @@ final class RedactorSinteticoTest extends CasoDePruebaUnitario {
 		Functions\when( 'esc_html__' )->alias( static fn ( string $s ): string => htmlspecialchars( $s, ENT_QUOTES ) );
 		Functions\when( 'esc_url' )->alias( static fn ( string $s ): string => $s );
 		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
-		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) {
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
-		);
+		Functions\when( 'get_option' )->justReturn( false );
 		Functions\when( '__' )->alias( static fn ( string $s ): string => $s );
 
 		if ( ! defined( 'AUTH_KEY' ) ) {
@@ -258,15 +244,7 @@ final class RedactorSinteticoTest extends CasoDePruebaUnitario {
 	}
 
 	public function test_dos_fallos_consecutivos_marcan_la_pieza_retenida_sin_generar_bloque_editor(): void {
-		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) {
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
-		);
+		Functions\when( 'get_option' )->justReturn( false );
 
 		if ( ! defined( 'AUTH_KEY' ) ) {
 			define( 'AUTH_KEY', 'clave-app-de-prueba' );

@@ -9,9 +9,8 @@ use DateTimeImmutable;
 use Pluma\Investigacion\Expediente;
 use Pluma\Investigacion\HechoFuente;
 use Pluma\Investigacion\NivelVerificacion;
-use Pluma\Kernel\Cifrado;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
+use Pluma\Proveedores\EtiquetaNli;
+use Pluma\Proveedores\ResultadoNli;
 use Pluma\Redaccion\CandidatoTesis;
 use Pluma\Redaccion\ClasificacionNoticia;
 use Pluma\Redaccion\ConductaVersion;
@@ -39,6 +38,7 @@ use Pluma\Redaccion\VerificadorTrazabilidadDeterminista;
 use Pluma\Redaccion\VerificadorVoz;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
 use Pluma\Tests\Unit\Dobles\EmbeddingsFalso;
+use Pluma\Tests\Unit\Dobles\NliFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeFalso;
 
 /**
@@ -58,18 +58,12 @@ final class CorrectorInternoTest extends CasoDePruebaUnitario {
 	}
 
 	/**
-	 * `ProveedorNliCerebroRemoto` es `final` (no mockeable) — se construye
-	 * real y se controla vía `Brain\Monkey`, mismo patrón que
-	 * `ProveedorNliCerebroRemotoTest`. `$cuerpoRespuestaNli` por defecto no
-	 * marca ninguna contradicción (etiqueta "neutral" como principal).
+	 * Por defecto el doble de NLI no marca ninguna contradicción (etiqueta
+	 * "neutral" como principal).
 	 */
-	private function verificadorContradiccion( string $cuerpoRespuestaNli = '[{"score":0.9,"label":"neutral"},{"score":0.08,"label":"entailment"},{"score":0.02,"label":"contradiction"}]' ): VerificadorContradiccionNli {
-		Functions\when( 'wp_remote_post' )->justReturn( array( 'response' => array( 'code' => 200 ) ) );
-		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
-		Functions\when( 'wp_remote_retrieve_body' )->justReturn( $cuerpoRespuestaNli );
-
-		$nli = new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() );
+	private function verificadorContradiccion( string $etiquetaNliPrincipal = 'neutral' ): VerificadorContradiccionNli {
+		$resultados = array( new ResultadoNli( EtiquetaNli::from( $etiquetaNliPrincipal ), 0.9 ) );
+		$nli        = new NliFalso( static fn ( string $premisa, string $hipotesis ): array => $resultados );
 
 		return new VerificadorContradiccionNli( $nli, new SegmentadorUnidadesFactuales() );
 	}
@@ -118,15 +112,7 @@ final class CorrectorInternoTest extends CasoDePruebaUnitario {
 	}
 
 	private function corrector( ProveedorLenguajeFalso $proveedor ): CorrectorInterno {
-		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) {
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
-		);
+		Functions\when( 'get_option' )->justReturn( false );
 
 		return new CorrectorInterno(
 			$proveedor,
@@ -210,15 +196,7 @@ final class CorrectorInternoTest extends CasoDePruebaUnitario {
 	 * prioriza y abarata la evaluación, no la sustituye.
 	 */
 	public function test_una_frase_sin_respaldo_aparente_se_señala_en_la_peticion_al_proveedor(): void {
-		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) {
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
-		);
+		Functions\when( 'get_option' )->justReturn( false );
 
 		$embeddings = new EmbeddingsFalso(
 			static function ( string $texto ): array {
@@ -260,15 +238,7 @@ final class CorrectorInternoTest extends CasoDePruebaUnitario {
 	 * la alerta — la capa determinista no genera ruido cuando no hace falta.
 	 */
 	public function test_un_borrador_trazable_no_dispara_la_alerta_de_trazabilidad(): void {
-		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) {
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
-		);
+		Functions\when( 'get_option' )->justReturn( false );
 
 		$embeddings = new EmbeddingsFalso( static fn (): array => array( 1.0, 0.0 ) );
 
@@ -297,15 +267,7 @@ final class CorrectorInternoTest extends CasoDePruebaUnitario {
 	 * la petición al proveedor de lenguaje para el punto "hechos".
 	 */
 	public function test_una_frase_contradictoria_se_señala_en_la_peticion_al_proveedor(): void {
-		Functions\when( 'get_option' )->alias(
-			static function ( string $opcion, $defecto = false ) {
-				return match ( $opcion ) {
-					ProveedorCerebroRemoto::OPCION_URL => 'https://cerebro.example',
-					ProveedorCerebroRemoto::OPCION_TOKEN_CIFRADO => Cifrado::cifrar( 'token' ),
-					default => $defecto,
-				};
-			}
-		);
+		Functions\when( 'get_option' )->justReturn( false );
 
 		$proveedor = new ProveedorLenguajeFalso(
 			'{"hechos": {"aprobado": true, "detalle": "ok"}, "proporcion_interpretativa": {"aprobado": true, "detalle": "ok"}, '
@@ -317,7 +279,7 @@ final class CorrectorInternoTest extends CasoDePruebaUnitario {
 			new VerificadorVoz(),
 			new VerificadorNGramas(),
 			new VerificadorTrazabilidadDeterminista( new EmbeddingsFalso(), new SegmentadorUnidadesFactuales() ),
-			$this->verificadorContradiccion( '[{"score":0.99,"label":"contradiction"},{"score":0.005,"label":"entailment"},{"score":0.005,"label":"neutral"}]' )
+			$this->verificadorContradiccion( 'contradiction' )
 		);
 
 		$corrector->revisar( $this->periodista(), $this->expediente(), $this->ficha(), 'Título', 'El alcalde no renunció.' );

@@ -39,10 +39,8 @@ use Pluma\Pipeline\Orquestador;
 use Pluma\Pipeline\ProgramadorCadencia;
 use Pluma\Pipeline\Transicionador;
 use Pluma\Proveedores\LenguajeInterface;
-use Pluma\Proveedores\ProveedorCerebroRemoto;
-use Pluma\Proveedores\ProveedorNliCerebroRemoto;
-use Pluma\Proveedores\ProveedorRerankCerebroRemoto;
 use Pluma\Proveedores\PresupuestoLenguaje;
+use Pluma\Proveedores\ProveedorRerankLexico;
 use Pluma\Publicacion\AsignadorImagenDestacadaInterface;
 use Pluma\Publicacion\CreadorBorradorInterface;
 use Pluma\Publicacion\PublicadorInterface;
@@ -69,6 +67,7 @@ use Pluma\Taxonomia\ReconciliadorVocabulario;
 use Pluma\Taxonomia\Taxonomo;
 use Pluma\Tests\Unit\CasoDePruebaUnitario;
 use Pluma\Tests\Unit\Dobles\AzarFijo;
+use Pluma\Tests\Unit\Dobles\NliFalso;
 use Pluma\Tests\Unit\Dobles\ProveedorLenguajeFalso;
 use Pluma\Tests\Unit\Dobles\RelojFijo;
 
@@ -159,10 +158,10 @@ final class EscasezHonestaInvarianteTest extends CasoDePruebaUnitario {
 			new RelojFijo(),
 			new ResolutorDisputas(
 				Mockery::mock( LenguajeInterface::class ),
-				new DetectorContradiccionesNli( new ProveedorNliCerebroRemoto( new ProveedorCerebroRemoto() ) )
+				new DetectorContradiccionesNli( new NliFalso() )
 			),
 			new DetectorHuecos( Mockery::mock( LenguajeInterface::class ) ),
-			new OrdenadorHechosPorRelevancia( new ProveedorRerankCerebroRemoto( new ProveedorCerebroRemoto() ) ),
+			new OrdenadorHechosPorRelevancia( new ProveedorRerankLexico() ),
 			new ClasificadorGravedadTendencia( Mockery::mock( LenguajeInterface::class ) ),
 			new GestorModoRespeto(
 				Mockery::mock( RepositorioModoRespetoInterface::class )->allows( 'estadoActual' )->andReturn( EstadoModoRespeto::inactivo() )->getMock(),

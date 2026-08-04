@@ -5,29 +5,32 @@ declare(strict_types=1);
 namespace Pluma\Investigacion;
 
 use Pluma\Proveedores\ProveedorLenguajeException;
-use Pluma\Proveedores\ProveedorRerankCerebroRemoto;
+use Pluma\Proveedores\RerankInterface;
 use Pluma\Proveedores\ResultadoRerank;
 
 /**
- * NCP-3 Porción 3 (`ADR 0023`): rol RRK real, "selección de extractos del
- * expediente" (`docs/CEREBRO_PLUMA_v2.md` §1.3). Reordena los hechos del
- * expediente por relevancia a la tendencia de origen — nunca los excluye:
- * `Pluma\Redaccion\FormateadorExpediente::comoTexto()` sigue enviando TODOS
- * los hechos al redactor (GOVERNANCE §2.4), solo cambia el orden.
+ * NCP-3 Porción 3 (`ADR 0023`, reorientada por `ADR 0024`): rol RRK real,
+ * "selección de extractos del expediente" (`docs/CEREBRO_PLUMA_v2.md` §1.3).
+ * Reordena los hechos del expediente por relevancia a la tendencia de
+ * origen — nunca los excluye: `Pluma\Redaccion\FormateadorExpediente::comoTexto()`
+ * sigue enviando TODOS los hechos al redactor (GOVERNANCE §2.4), solo cambia
+ * el orden.
  *
  * A diferencia de {@see \Pluma\Redaccion\VerificadorContradiccionNli}/
  * {@see \Pluma\Investigacion\DetectorContradiccionesNli} (`ADR 0021`/`ADR 0022`,
- * donde el fallo de T3 debe propagarse por ser verificaciones de seguridad
+ * donde el fallo de NLI debe propagarse por ser verificaciones de seguridad
  * editorial), esta clase **degrada con gracia**: reordenar es una
  * optimización de presentación sin ningún hecho de por medio — si el
  * reranking falla o la respuesta no es una permutación válida de los
  * índices originales, el expediente se devuelve intacto, en su orden
- * original. Decisión confirmada explícitamente por el propietario.
+ * original. Decisión confirmada explícitamente por el propietario. Con el
+ * proveedor léxico (`ADR 0024`) esta ruta de fallo ya no ocurre en la
+ * práctica (siempre disponible), pero se conserva como defensa real.
  */
 final class OrdenadorHechosPorRelevancia {
 
 	public function __construct(
-		private readonly ProveedorRerankCerebroRemoto $rerank,
+		private readonly RerankInterface $rerank,
 	) {
 	}
 

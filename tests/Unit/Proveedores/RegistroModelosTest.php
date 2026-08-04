@@ -14,28 +14,28 @@ use Pluma\Tests\Unit\CasoDePruebaUnitario;
  */
 final class RegistroModelosTest extends CasoDePruebaUnitario {
 
-	public function test_todos_devuelve_exactamente_las_tres_entradas_reales_hoy(): void {
+	public function test_todos_devuelve_exactamente_las_dos_entradas_reales_hoy(): void {
 		$entradas = ( new RegistroModelos() )->todos();
 
-		self::assertCount( 3, $entradas );
-		self::assertSame( RolModelo::Enc, $entradas[0]->rol );
-		self::assertSame( 'intfloat/multilingual-e5-small', $entradas[0]->artefacto );
-		self::assertSame( 'MIT', $entradas[0]->licencia );
+		self::assertCount( 2, $entradas );
+		self::assertSame( RolModelo::Nli, $entradas[0]->rol );
+		self::assertSame( RolModelo::Rrk, $entradas[1]->rol );
 	}
 
-	public function test_por_rol_enc_devuelve_la_entrada(): void {
-		$entradas = ( new RegistroModelos() )->porRol( RolModelo::Enc );
-
-		self::assertCount( 1, $entradas );
-		self::assertSame( RolModelo::Enc, $entradas[0]->rol );
+	public function test_por_rol_enc_devuelve_vacio(): void {
+		// ADR 0024: ENC nunca tuvo consumidor real vía T3 (los 2 consumidores
+		// reales de EmbeddingsInterface siempre estuvieron ligados a
+		// ProveedorOpenRouter) — se retira sin reemplazo.
+		self::assertSame( array(), ( new RegistroModelos() )->porRol( RolModelo::Enc ) );
 	}
 
-	public function test_por_rol_nli_devuelve_la_entrada(): void {
+	public function test_por_rol_nli_devuelve_la_entrada_con_checksum_real(): void {
 		$entradas = ( new RegistroModelos() )->porRol( RolModelo::Nli );
 
 		self::assertCount( 1, $entradas );
 		self::assertSame( RolModelo::Nli, $entradas[0]->rol );
-		self::assertSame( 'MoritzLaurer/xlm-v-base-mnli-xnli', $entradas[0]->artefacto );
+		self::assertNotNull( $entradas[0]->checksum );
+		self::assertSame( 64, strlen( $entradas[0]->checksum ) );
 	}
 
 	public function test_por_rol_rrk_devuelve_la_entrada(): void {
@@ -43,7 +43,8 @@ final class RegistroModelosTest extends CasoDePruebaUnitario {
 
 		self::assertCount( 1, $entradas );
 		self::assertSame( RolModelo::Rrk, $entradas[0]->rol );
-		self::assertSame( 'BAAI/bge-reranker-base', $entradas[0]->artefacto );
+		self::assertNull( $entradas[0]->checksum );
+		self::assertNotNull( $entradas[0]->motivoSinChecksum );
 	}
 
 	public function test_por_rol_sin_entradas_reales_devuelve_vacio(): void {

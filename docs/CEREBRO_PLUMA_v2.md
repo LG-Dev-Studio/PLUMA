@@ -2,6 +2,18 @@
 ## Cerebro híbrido, multilingüe y universal — Arquitectura y encargo
 *Anexo al canon (Libro v1.0 + Niveles Dos, Tres y Cuatro) — Versión 2.0 · Sustituye a CEREBRO_PLUMA v1.0*
 
+> **⚠ Corrección viva — `docs/decisiones/0024-ncp-reorientacion-retiro-t3-cerebro-pure-php.md`** (2026-08-03):
+> el propietario aclaró que la intención original nunca fue T3 (cerebro remoto,
+> un servicio HTTP externo que el cliente debe operar) — era un cerebro
+> embebido en el propio plugin, sin infraestructura externa alguna. Investigación
+> real confirmó que T1 (ONNX vía FFI) tampoco es viable de forma confiable en
+> hosting compartido (`ffi.enable` por defecto en `"preload"`, deshabilitado en
+> peticiones web normales). **NLI y RRK se retiraron de la matriz de transportes
+> T1–T4 de las Partes 1.3/3.1/3.2 de abajo y pasan a ser PHP puro (Rubix ML),
+> siempre disponibles, sin transporte que sondear.** Las Partes 1.3/3.1/3.2 de
+> este documento describen la arquitectura ORIGINAL (histórica, no reescrita
+> aquí) — para el estado real de NLI/RRK, lee el ADR 0024, no estas secciones.
+
 ---
 
 # PARTE 0 — VEREDICTO SOBRE ONNX RUNTIME

@@ -21,6 +21,10 @@
 /.wp-env-override/
 .wp-env.override.json
 
+# NCP · Reorientación (ADR 0024): dataset de entrenamiento descargado a mano
+# (InferES, ~2.4 MB) — el ARTEFACTO entrenado sí se versiona (recursos/modelos/).
+/tools/entrenamiento-nli/dataset/
+
 # Playwright
 /playwright-report/
 /test-results/

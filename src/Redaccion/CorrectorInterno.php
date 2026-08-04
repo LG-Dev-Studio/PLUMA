@@ -19,15 +19,15 @@ use Pluma\Proveedores\PropositoLenguaje;
  * Nivel Tres J.3: antes de esa llamada, {@see VerificadorTrazabilidadDeterminista}
  * (capa no generativa, embeddings) señala qué frases del borrador no
  * encontraron respaldo aparente en el expediente, y {@see VerificadorContradiccionNli}
- * (NCP-3 Porción 1, `ADR 0021`, capa no generativa, NLI real vía T3) señala
- * qué frases contradicen directamente un extracto — ambas priorizan y
- * abaratan el punto "hechos", nunca lo sustituyen.
+ * (NCP-3 Porción 1, `ADR 0021`, capa no generativa, NLI real) señala qué
+ * frases contradicen directamente un extracto — ambas priorizan y abaratan
+ * el punto "hechos", nunca lo sustituyen.
  *
- * **Decisión de arquitectura confirmada por el propietario (`ADR 0021`)**: a
- * partir de esta porción el cerebro remoto (T3) es OBLIGATORIO para que
- * `revisar()` funcione — si no está configurado, `VerificadorContradiccionNli`
- * lanza `ProveedorLenguajeException` y se propaga sin capturar, igual que
- * cualquier otro fallo real del proveedor de lenguaje. No es un descuido.
+ * `ADR 0021` decidió en su momento que el cerebro remoto (T3) fuera
+ * obligatorio para que `revisar()` funcionara. `ADR 0024` retiró T3 por
+ * completo: `VerificadorContradiccionNli` ahora depende de `NliInterface`,
+ * implementada con un clasificador pure-PHP siempre disponible — la
+ * obligatoriedad ya no aplica porque no hay nada que configurar.
  *
  * "Jamás aprobar lo menos malo" (pl-periodistas §5): {@see aprobado()} exige
  * los 6 puntos, no una mayoría.

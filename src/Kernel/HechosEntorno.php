@@ -22,7 +22,6 @@ final readonly class HechosEntorno {
 		public int $memoriaLimiteMb,
 		public int $tiempoMaximoEjecucionSegundos,
 		public bool $procesoHijoDisponible,
-		public bool $cerebroRemotoConfigurado,
 		public bool $apiPagoConfigurada,
 	) {
 	}
